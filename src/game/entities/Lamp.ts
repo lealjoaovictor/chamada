@@ -55,6 +55,10 @@ export class Lamp {
     this.timer = between(ON_TIME);
   }
 
+  get isDead(): boolean {
+    return this.dead;
+  }
+
   update(dt: number, playerX: number): void {
     if (this.dead) return;
     if (this.diesWhenPassed && playerX > this.x) {

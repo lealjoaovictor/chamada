@@ -67,6 +67,10 @@ export class Hints {
     return null;
   }
 
+  get touchingLocked(): boolean {
+    return this.rattles.some((rattle) => rattle.inside);
+  }
+
   registerDeath(playerX: number): void {
     for (const state of this.states) {
       const zone = state.data.deathZone ?? state.data.zone;

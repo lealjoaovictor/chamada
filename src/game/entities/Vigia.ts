@@ -112,6 +112,18 @@ export class Vigia {
     for (const mesh of meshes) this.shadows.addShadowCaster(mesh, true);
   }
 
+  get positionX(): number {
+    return this.x;
+  }
+
+  get walking(): boolean {
+    return this.phase === "andando";
+  }
+
+  get shown(): boolean {
+    return this.phase !== "escondido";
+  }
+
   get chases(): boolean {
     return this.data.mode === "perseguicao";
   }

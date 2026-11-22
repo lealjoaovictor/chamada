@@ -81,6 +81,10 @@ export class Elevator {
     this.body.setTargetTransform(this.target, this.rotation);
   }
 
+  get moving(): boolean {
+    return Math.abs(this.goal - this.surface) > 0.001;
+  }
+
   get called(): boolean {
     return this.goal === this.data.bottomY || this.surface < this.data.topY - 0.01;
   }

@@ -26,6 +26,8 @@ import { Vigia } from "./entities/Vigia";
 import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
+import { Sfx } from "./Sfx";
+import { Soundscape } from "./Soundscape";
 import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
@@ -74,6 +76,8 @@ export class Game {
   private endShownAt = -1;
   private hints!: Hints;
   private focusLock = false;
+  private readonly sfx = new Sfx();
+  private readonly soundscape = new Soundscape(this.sfx);
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -96,7 +100,7 @@ export class Game {
     const game = new Game(engine);
     const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
     const level = debugLevel ? pipelineLevel : worldLevel;
-    await game.load(level);
+    await Promise.all([game.load(level), game.sfx.load()]);
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, DICAS, FOCOS, CHACOALHAR);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
@@ -229,6 +233,7 @@ export class Game {
     this.checkpoints.update(this.player.position.x);
     this.cullLights();
     this.hints.update(dt, this.hintWorld(), this.cameraRig.camera);
+    this.soundscape.update(dt, this.soundState());
     const cause = this.player.position.y < this.killY ? "queda" : this.isSeen(dt);
     if (cause) this.die(cause);
     else if (this.finalDoor && this.player.position.x >= this.finalDoor.data.triggerX) this.arrive();
@@ -260,6 +265,8 @@ export class Game {
 
   private die(cause: "queda" | "luz" | "toque"): void {
     this.hints.registerDeath(this.player.position.x);
+    this.soundscape.death(cause);
+    this.soundscape.forget();
     this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
     this.state = "morto";
     this.deathTimer = 0;
@@ -271,6 +278,7 @@ export class Game {
     this.cullLights();
     if (!this.input.consumeAnyPress()) return;
     this.menu.hide();
+    this.sfx.unlock();
     this.input.setAutopilot(null);
     document.body.style.cursor = "none";
     this.state = "jogando";
@@ -283,8 +291,33 @@ export class Game {
     this.finalDoor?.open();
   }
 
+  private soundState() {
+    return {
+      playerX: this.player.position.x,
+      playerY: this.player.position.y,
+      moving: this.input.axisX() !== 0,
+      grounded: this.player.isGrounded,
+      sliding: this.player.isSliding,
+      pushing: this.pushTimer > 0,
+      plates: this.plates.map((plate) => plate.pressed),
+      doorBottoms: this.doors.map((door) => door.bottom),
+      elevatorsMoving: this.elevators.map((elevator) => elevator.moving),
+      elevatorsCalled: this.elevators.map((elevator) => elevator.called),
+      lampsDead: this.lamps.map((lamp) => lamp.isDead),
+      vigias: this.vigias.map((vigia) => ({
+        x: vigia.positionX,
+        walking: vigia.walking,
+        chases: vigia.chases,
+        shown: vigia.shown,
+      })),
+      finalDoorOpen: this.finalDoor?.isOpening ?? false,
+      lockedDoorTouched: this.hints.touchingLocked,
+    };
+  }
+
   private updateArrival(dt: number): void {
     this.arrivalTimer += dt;
+    this.soundscape.update(dt, this.soundState());
     const target = this.finalDoor?.data.walkToX ?? this.player.position.x;
     if (this.state === "chegada") {
       const walking = this.arrivalTimer > ARRIVAL_PAUSE && this.player.position.x < target;

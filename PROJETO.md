@@ -169,6 +169,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Finais bom e ruim
 - [ ] Menu, tela de morte e tela final — feito em 2026-11-22, estilo A escolhido (`src/ui/Screens.ts`, estilos em `index.html`, créditos em `src/ui/creditos.ts`). Menu sobre o pátio ao vivo depois do pré-aquecimento, "pressione qualquer botão" (teclado, clique ou controle) e linha de controles; tela de morte = escurecimento sem texto; tela final com créditos e recomeço (recarrega a página). Falta playtest humano
 - [ ] Orientação do jogador (UX) — feito em 2026-11-22. Camadas: 0 = cenário guia (vidro da catraca com moldura, porta principal chacoalha ao tocar, câmera mostra o elevador ao entrar na biblioteca, pilar na entrada da biblioteca); 1 = brilho pulsante no objeto da solução quando o jogador parece perdido; 2 = ícone de tecla/botão (sem palavras, exceção aprovada à regra de texto) só quando o detector dispara. Regras em `src/levels/dicas.ts`, lógica em `src/game/Hints.ts`. Também: ponto de carregamento, cursor oculto no jogo, morte por lanterna escurece em âmbar, linha de controles com controle. Falta playtest humano
+- [ ] Efeitos sonoros — feito em 2026-11-22 (`src/game/Sfx.ts` = Web Audio, `src/game/Soundscape.ts` = quando tocar). Passos, pulo, aterrissagem, deslize, empurrar, placa, portas, porta trancada, botão e motor do elevador, lâmpada que apaga, passos do Vigia (volume pela distância), Vigia surgindo, porta final e três sons de morte. Áudio liberado no primeiro botão do menu. Sem música ambiente por enquanto. Falta playtest humano (volumes e escolha dos sons)
 - [ ] Efeitos sonoros e ambiente
 - [ ] Build local e `iniciar.bat`
 - [ ] Backup publicado no itch.io
@@ -196,6 +197,9 @@ Preencha ao baixar ou gerar qualquer item.
 | --- | --- | --- | --- | --- |
 | Y Bot (personagem) e animações Idle, Walking, Jump, Push Stop, Running Slide, Pushing, Running, Jogging (Walking, Push Stop e Jogging não usados) | https://www.mixamo.com (Adobe), baixado em 2026-11-21 e 2026-11-22 | Termos do Mixamo: uso livre de royalties em projetos pessoais e comerciais; não redistribuir os arquivos brutos isoladamente | Não | `public/models/personagem.glb` (jogador) |
 | X Bot (Vigia), reaproveitando Idle e Walking | https://www.mixamo.com (Adobe), baixado em 2026-11-22 | Termos do Mixamo: uso livre de royalties em projetos pessoais e comerciais; não redistribuir os arquivos brutos isoladamente | Não | `public/models/vigia.glb` (gerado com `converter_mixamo.py -- vigia`) |
+| 100 CC0 SFX (rubberduck): switch_01/02, machine_01, noise_01, door_01, glass_01, weird_04, hit_01 | https://opengameart.org/content/100-cc0-sfx, baixado em 2026-11-22 | CC0 | Não | `public/audio/sfx/` (placa, botao, elevador, deslizar, porta-final, lampada, morte-luz, morte-toque) |
+| 100 CC0 metal and wood SFX (rubberduck): wood_squeak_01/02, metal_open_01, metal_close_01, metal_slam_01, wood_misc_01, wood_falling_01 | https://opengameart.org/content/100-cc0-metal-and-wood-sfx, baixado em 2026-11-22 | CC0 | Não | `public/audio/sfx/` (empurrar-1/2, porta-abre, porta-fecha, vigia-surge, porta-trancada, morte-queda) |
+| Footsteps Leather, Cloth, Armor (haeldb): step_lth1/2/33/4, step_cloth1/2 | https://opengameart.org/content/footsteps-leather-cloth-armor, baixado em 2026-11-22 | CC0 (oferecido também em OGA-BY 3.0; usamos CC0) | Não | `public/audio/sfx/` (passo-1..4, pulo, aterrissar; passos do Vigia = mesmos sons mais graves) |
 
 Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 

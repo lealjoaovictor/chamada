@@ -39,6 +39,10 @@ export class FinalDoor {
     this.blocker = null;
   }
 
+  get isOpening(): boolean {
+    return this.opening;
+  }
+
   update(dt: number): void {
     if (!this.opening || this.time >= OPEN_TIME) return;
     this.time = Math.min(this.time + dt, OPEN_TIME);

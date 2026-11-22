@@ -9,7 +9,7 @@ import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugi
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Input } from "./Input";
 import { Physics } from "./Physics";
-import { Player } from "./Player";
+import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
 import { Box } from "./entities/Box";
@@ -17,6 +17,7 @@ import type { BlockData, LevelData } from "../levels/pipeline";
 import { pipelineLevel } from "../levels/pipeline";
 
 const MAX_DT = 1 / 30;
+const PUSH_REACH = 0.15;
 
 export class Game {
   private readonly boxes: Box[] = [];
@@ -59,7 +60,7 @@ export class Game {
 
     level.boxes.forEach((data, i) => this.boxes.push(new Box(scene, data, `box-${i}`)));
 
-    this.player = new Player(scene, level.spawn);
+    this.player = await Player.create(scene, level.spawn);
     this.cameraRig = new CameraRig(scene, level.spawn.x);
 
     scene.onBeforeRenderObservable.add(() => this.update());
@@ -70,9 +71,22 @@ export class Game {
 
   private update(): void {
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
-    this.player.update(dt, this.input);
+    this.input.update();
+    this.player.update(dt, this.input, this.isPushingBox());
     this.cameraRig.update(dt, this.player.position.x);
     this.input.endFrame();
+  }
+
+  private isPushingBox(): boolean {
+    const dir = this.input.axisX();
+    if (dir === 0 || !this.player.isGrounded) return false;
+    const p = this.player.position;
+    return this.boxes.some((box) => {
+      const ahead = (box.mesh.position.x - p.x) * dir;
+      const feet = p.y - CAPSULE_HEIGHT / 2;
+      const overlapY = box.mesh.position.y + box.halfSize > feet + 0.1 && box.mesh.position.y - box.halfSize < feet + CAPSULE_HEIGHT;
+      return ahead > 0 && ahead < CAPSULE_RADIUS + box.halfSize + PUSH_REACH && overlapY;
+    });
   }
 
   private createStatic(block: BlockData, depth: number, material: StandardMaterial, name: string): void {

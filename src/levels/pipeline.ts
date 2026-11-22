@@ -22,7 +22,7 @@ export interface LevelData {
 }
 
 export const pipelineLevel: LevelData = {
-  spawn: { x: -8, y: 1 },
+  spawn: { x: -8, y: 1.2 },
   depth: 4,
   ground: { x: 0, y: -0.5, width: 40, height: 1 },
   walls: [

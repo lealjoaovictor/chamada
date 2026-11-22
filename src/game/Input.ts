@@ -10,10 +10,18 @@ const KEYBOARD_MAP: Record<string, Action> = {
   ArrowDown: "slide",
 };
 
+const STICK_DEADZONE = 0.35;
+const PAD_JUMP = 0;
+const PAD_DOWN = 13;
+const PAD_LEFT = 14;
+const PAD_RIGHT = 15;
+
 export class Input {
   private readonly held = new Set<Action>();
   private readonly pressed = new Set<Action>();
   private readonly heldKeys = new Set<string>();
+  private readonly padHeld = new Set<Action>();
+  private readonly padPrevious = new Set<Action>();
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
     const action = KEYBOARD_MAP[e.code];
@@ -21,7 +29,7 @@ export class Input {
     e.preventDefault();
     if (this.heldKeys.has(e.code)) return;
     this.heldKeys.add(e.code);
-    if (!this.held.has(action)) this.pressed.add(action);
+    if (!this.isDown(action)) this.pressed.add(action);
     this.held.add(action);
   };
 
@@ -37,6 +45,7 @@ export class Input {
     this.heldKeys.clear();
     this.held.clear();
     this.pressed.clear();
+    this.padHeld.clear();
   };
 
   constructor() {
@@ -45,8 +54,30 @@ export class Input {
     window.addEventListener("blur", this.onBlur);
   }
 
+  update(): void {
+    this.padPrevious.clear();
+    this.padHeld.forEach((action) => this.padPrevious.add(action));
+    this.padHeld.clear();
+
+    const pads = typeof navigator.getGamepads === "function" ? navigator.getGamepads() : [];
+    for (const pad of pads) {
+      if (!pad || !pad.connected) continue;
+      const button = (i: number): boolean => pad.buttons[i]?.pressed ?? false;
+      const x = pad.axes[0] ?? 0;
+      const y = pad.axes[1] ?? 0;
+      if (x < -STICK_DEADZONE || button(PAD_LEFT)) this.padHeld.add("left");
+      if (x > STICK_DEADZONE || button(PAD_RIGHT)) this.padHeld.add("right");
+      if (y > STICK_DEADZONE || button(PAD_DOWN)) this.padHeld.add("slide");
+      if (button(PAD_JUMP)) this.padHeld.add("jump");
+    }
+
+    this.padHeld.forEach((action) => {
+      if (!this.padPrevious.has(action) && !this.held.has(action)) this.pressed.add(action);
+    });
+  }
+
   isDown(action: Action): boolean {
-    return this.held.has(action);
+    return this.held.has(action) || this.padHeld.has(action);
   }
 
   wasPressed(action: Action): boolean {

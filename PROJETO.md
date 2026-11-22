@@ -147,11 +147,11 @@ Atualize esta lista a cada tarefa concluída.
   - [x] 1. Projeto criado com versões fixadas
   - [x] 2. Cena com câmera lateral e chão
   - [x] 3. Cubo anda, pula e empurra caixa (Havok, controlador de personagem, plano 2D) — playtest humano aprovado (2026-11-21)
-  - [ ] 4. Personagem do Mixamo convertido para GLB
-  - [ ] 5. GLB importado com animações
+  - [x] 4. Personagem do Mixamo convertido para GLB (`ferramentas/converter_mixamo.py`, Blender 5.3.0, saída `public/models/personagem.glb`) — empurrar usa "Push Stop" provisório
+  - [x] 5. GLB importado, escurecido e trocando parado/andar/pular/empurrar conforme o movimento (deslizar carregado, ainda sem mecânica) — falta playtest humano
   - [x] 6. Névoa e luz simples
   - Desempenho: 60 fps estáveis no Mac do humano (teste manual, 2026-11-21)
-  - [ ] 7. Leitura de controle (teclado já passa pela camada de ações de `Input.ts`)
+  - [x] 7. Leitura de controle (analógico/direcional, botão inferior pula, para baixo = deslizar) — testado só com controle simulado; falta teste com controle real
   - [x] 8. `npm run build` e `vite preview` funcionando (Vite escuta na rede local)
 - [ ] Entrada: teclado e controle
 - [ ] Jogador: andar e pular
@@ -193,7 +193,7 @@ Preencha ao baixar ou gerar qualquer item.
 
 | Item | Origem (URL ou ferramenta) | Licença | Atribuição necessária? | Onde é usado |
 | --- | --- | --- | --- | --- |
-| | | | | |
+| Y Bot (personagem) e animações Idle, Walking, Jump, Push Stop, Running Slide | https://www.mixamo.com (Adobe), baixado em 2026-11-21 | Termos do Mixamo: uso livre de royalties em projetos pessoais e comerciais; não redistribuir os arquivos brutos isoladamente | Não | `public/models/personagem.glb` (jogador) |
 
 Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 

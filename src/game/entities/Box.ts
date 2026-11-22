@@ -10,10 +10,12 @@ import type { BoxData } from "../../levels/pipeline";
 
 export class Box {
   readonly mesh: Mesh;
+  readonly halfSize: number;
   private readonly aggregate: PhysicsAggregate;
   private readonly velocity = new Vector3();
 
   constructor(scene: Scene, data: BoxData, name: string) {
+    this.halfSize = data.size / 2;
     this.mesh = CreateBox(name, { size: data.size }, scene);
     this.mesh.position.set(data.x, data.y, 0);
     const material = new StandardMaterial(`${name}-mat`, scene);

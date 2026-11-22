@@ -258,6 +258,15 @@ export class Player {
     this.syncVisual(dt);
   }
 
+  /** Move o jogador em X mantendo velocidade e estado (corredor que se repete). */
+  shiftX(dx: number): void {
+    const pos = this.controller.getPosition();
+    pos.x += dx;
+    this.controller.setPosition(pos);
+    this.position.x += dx;
+    this.syncVisual(0);
+  }
+
   respawn(point: { x: number; y: number }): void {
     if (this.sliding) {
       this.sliding = false;

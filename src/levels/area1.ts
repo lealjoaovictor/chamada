@@ -74,6 +74,7 @@ export const area1Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: -5, maxX: END },
+  vultos: [{ x: 21, y: 1.5, z: 1.5, facing: 1 }, { x: 60.5, y: 0, z: 0.8, facing: 1, anda: true }],
   depth: 4,
   ground: [
     { x: 1, y: -0.5, width: 14, height: 1, material: "asfalto" },
@@ -126,6 +127,13 @@ export const area1Level: LevelData = {
   ],
   elevators: [],
   decor: [
+    // Narrativa: folhas espalhadas pela escadaria e um celular com a tela acesa na garagem.
+    { x: 16.8, y: 0.01, z: -0.9, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 17.6, y: 0.01, z: -0.4, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 24.5, y: 1.505, z: -0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 25.3, y: 1.505, z: -1.2, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 26.9, y: 1.505, z: -0.3, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 62.6, y: 0.012, z: -0.7, width: 0.09, height: 0.012, depth: 0.17, material: "tela" },
     ...[0, 1, 2, 3, 4, 5].map((i): DecorData => ({
       x: 15 + 0.333 + i * 0.667,
       y: (i + 1) * 0.125,

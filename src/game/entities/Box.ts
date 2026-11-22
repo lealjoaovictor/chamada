@@ -9,11 +9,15 @@ import type { BoxData } from "../../levels/types";
 
 const BOX_FRICTION = 0.4;
 
+const IMPACT_SPEED = 3.5;
+
 export class Box {
   readonly mesh: Mesh;
   readonly halfSize: number;
   private readonly aggregate: PhysicsAggregate;
   private readonly velocity = new Vector3();
+  private lastVy = 0;
+  private impact = 0;
   private readonly start: Vector3;
   private resetFrames = 0;
 
@@ -45,6 +49,15 @@ export class Box {
     body.setLinearVelocity(Vector3.Zero());
     body.setAngularVelocity(Vector3.Zero());
     this.resetFrames = 2;
+    this.lastVy = 0;
+    this.impact = 0;
+  }
+
+  /** Velocidade da última queda forte (m/s), ou 0. Zera ao ler. */
+  takeImpact(): number {
+    const impact = this.impact;
+    this.impact = 0;
+    return impact;
   }
 
   lockToPlane(): void {
@@ -56,6 +69,8 @@ export class Box {
       return;
     }
     body.getLinearVelocityToRef(this.velocity);
+    if (this.lastVy < -IMPACT_SPEED && this.velocity.y > this.lastVy * 0.3) this.impact = -this.lastVy;
+    this.lastVy = this.velocity.y;
     if (this.velocity.z !== 0) {
       this.velocity.z = 0;
       body.setLinearVelocity(this.velocity);

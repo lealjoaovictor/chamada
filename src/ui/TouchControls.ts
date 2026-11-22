@@ -7,8 +7,14 @@ const BUTTONS: { action: Action; icon: string; side: "esquerda" | "direita" }[] 
   { action: "jump", icon: "▲", side: "direita" },
 ];
 
-export function touchControlsEnabled(): boolean {
-  return import.meta.env.VITE_TOQUE === "1" || new URLSearchParams(location.search).get("toque") === "1";
+export type TouchMode = "gestos" | "botoes" | null;
+
+/** `?toque=botoes` mostra os botões antigos; `?toque=1` (ou a build de celular) usa gestos. */
+export function touchMode(): TouchMode {
+  const param = new URLSearchParams(location.search).get("toque");
+  if (param === "botoes") return "botoes";
+  if (param === "1" || param === "gestos" || import.meta.env.VITE_TOQUE === "1") return "gestos";
+  return null;
 }
 
 export class TouchControls {

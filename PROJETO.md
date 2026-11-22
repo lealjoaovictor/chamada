@@ -179,6 +179,15 @@ Atualize esta lista a cada tarefa concluída.
   - Área 3 (biblioteca): personagem anda agachado e devagar (2,4 m/s) no trecho `furtivo`; a silhueta mais baixa reduz o ponto de visão mais alto. Agachamento procedural por cima da animação de andar (`CROUCH_POSE` em `Player.ts`); trocar pelo "Crouched Walking" do Mixamo quando o humano entrar na conta
   - Área 4: perseguição elástica (`elastico` no Vigia: acelera até 1,4× quando o jogador se afasta, alivia até 0,8× quando chega perto), obstáculo extra com espaçamento irregular, depósito com caixa e placa que abre o portão, segunda perseguição com seis obstáculos
   - Parâmetros de teste: `?checkpoint=N` começa no checkpoint N; `window.chamadaDebug()` (com `?telemetria=1`) mostra caixas, placas, portas e Vigias
+- [ ] Etapa 3 (sem playtest) — feito em 2026-11-22, testado por bot, falta playtest humano.
+  - Área 5: corredor que se repete (`laco` na fase): ao cruzar o gatilho, jogador e câmera recuam 18 m num trecho periódico; duas voltas, e a cada volta um grupo de lâmpadas passa a piscar no escuro
+  - Celular: controle por gestos como no INSIDE (`src/ui/GestureControls.ts`): metade esquerda = analógico invisível (arrastar para os lados), metade direita = deslizar o dedo para cima pula, para baixo desliza. `?toque=botoes` mostra os botões antigos
+  - Vigia de patrulha agora desconfia: enquanto vê o jogador ele para, a lanterna vai do âmbar ao vermelho e a morte vem em ~0,85 s; fora da luz a desconfiança baixa
+  - Barulho: caixa que cai com força (> 3,5 m/s) faz som e os Vigias de patrulha a até 16 m vão investigar (andam até perto, olham 4 s e voltam)
+  - Área 3, sala 2 (sala de leitura): Vigia de guarda (`x0 = x1`) olha para a entrada; o caminho passa por um mezanino com um carrinho; derrubar o carrinho atrai o guarda, que passa por baixo enquanto o jogador se esconde atrás da mureta
+  - Narrativa sem texto: vultos de outros alunos (`vultos` na fase, `entities/Vultos.ts`) que somem quando o jogador chega perto (porta principal, garagem, sala escura, fim do corredor); folhas espalhadas, celular aceso, mochilas largadas e uma prova esperando na carteira da sala vazia
+  - Estimativa de duração pela geometria e pelas esperas: ~3 min para quem já conhece o caminho; primeira partida provavelmente entre 6 e 8 min. Falta medir com gente
+- [ ] Alvo de desempenho: a apresentação roda no Mac (decisão de 2026-11-22). O celular é só para teste; o limite é manter 60 fps no Mac
 - [ ] Efeitos sonoros e ambiente
 - [ ] Build local e `iniciar.bat`
 - [ ] Backup publicado no itch.io

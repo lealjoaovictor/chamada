@@ -70,6 +70,15 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       glow: { elevator: 0 },
       doneWhen: { elevatorCalled: 0 },
     },
+    {
+      zone: { minX: 117, maxX: 125 },
+      trigger: "tempo",
+      glowAfter: 45,
+      iconAfter: 90,
+      glow: { box: 0 },
+      icon: { action: "empurrar", x: 0, y: 0.9, followBox: 0 },
+      doneWhen: { passedX: 128 },
+    },
   ],
   4: [
     {

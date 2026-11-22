@@ -84,6 +84,7 @@ export const area2Level: LevelData = {
   checkpoints: [{ x: 74, y: 1.2 }, { x: 96.5, y: 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: END2 },
+  vultos: [{ x: 102.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 114.5 }],
   depth: 4,
   ground: [
@@ -123,6 +124,12 @@ export const area2Level: LevelData = {
   vigias: [],
   elevators: [],
   decor: [
+    // Narrativa: mochila largada perto da catraca.
+    { x: 53.6, y: 0.22, z: -1.1, width: 0.36, height: 0.44, depth: 0.2, material: "tecido" },
+    { x: 53.6, y: 0.36, z: -0.98, width: 0.28, height: 0.18, depth: 0.06, material: "tecido" },
+    { x: 54.4, y: 0.01, z: -0.6, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 55.6, y: 0.01, z: -1.3, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 90.2, y: 0.01, z: -0.8, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: START, y: CEILING + 1.9, z: 0, width: 0.8, height: 3.4, depth: 4.4, material: "pedra" },
     { x: (START + ROOM1_END) / 2, y: CEILING + 2.1, z: 0, width: ROOM1_END - START, height: 3.4, depth: 4.6, material: "pedra" },
 

@@ -24,6 +24,8 @@
       .toque-grupo.direita { flex-direction: row; }
       .toque-botao { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: rgba(240, 225, 200, 0.75); background: rgba(20, 20, 24, 0.35); border: 1.5px solid rgba(240, 210, 160, 0.35); touch-action: none; }
       .toque-botao.ativo { background: rgba(240, 200, 140, 0.3); }
+      .gesto-anel { position: fixed; top: 0; left: 0; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; border: 1.5px solid rgba(240, 210, 160, 0.5); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 15; }
+      .gesto-anel.visivel { opacity: 0.35; }
       .telemetria { position: fixed; top: 8px; left: 8px; padding: 6px 10px; white-space: pre; font: 12px/1.5 ui-monospace, Menlo, monospace; color: #e8e2d4; background: rgba(0, 0, 0, 0.6); border-radius: 4px; pointer-events: none; z-index: 30; }
       @keyframes pulsa { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
     </style>

@@ -29,8 +29,8 @@ export class Lamp {
   private readonly light: PointLight;
   private readonly bulbMaterial: StandardMaterial;
   private readonly intensity: number;
-  private readonly flicker: boolean;
-  private readonly dark: boolean;
+  private flicker: boolean;
+  private dark: boolean;
   private readonly x: number;
   private readonly diesWhenPassed: boolean;
   private dead = false;
@@ -58,6 +58,19 @@ export class Lamp {
     this.bulbMaterial.disableLighting = true;
     bulb.material = this.bulbMaterial;
     this.timer = between(ON_TIME);
+  }
+
+  get positionX(): number {
+    return this.x;
+  }
+
+  /** Passa a lâmpada para o modo escuro (quase sempre apagada). */
+  makeDark(): void {
+    this.flicker = true;
+    this.dark = true;
+    this.on = false;
+    this.timer = 0.3;
+    this.setLevel(0);
   }
 
   get isDead(): boolean {

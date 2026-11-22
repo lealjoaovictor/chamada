@@ -28,6 +28,7 @@ import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
 import { Sfx } from "./Sfx";
 import { createDust } from "./Dust";
+import { Vultos } from "./entities/Vultos";
 import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
@@ -39,7 +40,8 @@ import { CallClock } from "./CallClock";
 import { Telemetry } from "./Telemetry";
 import { CHAMADA } from "../levels/chamada";
 import { AREAS, areaAt } from "../levels/areas";
-import { TouchControls, touchControlsEnabled } from "../ui/TouchControls";
+import { TouchControls, touchMode } from "../ui/TouchControls";
+import { GestureControls } from "../ui/GestureControls";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
@@ -52,7 +54,6 @@ const PUSH_GRACE = 0.2;
 const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
-const SEEN_GRACE = 0.2;
 const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
@@ -73,6 +74,8 @@ export class Game {
   private readonly boxes: Box[] = [];
   private ambient: HemisphericLight | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
+  private loopsDone = 0;
+  private vultos: Vultos | null = null;
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
@@ -80,7 +83,6 @@ export class Game {
   private readonly elevators: Elevator[] = [];
   private readonly obstacleMeshes: AbstractMesh[] = [];
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
-  private seenTimer = 0;
   private warming = false;
   private finalDoor: FinalDoor | null = null;
   private arrivalTimer = 0;
@@ -113,7 +115,9 @@ export class Game {
 
   private constructor(engine: AbstractEngine) {
     this.scene = new Scene(engine);
-    if (touchControlsEnabled()) new TouchControls(this.input);
+    const mode = touchMode();
+    if (mode === "botoes") new TouchControls(this.input);
+    else if (mode === "gestos") new GestureControls(this.input);
     const unlock = (): void => {
       this.sfx.unlock();
       if (this.clock && !this.audioPrimed) {
@@ -212,6 +216,7 @@ export class Game {
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     this.applySurfaceUVs();
+    this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
     if (VISUAL.rim > 0) {
       const rim = new FresnelParameters({
@@ -322,6 +327,9 @@ export class Game {
     }
     this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.update(dt, this.input, this.pushTimer > 0);
+    this.updateLoop(px);
+    this.vultos?.update(dt, this.player.position.x);
+    this.updateNoise();
     this.cameraRig.update(dt, {
       x: this.player.position.x,
       feetY: this.player.feetY,
@@ -428,6 +436,7 @@ export class Game {
         walking: vigia.walking,
         chases: vigia.chases,
         shown: vigia.shown,
+        suspicious: vigia.suspicious,
       })),
       finalDoorOpen: this.finalDoor?.isOpening ?? false,
       lockedDoorTouched: this.hints.touchingLocked,
@@ -492,7 +501,6 @@ export class Game {
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
       for (const elevator of this.elevators) elevator.reset();
-      this.seenTimer = 0;
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
@@ -502,6 +510,31 @@ export class Game {
       this.state = "jogando";
       this.fade.setColor(DEFAULT_FADE_COLOR);
     }
+  }
+
+  // Caixa que cai com força faz barulho: os Vigias de patrulha por perto vão investigar.
+  private updateNoise(): void {
+    for (const box of this.boxes) {
+      const impact = box.takeImpact();
+      if (impact <= 0) continue;
+      const p = box.mesh.position;
+      this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
+      for (const vigia of this.vigias) vigia.hear(p.x, p.y);
+    }
+  }
+
+  // Corredor que se repete (área 5): ao cruzar o gatilho, jogador e câmera recuam juntos.
+  private updateLoop(previousX: number): void {
+    const loop = worldLevel.laco;
+    if (!loop || this.loopsDone >= loop.apagar.length) return;
+    const x = this.player.position.x;
+    if (previousX >= loop.gatilhoX || x < loop.gatilhoX) return;
+    this.player.shiftX(-loop.recuo);
+    this.cameraRig.shift(-loop.recuo);
+    for (const lamp of this.lamps) {
+      if (loop.apagar[this.loopsDone].some((lx) => Math.abs(lamp.positionX - lx) < 0.01)) lamp.makeDark();
+    }
+    this.loopsDone += 1;
   }
 
   private updateDoors(dt: number): void {
@@ -542,9 +575,13 @@ export class Game {
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
     if (this.vigias.some((vigia) => vigia.catches(p.x))) return "toque";
-    const seen = this.vigias.some((vigia) => !vigia.chases && vigia.sees(this.sightPoints));
-    this.seenTimer = seen ? this.seenTimer + dt : 0;
-    return this.seenTimer > SEEN_GRACE ? "luz" : null;
+    // Desconfiança: a lanterna esquenta enquanto o jogador está no cone e esfria quando ele sai.
+    let caught = false;
+    for (const vigia of this.vigias) {
+      if (vigia.chases) continue;
+      if (vigia.updateAlert(dt, vigia.sees(this.sightPoints))) caught = true;
+    }
+    return caught ? "luz" : null;
   }
 
   private isPushingBox(): boolean {

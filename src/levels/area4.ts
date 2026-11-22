@@ -103,6 +103,7 @@ export const area4Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  vultos: [],
   depth: 4,
   ground: groundWithRecess(),
   walls: [
@@ -160,6 +161,10 @@ export const area4Level: LevelData = {
   ],
   elevators: [],
   decor: [
+    // Narrativa: mochila esquecida no depósito.
+    { x: 159.2, y: 0.22, z: 1.3, width: 0.36, height: 0.44, depth: 0.2, material: "tecido" },
+    { x: 158.4, y: 0.01, z: 1.0, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 160.3, y: 0.01, z: 0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     ...SLIDES2.flatMap((x) => [
       ...stripes(x, (GAP + CEILING) / 2, CEILING - GAP, 0.25),
       { x, y: CEILING - 0.02, z: LANE_Z, width: 0.08, height: 0.04, depth: LANE_DEPTH, material: "metal" } as DecorData,

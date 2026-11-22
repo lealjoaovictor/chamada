@@ -47,3 +47,19 @@ test("trechos furtivos e escuros ficam dentro de alguma área", () => {
   }
   assert.ok((level.furtivo ?? []).length > 0);
 });
+
+test("corredor que se repete volta para dentro da área 5 e cada volta apaga lâmpadas que existem", () => {
+  const { level } = WORLD;
+  const laco = level.laco;
+  assert.ok(laco);
+  const area5 = areas[4].inicioX;
+  assert.ok(laco.gatilhoX - laco.recuo > area5);
+  for (const grupo of laco.apagar) {
+    for (const x of grupo) assert.ok(level.lamps.some((lamp) => Math.abs(lamp.x - x) < 0.01), `lâmpada em ${x}`);
+  }
+});
+
+test("vultos ficam dentro do mundo", () => {
+  for (const v of level.vultos ?? []) assert.ok(v.x > level.bounds.minX && v.x < level.bounds.maxX);
+  assert.ok((level.vultos ?? []).length >= 4);
+});

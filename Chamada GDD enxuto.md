@@ -76,9 +76,9 @@ A fase tem cinco áreas em sequência, cada uma com uma ideia principal; o check
 | --- | --- | --- | --- | --- |
 | 1 | Pátio externo (noite, névoa) | Andar, pular, empurrar | Primeira caixa para alcançar o portão lateral, já que o principal está fechado; na garagem, caixote que cai sobre a placa; na guarita, primeiro encontro com o Vigia | Ensina sem tutorial; primeiros nomes ao longe |
 | 2 | Corredor do bloco principal | Deslizar | Catraca baixa; placa de pressão que abre uma porta quando uma caixa é empurrada sobre ela; zeladoria com palco alto; sala escura com vãos no piso | Luzes falhando |
-| 3 | Biblioteca e escadas | Todas | Elevador ou plataforma com botão; Vigia patrulhando com lanterna; o personagem anda agachado entre as estantes | Furtividade |
+| 3 | Biblioteca e escadas | Todas | Elevador ou plataforma com botão; Vigia patrulhando com lanterna; o personagem anda agachado entre as estantes; na sala de leitura, derrubar um carrinho faz barulho e tira o guarda do lugar | Furtividade |
 | 4 | Subsolo ou laboratório | Pular e deslizar | Duas perseguições elásticas (o Vigia acelera se o jogador abre distância) com obstáculos em ritmo irregular; depósito com caixa e placa entre elas | Pico de tensão |
-| 5 | Corredor final e sala de aula | Andar | Porta final; alto-falante muito próximo | Silêncio e o nome chegando |
+| 5 | Corredor final e sala de aula | Andar | Porta final; alto-falante muito próximo; o corredor se repete duas vezes antes de deixar chegar | Silêncio e o nome chegando |
 
 A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e deslizar, a 3 junta puzzle e inimigo, a 4 é puro movimento sob pressão e a 5 é só tensão.
 

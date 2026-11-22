@@ -17,7 +17,10 @@ export type MaterialName =
   | "carrinho"
   | "livros"
   | "luar"
-  | "quadro";
+  | "quadro"
+  | "papel"
+  | "tecido"
+  | "tela";
 
 export type ModelName = "estante-1" | "estante-2" | "estante-3";
 
@@ -143,6 +146,19 @@ export interface LevelData {
   furtivo?: { minX: number; maxX: number }[];
   /** Trechos em que a luz ambiente quase some: só as lâmpadas iluminam. */
   escuro?: { minX: number; maxX: number }[];
+  /** Corredor que se repete: ao cruzar gatilhoX o jogador recua `recuo` metros; a cada volta apaga um grupo de lâmpadas (por X). */
+  laco?: { gatilhoX: number; recuo: number; apagar: number[][] };
+  /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
+  vultos?: VultoData[];
+}
+
+export interface VultoData {
+  x: number;
+  y: number;
+  z?: number;
+  facing?: 1 | -1;
+  /** Começa a andar quando o jogador se aproxima. */
+  anda?: boolean;
 }
 
 export type HintAction = "empurrar" | "deslizar" | "pular";

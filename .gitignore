@@ -1,3 +1,25 @@
+# Dependências e build
 node_modules
 dist
+.vite
+
+# Sistema e editores
 .DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+
+# Segredos e configurações locais
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+
+# Saídas de testes do navegador
+test-results
+playwright-report

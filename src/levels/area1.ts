@@ -44,7 +44,6 @@ export const area1Level: LevelData = {
   ],
   walls: [
     { x: -5.5, y: 4, width: 1, height: 8, material: "pedra" },
-    { x: 48.5, y: 4, width: 1, height: 8, material: "pedra" },
   ],
   platforms: [{ x: 21, y: 0.75, width: 4, height: 1.5, material: "pedra" }],
   obstacles: [
@@ -58,6 +57,8 @@ export const area1Level: LevelData = {
   ],
   boxes: [{ x: 28, y: 0.5, size: 1, mass: 20, material: "lixeira" }],
   lamps,
+  plates: [],
+  doors: [],
   decor: [
     ...[0, 1, 2, 3, 4, 5].map((i): DecorData => ({
       x: 15 + 0.333 + i * 0.667,

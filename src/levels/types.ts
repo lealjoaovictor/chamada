@@ -9,7 +9,12 @@ export type MaterialName =
   | "moldura"
   | "vegetacao"
   | "lixeira"
-  | "caixa";
+  | "caixa"
+  | "parede"
+  | "piso"
+  | "tatil"
+  | "vidro"
+  | "carrinho";
 
 export interface BlockData {
   x: number;
@@ -47,6 +52,25 @@ export interface PointData {
   y: number;
 }
 
+export interface LampData extends PointData {
+  flicker?: boolean;
+}
+
+export interface PlateData {
+  x: number;
+  y: number;
+  width: number;
+  door: number;
+}
+
+export interface DoorData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  openHeight: number;
+}
+
 export interface LevelData {
   checkpoints: PointData[];
   killY: number;
@@ -58,6 +82,8 @@ export interface LevelData {
   obstacles: BlockData[];
   ramps: RampData[];
   boxes: BoxData[];
-  lamps: PointData[];
+  lamps: LampData[];
+  plates: PlateData[];
+  doors: DoorData[];
   decor: DecorData[];
 }

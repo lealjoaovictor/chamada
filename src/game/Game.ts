@@ -2,12 +2,10 @@ import { Scene } from "@babylonjs/core/scene";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
@@ -17,27 +15,31 @@ import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX, VISUAL } from "./PostFX";
 import { Box } from "./entities/Box";
+import { Door } from "./entities/Door";
+import { Lamp } from "./entities/Lamp";
+import { PressurePlate } from "./entities/PressurePlate";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { MaterialLibrary } from "./MaterialLibrary";
-import type { BlockData, DecorData, LevelData, PointData, RampData } from "../levels/types";
+import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
-import { area1Level } from "../levels/area1";
+import { worldLevel } from "../levels/world";
 
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
 const DEATH_FADE_OUT = 0.25;
-const LAMP_COLOR = new Color3(1, 0.72, 0.38);
-const LAMP_RANGE = 9;
 const DEATH_FADE_IN = 0.25;
-const LAMP_Z = 1.4;
+const DOOR_CLEARANCE = 0.05;
 const RAMP_THICKNESS = 0.4;
 
 type GameState = "jogando" | "morto";
 
 export class Game {
   private readonly boxes: Box[] = [];
+  private readonly lamps: Lamp[] = [];
+  private readonly doors: Door[] = [];
+  private readonly plates: PressurePlate[] = [];
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -59,7 +61,7 @@ export class Game {
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
     const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
-    await game.load(debugLevel ? pipelineLevel : area1Level);
+    await game.load(debugLevel ? pipelineLevel : worldLevel);
     return game;
   }
 
@@ -73,7 +75,7 @@ export class Game {
 
     const light = new HemisphericLight("light", new Vector3(0.3, 1, -0.4), scene);
     light.groundColor = new Color3(0.08, 0.08, 0.1);
-    level.lamps.forEach((lamp, i) => this.createLamp(lamp, VISUAL.lampIntensity, `lamp-${i}`));
+    level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
     this.materials = new MaterialLibrary(scene);
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms, ...level.obstacles].entries()) {
@@ -81,6 +83,12 @@ export class Game {
     }
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
     level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
+    level.doors.forEach((door, i) =>
+      this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
+    );
+    level.plates.forEach((plate, i) =>
+      this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials.get("metal"), `plate-${i}`)),
+    );
 
     level.boxes.forEach((data, i) =>
       this.boxes.push(new Box(scene, data, `box-${i}`, this.materials.get(data.material ?? "caixa"))),
@@ -102,6 +110,8 @@ export class Game {
   private update(): void {
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
     this.input.update();
+    for (const lamp of this.lamps) lamp.update(dt);
+    this.updateDoors(dt);
     if (this.state === "morto") {
       this.updateDeath(dt);
       this.input.endFrame();
@@ -143,12 +153,25 @@ export class Game {
       const point = this.checkpoints.current;
       this.player.respawn(point);
       for (const box of this.boxes) box.reset();
+      for (const door of this.doors) door.reset();
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
     const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;
     this.fade.set(1 - t);
     if (t >= 1) this.state = "jogando";
+  }
+
+  private updateDoors(dt: number): void {
+    const open = this.doors.map(() => false);
+    for (const plate of this.plates) {
+      if (plate.update(this.boxes)) open[plate.door] = true;
+    }
+    const p = this.player.position;
+    this.doors.forEach((door, i) => {
+      const under = door.isOver(p.x, CAPSULE_RADIUS + DOOR_CLEARANCE) && this.player.feetY < door.bottom;
+      door.update(dt, open[i], under);
+    });
   }
 
   private isPushingBox(): boolean {
@@ -161,20 +184,6 @@ export class Game {
       const overlapY = box.mesh.position.y + box.halfSize > feet + 0.1 && box.mesh.position.y - box.halfSize < feet + CAPSULE_HEIGHT;
       return ahead > 0 && ahead < CAPSULE_RADIUS + box.halfSize + PUSH_REACH && overlapY;
     });
-  }
-
-  private createLamp(lamp: PointData, intensity: number, name: string): void {
-    const light = new PointLight(name, new Vector3(lamp.x, lamp.y, LAMP_Z), this.scene);
-    light.diffuse = LAMP_COLOR;
-    light.specular = Color3.Black();
-    light.intensity = intensity;
-    light.range = LAMP_RANGE;
-    const bulb = CreateSphere(`${name}-bulb`, { diameter: 0.18 }, this.scene);
-    bulb.position.set(lamp.x, lamp.y, LAMP_Z);
-    const material = new StandardMaterial(`${name}-mat`, this.scene);
-    material.emissiveColor = LAMP_COLOR;
-    material.disableLighting = true;
-    bulb.material = material;
   }
 
   private createStatic(block: BlockData, depth: number, name: string): void {

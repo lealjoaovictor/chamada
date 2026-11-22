@@ -15,6 +15,15 @@ const PALETTE: Record<MaterialName, Color3> = {
   vegetacao: new Color3(0.09, 0.14, 0.09),
   lixeira: new Color3(0.1, 0.3, 0.13),
   caixa: new Color3(0.35, 0.28, 0.2),
+  parede: new Color3(0.55, 0.55, 0.52),
+  piso: new Color3(0.42, 0.41, 0.38),
+  tatil: new Color3(0.12, 0.2, 0.45),
+  vidro: new Color3(0.6, 0.7, 0.75),
+  carrinho: new Color3(0.16, 0.26, 0.38),
+};
+
+const ALPHA: Partial<Record<MaterialName, number>> = {
+  vidro: 0.18,
 };
 
 export class MaterialLibrary {
@@ -31,6 +40,7 @@ export class MaterialLibrary {
       material = new StandardMaterial(`mat-${name}`, this.scene);
       material.diffuseColor = PALETTE[name];
       material.specularColor = Color3.Black();
+      material.alpha = ALPHA[name] ?? 1;
       this.cache.set(name, material);
     }
     return material;

@@ -161,7 +161,7 @@ Atualize esta lista a cada tarefa concluída.
 - [x] Câmera lateral (segue em X com antecipação de 1,5 m, segue a altura do chão ao pousar, respeita `bounds` da fase; playtest aprovado)
 - [ ] Atmosfera visual (névoa, grão, vinheta, luz) — opção B escolhida em 2026-11-22 (`VISUAL` em `src/game/PostFX.ts`; lâmpadas quentes por fase em `lamps`); falta playtest humano
 - [ ] Área 1: pátio — montada em 2026-11-22 com referência nas fotos da faculdade (`src/levels/area1.ts`: rua, jardim, escadaria até a porta fechada, lixeira empurrada até o muro, rampa e portão lateral); fase de teste em `?fase=teste`; usuário mandou seguir sem playtest detalhado. Arte: decidido (2026-11-22) gameplay das 5 áreas em blocos primeiro, polimento visual (sombras, SSAO, silhuetas, texturas CC0, props do Blender) no fim
-- [ ] Área 2: corredor (catraca, placa de pressão)
+- [ ] Área 2: corredor (catraca, placa de pressão) — montada em 2026-11-22 (`src/levels/area2.ts`; mundo contínuo em `src/levels/world.ts`; catraca com vão de 1,1 m, carrinho cai no rebaixo da placa e a porta de enrolar sobe até 1,1 m, luzes falhando em `Lamp.ts`); testada por simulação, falta playtest humano
 - [ ] Área 3: biblioteca (elevador, patrulha do Vigia)
 - [ ] Área 4: subsolo (perseguição)
 - [ ] Área 5: corredor final e sala

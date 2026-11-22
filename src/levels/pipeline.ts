@@ -27,5 +27,7 @@ export const pipelineLevel: LevelData = {
     { x: -3, y: 3.2 },
     { x: 9, y: 4 },
   ],
+  plates: [],
+  doors: [],
   decor: [],
 };

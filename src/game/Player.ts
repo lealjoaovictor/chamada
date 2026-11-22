@@ -128,6 +128,10 @@ export class Player {
     return this.position.y - this.height / 2;
   }
 
+  placeVisual(x: number, y: number): void {
+    this.visual.position.set(x, y, 0);
+  }
+
   get isSliding(): boolean {
     return this.sliding;
   }

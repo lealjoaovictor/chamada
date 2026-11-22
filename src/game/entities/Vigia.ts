@@ -24,7 +24,7 @@ const RUN_CLIP_SPEED = 5.33;
 const CATCH_DISTANCE = 0.55;
 const BLEND_TIME = 0.25;
 const LIGHT_COLOR = new Color3(1, 0.82, 0.55);
-const LIGHT_INTENSITY = 9;
+const LIGHT_INTENSITY = 22;
 const HAND_HEIGHT = 1.3;
 const HAND_FORWARD = 0.35;
 const LENS_SIZE = 0.12;
@@ -110,6 +110,11 @@ export class Vigia {
 
   addShadowCasters(meshes: readonly AbstractMesh[]): void {
     for (const mesh of meshes) this.shadows.addShadowCaster(mesh, true);
+  }
+
+  placeVisual(x: number, y: number): void {
+    this.visual.position.set(x, y, this.data.z);
+    this.setShown(true);
   }
 
   get meshes(): AbstractMesh[] {

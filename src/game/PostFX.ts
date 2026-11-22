@@ -21,25 +21,7 @@ export interface VisualPreset {
   dust: boolean;
 }
 
-export const POLISHED = new URLSearchParams(location.search).has("polimento");
-
-const ATMOSPHERE_B: VisualPreset = {
-  background: new Color3(0.035, 0.045, 0.06),
-  fogDensity: 0.075,
-  ambientIntensity: 0.4,
-  ambientColor: new Color3(0.6, 0.7, 0.88),
-  lampIntensity: 2.8,
-  saturation: -65,
-  contrast: 1.25,
-  exposure: 1,
-  grain: 14,
-  vignette: 2.5,
-  bloom: 0,
-  rim: 0,
-  dust: false,
-};
-
-const POLISHED_B: VisualPreset = {
+export const VISUAL: VisualPreset = {
   background: new Color3(0.06, 0.075, 0.1),
   fogDensity: 0.045,
   ambientIntensity: 0.7,
@@ -54,8 +36,6 @@ const POLISHED_B: VisualPreset = {
   rim: 0.55,
   dust: true,
 };
-
-export const VISUAL: VisualPreset = POLISHED ? POLISHED_B : ATMOSPHERE_B;
 
 export class PostFX {
   static apply(scene: Scene, camera: Camera, ambient: HemisphericLight, preset: VisualPreset): void {

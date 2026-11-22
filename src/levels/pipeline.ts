@@ -27,6 +27,7 @@ export interface LevelData {
   platforms: BlockData[];
   obstacles: BlockData[];
   boxes: BoxData[];
+  lamps: PointData[];
 }
 
 export const pipelineLevel: LevelData = {
@@ -51,4 +52,8 @@ export const pipelineLevel: LevelData = {
   ],
   obstacles: [{ x: 2, y: 1.7, width: 1.5, height: 1.2 }],
   boxes: [{ x: -3, y: 0.5, size: 1, mass: 20 }],
+  lamps: [
+    { x: -3, y: 3.2 },
+    { x: 9, y: 4 },
+  ],
 };

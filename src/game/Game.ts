@@ -2,6 +2,8 @@ import { Scene } from "@babylonjs/core/scene";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { PointLight } from "@babylonjs/core/Lights/pointLight";
+import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
@@ -15,13 +17,15 @@ import { PostFX } from "./PostFX";
 import { Box } from "./entities/Box";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
-import type { BlockData, LevelData } from "../levels/pipeline";
+import type { BlockData, LevelData, PointData } from "../levels/pipeline";
 import { pipelineLevel } from "../levels/pipeline";
 
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
 const DEATH_FADE_OUT = 0.25;
+const LAMP_COLOR = new Color3(1, 0.72, 0.38);
+const LAMP_RANGE = 9;
 const DEATH_FADE_IN = 0.25;
 
 type GameState = "jogando" | "morto";
@@ -58,12 +62,11 @@ export class Game {
   private async load(level: LevelData): Promise<void> {
     const scene = this.scene;
     await Physics.enable(scene);
-    PostFX.apply(scene);
+    const visual = PostFX.preset();
 
     const light = new HemisphericLight("light", new Vector3(0.3, 1, -0.4), scene);
-    light.intensity = 0.7;
-    light.diffuse = new Color3(0.75, 0.8, 0.9);
     light.groundColor = new Color3(0.08, 0.08, 0.1);
+    level.lamps.forEach((lamp, i) => this.createLamp(lamp, visual.lampIntensity, `lamp-${i}`));
 
     const solidMaterial = new StandardMaterial("solid-mat", scene);
     solidMaterial.diffuseColor = new Color3(0.22, 0.23, 0.25);
@@ -80,6 +83,7 @@ export class Game {
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
+    PostFX.apply(scene, this.cameraRig.camera, light, visual);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
@@ -149,6 +153,20 @@ export class Game {
       const overlapY = box.mesh.position.y + box.halfSize > feet + 0.1 && box.mesh.position.y - box.halfSize < feet + CAPSULE_HEIGHT;
       return ahead > 0 && ahead < CAPSULE_RADIUS + box.halfSize + PUSH_REACH && overlapY;
     });
+  }
+
+  private createLamp(lamp: PointData, intensity: number, name: string): void {
+    const light = new PointLight(name, new Vector3(lamp.x, lamp.y, -0.5), this.scene);
+    light.diffuse = LAMP_COLOR;
+    light.specular = Color3.Black();
+    light.intensity = intensity;
+    light.range = LAMP_RANGE;
+    const bulb = CreateSphere(`${name}-bulb`, { diameter: 0.18 }, this.scene);
+    bulb.position.set(lamp.x, lamp.y, -0.5);
+    const material = new StandardMaterial(`${name}-mat`, this.scene);
+    material.emissiveColor = LAMP_COLOR;
+    material.disableLighting = true;
+    bulb.material = material;
   }
 
   private createStatic(block: BlockData, depth: number, material: StandardMaterial, name: string): void {

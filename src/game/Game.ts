@@ -2,10 +2,14 @@ import { Scene } from "@babylonjs/core/scene";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { PointLight } from "@babylonjs/core/Lights/pointLight";
+import { SpotLight } from "@babylonjs/core/Lights/spotLight";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
@@ -18,6 +22,8 @@ import { Box } from "./entities/Box";
 import { Door } from "./entities/Door";
 import { Lamp } from "./entities/Lamp";
 import { PressurePlate } from "./entities/PressurePlate";
+import { Vigia } from "./entities/Vigia";
+import { Elevator } from "./entities/Elevator";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { MaterialLibrary } from "./MaterialLibrary";
@@ -31,6 +37,9 @@ const PUSH_GRACE = 0.2;
 const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
+const SEEN_GRACE = 0.2;
+const LIGHT_CULL_DISTANCE = 17;
+const MAX_LIGHTS_PER_MATERIAL = 8;
 const RAMP_THICKNESS = 0.4;
 
 type GameState = "jogando" | "morto";
@@ -40,6 +49,11 @@ export class Game {
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
+  private readonly vigias: Vigia[] = [];
+  private readonly elevators: Elevator[] = [];
+  private readonly obstacleMeshes: AbstractMesh[] = [];
+  private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
+  private seenTimer = 0;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -78,9 +92,10 @@ export class Game {
     level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
     this.materials = new MaterialLibrary(scene);
-    for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms, ...level.obstacles].entries()) {
+    for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
       this.createStatic(block, level.depth, `solid-${i}`);
     }
+    level.obstacles.forEach((block, i) => this.obstacleMeshes.push(this.createStatic(block, level.depth, `obstacle-${i}`)));
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
     level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
     level.doors.forEach((door, i) =>
@@ -88,6 +103,9 @@ export class Game {
     );
     level.plates.forEach((plate, i) =>
       this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials.get("metal"), `plate-${i}`)),
+    );
+    level.elevators.forEach((elevator, i) =>
+      this.elevators.push(new Elevator(scene, elevator, level.depth, this.materials.get("metal"), `elevator-${i}`)),
     );
 
     level.boxes.forEach((data, i) =>
@@ -98,8 +116,17 @@ export class Game {
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
+    for (const data of level.vigias) {
+      const vigia = await Vigia.create(scene, data);
+      vigia.addShadowCasters([...this.obstacleMeshes, ...this.player.meshes, ...this.boxes.map((box) => box.mesh)]);
+      this.vigias.push(vigia);
+    }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+
+    for (const material of scene.materials) {
+      if (material instanceof StandardMaterial) material.maxSimultaneousLights = MAX_LIGHTS_PER_MATERIAL;
+    }
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
@@ -112,6 +139,8 @@ export class Game {
     this.input.update();
     for (const lamp of this.lamps) lamp.update(dt);
     this.updateDoors(dt);
+    for (const vigia of this.vigias) vigia.update(dt);
+    this.updateElevators(dt);
     if (this.state === "morto") {
       this.updateDeath(dt);
       this.input.endFrame();
@@ -132,7 +161,8 @@ export class Game {
       facing: this.player.facingDirection,
     });
     this.checkpoints.update(this.player.position.x);
-    if (this.player.position.y < this.killY) this.die();
+    this.cullLights();
+    if (this.player.position.y < this.killY || this.isSeen(dt)) this.die();
     this.input.endFrame();
   }
 
@@ -154,6 +184,9 @@ export class Game {
       this.player.respawn(point);
       for (const box of this.boxes) box.reset();
       for (const door of this.doors) door.reset();
+      for (const vigia of this.vigias) vigia.reset();
+      for (const elevator of this.elevators) elevator.reset();
+      this.seenTimer = 0;
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
@@ -174,6 +207,35 @@ export class Game {
     });
   }
 
+  private cullLights(): void {
+    const cameraX = this.cameraRig.camera.position.x;
+    for (const light of this.scene.lights) {
+      if (!(light instanceof PointLight || light instanceof SpotLight)) continue;
+      const near = Math.abs(light.position.x - cameraX) < LIGHT_CULL_DISTANCE;
+      if (light.isEnabled() !== near) light.setEnabled(near);
+    }
+  }
+
+  private updateElevators(dt: number): void {
+    const p = this.player.position;
+    const feetY = this.player.feetY;
+    const rider = { x: p.x, feetY, topY: feetY + (p.y - feetY) * 2, grounded: this.player.isGrounded };
+    for (const elevator of this.elevators) elevator.update(dt, rider);
+  }
+
+  private isSeen(dt: number): boolean {
+    if (this.vigias.length === 0) return false;
+    const p = this.player.position;
+    const feetY = this.player.feetY;
+    const height = (p.y - feetY) * 2;
+    this.sightPoints[0].set(p.x, feetY + 0.25, 0);
+    this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
+    this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
+    const seen = this.vigias.some((vigia) => vigia.sees(this.sightPoints));
+    this.seenTimer = seen ? this.seenTimer + dt : 0;
+    return this.seenTimer > SEEN_GRACE;
+  }
+
   private isPushingBox(): boolean {
     const dir = this.input.axisX();
     if (dir === 0 || !this.player.isGrounded) return false;
@@ -186,12 +248,14 @@ export class Game {
     });
   }
 
-  private createStatic(block: BlockData, depth: number, name: string): void {
-    const mesh = CreateBox(name, { width: block.width, height: block.height, depth }, this.scene);
-    mesh.position.set(block.x, block.y, 0);
+  private createStatic(block: BlockData, depth: number, name: string): Mesh {
+    const mesh = CreateBox(name, { width: block.width, height: block.height, depth: block.depth ?? depth }, this.scene);
+    mesh.position.set(block.x, block.y, block.z ?? 0);
+    mesh.receiveShadows = true;
     mesh.material = this.materials.get(block.material ?? "concreto");
     new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.8 }, this.scene);
     mesh.freezeWorldMatrix();
+    return mesh;
   }
 
   private createRamp(ramp: RampData, depth: number, name: string): void {
@@ -227,6 +291,7 @@ export class Game {
     mesh.position.set(decor.x, decor.y, decor.z);
     mesh.material = this.materials.get(decor.material ?? "concreto");
     mesh.isPickable = false;
+    mesh.receiveShadows = true;
     mesh.freezeWorldMatrix();
   }
 }

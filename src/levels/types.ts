@@ -14,7 +14,9 @@ export type MaterialName =
   | "piso"
   | "tatil"
   | "vidro"
-  | "carrinho";
+  | "carrinho"
+  | "livros"
+  | "luar";
 
 export interface BlockData {
   x: number;
@@ -22,6 +24,8 @@ export interface BlockData {
   width: number;
   height: number;
   material?: MaterialName;
+  z?: number;
+  depth?: number;
 }
 
 export interface DecorData extends BlockData {
@@ -54,6 +58,7 @@ export interface PointData {
 
 export interface LampData extends PointData {
   flicker?: boolean;
+  moonlight?: boolean;
 }
 
 export interface PlateData {
@@ -71,6 +76,28 @@ export interface DoorData {
   openHeight: number;
 }
 
+export interface VigiaData {
+  x0: number;
+  x1: number;
+  y: number;
+  z: number;
+  speed: number;
+  pause: number;
+  aimAhead: number;
+  aimY: number;
+  coneAngle: number;
+  range: number;
+}
+
+export interface ElevatorData {
+  x: number;
+  width: number;
+  bottomY: number;
+  topY: number;
+  buttonX: number;
+  buttonY: number;
+}
+
 export interface LevelData {
   checkpoints: PointData[];
   killY: number;
@@ -85,5 +112,7 @@ export interface LevelData {
   lamps: LampData[];
   plates: PlateData[];
   doors: DoorData[];
+  vigias: VigiaData[];
+  elevators: ElevatorData[];
   decor: DecorData[];
 }

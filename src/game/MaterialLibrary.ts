@@ -20,6 +20,12 @@ const PALETTE: Record<MaterialName, Color3> = {
   tatil: new Color3(0.12, 0.2, 0.45),
   vidro: new Color3(0.6, 0.7, 0.75),
   carrinho: new Color3(0.16, 0.26, 0.38),
+  livros: new Color3(0.32, 0.12, 0.1),
+  luar: new Color3(0.05, 0.06, 0.08),
+};
+
+const EMISSIVE: Partial<Record<MaterialName, Color3>> = {
+  luar: new Color3(0.16, 0.21, 0.3),
 };
 
 const ALPHA: Partial<Record<MaterialName, number>> = {
@@ -41,6 +47,7 @@ export class MaterialLibrary {
       material.diffuseColor = PALETTE[name];
       material.specularColor = Color3.Black();
       material.alpha = ALPHA[name] ?? 1;
+      material.emissiveColor = EMISSIVE[name] ?? Color3.Black();
       this.cache.set(name, material);
     }
     return material;

@@ -42,7 +42,6 @@ export const area2Level: LevelData = {
     { x: (RECESS_X + RECESS_WIDTH / 2 + END + 4) / 2, y: -0.5, width: END + 4 - RECESS_X - RECESS_WIDTH / 2, height: 1, material: "piso" },
   ],
   walls: [
-    { x: END + 4.5, y: 4, width: 1, height: 8, material: "pedra" },
     { x: (START + END + 4) / 2, y: CEILING + 0.2, width: END + 4 - START, height: 0.4, material: "concreto" },
   ],
   platforms: [],
@@ -52,6 +51,8 @@ export const area2Level: LevelData = {
   lamps,
   plates: [{ x: RECESS_X, y: -RECESS_DEPTH, width: RECESS_WIDTH, door: 0 }],
   doors: [{ x: DOOR_X, y: CEILING / 2, width: 0.25, height: CEILING, openHeight: ARM_HEIGHT }],
+  vigias: [],
+  elevators: [],
   decor: [
     { x: START, y: CEILING + 1.9, z: 0, width: 0.8, height: 3.4, depth: 4.4, material: "pedra" },
     { x: (START + END + 4) / 2, y: CEILING + 2.1, z: 0, width: END + 4 - START, height: 3.4, depth: 4.6, material: "pedra" },

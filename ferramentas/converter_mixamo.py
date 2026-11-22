@@ -6,16 +6,28 @@ from bpy_extras import anim_utils
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORIGEM = os.path.join(RAIZ, "assets-brutos", "mixamo")
-DESTINO = os.path.join(RAIZ, "public", "models", "personagem.glb")
-
-PERSONAGEM = "Y Bot.fbx"
-ANIMACOES = [
-    ("parado", "Idle.fbx", False),
-    ("andar", "Running.fbx", True),
-    ("pular", "Jump.fbx", False),
-    ("empurrar", "Pushing.fbx", True),
-    ("deslizar", "Running Slide.fbx", True),
-]
+PERFIS = {
+    "personagem": (
+        "Y Bot.fbx",
+        [
+            ("parado", "Idle.fbx", False),
+            ("andar", "Running.fbx", True),
+            ("pular", "Jump.fbx", False),
+            ("empurrar", "Pushing.fbx", True),
+            ("deslizar", "Running Slide.fbx", True),
+        ],
+    ),
+    "vigia": (
+        "X Bot.fbx",
+        [
+            ("parado", "Idle.fbx", False),
+            ("andar", "Walking.fbx", True),
+        ],
+    ),
+}
+PERFIL = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "personagem"
+PERSONAGEM, ANIMACOES = PERFIS[PERFIL]
+DESTINO = os.path.join(RAIZ, "public", "models", f"{PERFIL}.glb")
 CANAL_AVANCO = 2
 
 

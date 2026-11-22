@@ -162,7 +162,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Atmosfera visual (névoa, grão, vinheta, luz) — opção B escolhida em 2026-11-22 (`VISUAL` em `src/game/PostFX.ts`; lâmpadas quentes por fase em `lamps`); falta playtest humano
 - [ ] Área 1: pátio — montada em 2026-11-22 com referência nas fotos da faculdade (`src/levels/area1.ts`: rua, jardim, escadaria até a porta fechada, lixeira empurrada até o muro, rampa e portão lateral); fase de teste em `?fase=teste`; usuário mandou seguir sem playtest detalhado. Arte: decidido (2026-11-22) gameplay das 5 áreas em blocos primeiro, polimento visual (sombras, SSAO, silhuetas, texturas CC0, props do Blender) no fim
 - [ ] Área 2: corredor (catraca, placa de pressão) — montada em 2026-11-22 (`src/levels/area2.ts`; mundo contínuo em `src/levels/world.ts`; catraca com vão de 1,1 m, carrinho cai no rebaixo da placa e a porta de enrolar sobe até 1,1 m, luzes falhando em `Lamp.ts`); testada por simulação, falta playtest humano
-- [ ] Área 3: biblioteca (elevador, patrulha do Vigia)
+- [ ] Área 3: biblioteca (elevador, patrulha do Vigia) — montada em 2026-11-22 (`src/levels/area3.ts`, `entities/Vigia.ts`, `entities/Elevator.ts`). Vigia anda numa faixa ao fundo (z 3,2), estantes na faixa do meio fazem sombra real (ShadowGenerator) e bloqueiam a detecção (raycast); morte após 0,2 s no cone. Botão chama a plataforma, que sobe com o jogador até a galeria. Luzes longe da câmera são desligadas e cada material aceita 8 luzes (antes só 4 funcionavam). Testada por simulação, falta playtest humano
 - [ ] Área 4: subsolo (perseguição)
 - [ ] Área 5: corredor final e sala
 - [ ] Relógio da chamada (áudio) e volume por área
@@ -194,6 +194,7 @@ Preencha ao baixar ou gerar qualquer item.
 | Item | Origem (URL ou ferramenta) | Licença | Atribuição necessária? | Onde é usado |
 | --- | --- | --- | --- | --- |
 | Y Bot (personagem) e animações Idle, Walking, Jump, Push Stop, Running Slide, Pushing, Running, Jogging (Walking, Push Stop e Jogging não usados) | https://www.mixamo.com (Adobe), baixado em 2026-11-21 e 2026-11-22 | Termos do Mixamo: uso livre de royalties em projetos pessoais e comerciais; não redistribuir os arquivos brutos isoladamente | Não | `public/models/personagem.glb` (jogador) |
+| X Bot (Vigia), reaproveitando Idle e Walking | https://www.mixamo.com (Adobe), baixado em 2026-11-22 | Termos do Mixamo: uso livre de royalties em projetos pessoais e comerciais; não redistribuir os arquivos brutos isoladamente | Não | `public/models/vigia.glb` (gerado com `converter_mixamo.py -- vigia`) |
 
 Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 

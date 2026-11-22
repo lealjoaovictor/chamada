@@ -10,6 +10,7 @@ import {
 import { PhysicsRaycastResult } from "@babylonjs/core/Physics/physicsRaycastResult";
 import type { PhysicsEngine } from "@babylonjs/core/Physics/v2/physicsEngine";
 import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import type { Input } from "./Input";
@@ -74,6 +75,7 @@ export class Player {
   private slideDir = 1;
   private readonly scene: Scene;
   private readonly ray = new PhysicsRaycastResult();
+  meshes: AbstractMesh[] = [];
   private readonly rayFrom = new Vector3();
   private readonly rayTo = new Vector3();
 
@@ -117,7 +119,9 @@ export class Player {
       group.stop();
       anims.set(group.name as AnimName, group);
     }
-    return new Player(scene, spawn, visual, anims);
+    const player = new Player(scene, spawn, visual, anims);
+    player.meshes = result.meshes;
+    return player;
   }
 
   get feetY(): number {

@@ -9,6 +9,10 @@ import type { LampData } from "../../levels/types";
 const LAMP_COLOR = new Color3(1, 0.72, 0.38);
 const LAMP_RANGE = 9;
 const LAMP_Z = 1.4;
+const MOON_COLOR = new Color3(0.45, 0.58, 0.85);
+const MOON_INTENSITY = 0.9;
+const MOON_RANGE = 14;
+const MOON_Z = -2.5;
 const OFF_LEVEL = 0.06;
 const ON_TIME = [0.3, 2.6];
 const OFF_TIME = [0.03, 0.16];
@@ -27,17 +31,19 @@ export class Lamp {
   private timer = 0;
 
   constructor(scene: Scene, data: LampData, intensity: number, name: string) {
-    this.intensity = intensity;
+    const moon = data.moonlight ?? false;
+    this.intensity = moon ? MOON_INTENSITY : intensity;
     this.flicker = data.flicker ?? false;
-    this.light = new PointLight(name, new Vector3(data.x, data.y, LAMP_Z), scene);
-    this.light.diffuse = LAMP_COLOR;
+    this.light = new PointLight(name, new Vector3(data.x, data.y, moon ? MOON_Z : LAMP_Z), scene);
+    this.light.diffuse = moon ? MOON_COLOR : LAMP_COLOR;
     this.light.specular = Color3.Black();
-    this.light.intensity = intensity;
-    this.light.range = LAMP_RANGE;
+    this.light.intensity = this.intensity;
+    this.light.range = moon ? MOON_RANGE : LAMP_RANGE;
 
+    this.bulbMaterial = new StandardMaterial(`${name}-mat`, scene);
+    if (moon) return;
     const bulb = CreateSphere(`${name}-bulb`, { diameter: 0.18 }, scene);
     bulb.position.set(data.x, data.y, LAMP_Z);
-    this.bulbMaterial = new StandardMaterial(`${name}-mat`, scene);
     this.bulbMaterial.emissiveColor = LAMP_COLOR;
     this.bulbMaterial.disableLighting = true;
     bulb.material = this.bulbMaterial;

@@ -59,6 +59,8 @@ export const area1Level: LevelData = {
   lamps,
   plates: [],
   doors: [],
+  vigias: [],
+  elevators: [],
   decor: [
     ...[0, 1, 2, 3, 4, 5].map((i): DecorData => ({
       x: 15 + 0.333 + i * 0.667,

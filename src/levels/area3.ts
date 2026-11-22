@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, ModelName } from "./types";
 
 const START = 80;
 const HALL_START = 84;
@@ -15,15 +15,10 @@ const SHELF_WIDTH = 1.4;
 const SHELF_XS = [86.5, 89.5, 92.5, 95.5, 98.5, 101.5];
 const BACK_Z = 4.6;
 
-function shelf(x: number): BlockData {
-  return { x, y: SHELF_HEIGHT / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: SHELF_WIDTH, height: SHELF_HEIGHT, material: "madeira" };
-}
+const SHELF_MODELS: ModelName[] = ["estante-1", "estante-2", "estante-3"];
 
-function books(x: number): DecorData[] {
-  const front = SHELF_Z - SHELF_DEPTH / 2 - 0.02;
-  return [0.35, 0.95, 1.55, 2.15].map((y) => ({
-    x, y, z: front, width: SHELF_WIDTH - 0.2, height: 0.38, depth: 0.04, material: "livros",
-  }));
+function shelf(x: number, i: number): BlockData {
+  return { x, y: SHELF_HEIGHT / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: SHELF_WIDTH, height: SHELF_HEIGHT, material: "madeira", model: SHELF_MODELS[i % SHELF_MODELS.length] };
 }
 
 function tallWindow(x: number): DecorData[] {
@@ -94,7 +89,6 @@ export const area3Level: LevelData = {
     { x: (HALL_START + END) / 2, y: 0.6, z: BACK_Z, width: END - HALL_START, height: 1.2, depth: 0.1, material: "madeira" },
     { x: (HALL_START + END) / 2, y: 3.85, z: BACK_Z + 0.05, width: END - HALL_START, height: 5.3, depth: 0.1, material: "parede" },
     ...[85.5, 88, 91, 94, 97, 100].flatMap(tallWindow),
-    ...SHELF_XS.flatMap(books),
     
     { x: SHAFT_X - SHAFT_WIDTH / 2 - 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },
     { x: SHAFT_X + SHAFT_WIDTH / 2 + 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },

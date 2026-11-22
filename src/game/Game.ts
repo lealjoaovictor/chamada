@@ -29,6 +29,7 @@ import { Hints } from "./Hints";
 import { Sfx } from "./Sfx";
 import { createDust } from "./Dust";
 import { applyWorldUVs } from "./WorldUV";
+import { Props } from "./Props";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
@@ -78,6 +79,7 @@ export class Game {
   private readonly endScreen = new EndScreen();
   private endShownAt = -1;
   private hints!: Hints;
+  private props!: Props;
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
@@ -122,10 +124,21 @@ export class Game {
     level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
     this.materials = new MaterialLibrary(scene);
+    this.props = new Props(scene);
+    await this.props.load(level.obstacles.flatMap((block) => (block.model ? [block.model] : [])));
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
       this.createStatic(block, level.depth, `solid-${i}`);
     }
-    level.obstacles.forEach((block, i) => this.obstacleMeshes.push(this.createStatic(block, level.depth, `obstacle-${i}`)));
+    level.obstacles.forEach((block, i) => {
+      const mesh = this.createStatic(block, level.depth, `obstacle-${i}`);
+      if (!block.model) {
+        this.obstacleMeshes.push(mesh);
+        return;
+      }
+      mesh.isVisible = false;
+      const size = { width: block.width, height: block.height, depth: block.depth ?? level.depth };
+      this.obstacleMeshes.push(this.props.place(block, block.model, size));
+    });
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
     level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
     level.doors.forEach((door, i) =>

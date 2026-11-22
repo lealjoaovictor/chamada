@@ -19,6 +19,8 @@ export type MaterialName =
   | "luar"
   | "quadro";
 
+export type ModelName = "estante-1" | "estante-2" | "estante-3";
+
 export interface BlockData {
   x: number;
   y: number;
@@ -27,6 +29,7 @@ export interface BlockData {
   material?: MaterialName;
   z?: number;
   depth?: number;
+  model?: ModelName;
 }
 
 export interface DecorData extends BlockData {

@@ -68,13 +68,13 @@ O humano pode estar longe do computador, acompanhando e dando ordens pelo celula
 
 | Item | Versão |
 | --- | --- |
-| Node.js | LTS atual (anotar: ______) |
-| Vite | anotar: ______ |
-| TypeScript | anotar: ______ |
-| `@babylonjs/core` | **anotar a versão instalada no dia 1** |
-| `@babylonjs/loaders` | mesma versão do core |
-| `@babylonjs/havok` | anotar: ______ |
-| `@babylonjs/inspector` | mesma versão do core (só em desenvolvimento) |
+| Node.js | LTS atual (anotado: 24.14.0, npm 11.9.0) |
+| Vite | 8.3.8 |
+| TypeScript | 7.0.2 |
+| `@babylonjs/core` | **9.37.1** (instalada em 2026-11-21) |
+| `@babylonjs/loaders` | 9.37.1 |
+| `@babylonjs/havok` | 1.3.14 |
+| `@babylonjs/inspector` | 9.37.1 (só em desenvolvimento) |
 
 **No dia 1:** rode `npm view @babylonjs/core version`, instale exatamente essa versão (sem `^`, em `package.json`) e escreva-a na tabela acima. Todos os pacotes `@babylonjs/*` precisam ter a **mesma versão**. Nunca atualize no meio do projeto.
 
@@ -142,8 +142,16 @@ chamada/
 
 Atualize esta lista a cada tarefa concluída.
 
-- [ ] Projeto base (Vite + TypeScript + Babylon + Havok)
+- [x] Projeto base (Vite + TypeScript + Babylon + Havok)
 - [ ] **Prova de pipeline** (seção 8)
+  - [x] 1. Projeto criado com versões fixadas
+  - [x] 2. Cena com câmera lateral e chão
+  - [x] 3. Cubo anda, pula e empurra caixa (Havok, controlador de personagem, plano 2D) — falta playtest humano
+  - [ ] 4. Personagem do Mixamo convertido para GLB
+  - [ ] 5. GLB importado com animações
+  - [x] 6. Névoa e luz simples
+  - [ ] 7. Leitura de controle (teclado já passa pela camada de ações de `Input.ts`)
+  - [x] 8. `npm run build` e `vite preview` funcionando (Vite escuta na rede local)
 - [ ] Entrada: teclado e controle
 - [ ] Jogador: andar e pular
 - [ ] Jogador: empurrar caixa

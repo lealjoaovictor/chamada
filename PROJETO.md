@@ -150,6 +150,7 @@ Atualize esta lista a cada tarefa concluída.
   - [ ] 4. Personagem do Mixamo convertido para GLB
   - [ ] 5. GLB importado com animações
   - [x] 6. Névoa e luz simples
+  - Desempenho: 60 fps estáveis no Mac do humano (teste manual, 2026-11-21)
   - [ ] 7. Leitura de controle (teclado já passa pela camada de ações de `Input.ts`)
   - [x] 8. `npm run build` e `vite preview` funcionando (Vite escuta na rede local)
 - [ ] Entrada: teclado e controle

@@ -5,6 +5,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { InstancedMesh } from "@babylonjs/core/Meshes/instancedMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
+import { MODEL_OPTIONS, modelFile } from "./modelFile";
 import type { BlockData, ModelName } from "../levels/types";
 
 export class Props {
@@ -20,7 +21,7 @@ export class Props {
     material.specularColor = Color3.Black();
     await Promise.all(
       [...new Set(names)].map(async (name) => {
-        const result = await ImportMeshAsync(`models/${name}.glb`, this.scene);
+        const result = await ImportMeshAsync(modelFile(name), this.scene, MODEL_OPTIONS);
         const mesh = result.meshes.find((candidate): candidate is Mesh => candidate instanceof Mesh && candidate.getTotalVertices() > 0);
         if (!mesh) throw new Error(`modelo sem malha: ${name}`);
         mesh.setParent(null);

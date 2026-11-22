@@ -6,8 +6,8 @@ export const DICAS: HintData[] = [
   {
     zone: { minX: 14, maxX: 31 },
     trigger: "tempo",
-    glowAfter: 15,
-    iconAfter: 30,
+    glowAfter: 45,
+    iconAfter: 90,
     glow: { box: 0 },
     icon: { action: "empurrar", x: 0, y: 0.9, followBox: 0 },
     doneWhen: { boxMoved: 0 },
@@ -15,15 +15,15 @@ export const DICAS: HintData[] = [
   {
     zone: { minX: 52, maxX: 55 },
     trigger: "encostado",
-    iconAfter: 1.5,
+    iconAfter: 4,
     icon: { action: "deslizar", x: 54.4, y: 1.7 },
     doneWhen: { passedX: 55.5 },
   },
   {
     zone: { minX: 56, maxX: 66.8 },
     trigger: "tempo",
-    glowAfter: 20,
-    iconAfter: 35,
+    glowAfter: 45,
+    iconAfter: 90,
     glow: { box: 1, plate: 0 },
     icon: { action: "empurrar", x: 0, y: 0.9, followBox: 1 },
     doneWhen: { platePressed: 0 },
@@ -31,7 +31,7 @@ export const DICAS: HintData[] = [
   {
     zone: { minX: 64, maxX: 67 },
     trigger: "encostado",
-    iconAfter: 1.5,
+    iconAfter: 4,
     requires: { platePressed: 0 },
     icon: { action: "deslizar", x: 66.4, y: 1.7 },
     doneWhen: { passedX: 67.5 },
@@ -39,7 +39,7 @@ export const DICAS: HintData[] = [
   {
     zone: { minX: 98, maxX: 105.5 },
     trigger: "tempo",
-    glowAfter: 6,
+    glowAfter: 20,
     glow: { elevator: 0 },
     doneWhen: { elevatorCalled: 0 },
   },

@@ -15,6 +15,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
+import { MODEL_OPTIONS, modelFile } from "./modelFile";
 
 const MOVE_SPEED = 4.5;
 const PUSH_SPEED = 1.2;
@@ -35,7 +36,7 @@ const SLIDE_TIME = 0.55;
 const SLIDE_COOLDOWN = 0.25;
 const SLIDE_HEIGHT = 0.8;
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/personagem.glb`;
+const MODEL_URL = modelFile("personagem");
 const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
@@ -102,7 +103,7 @@ export class Player {
   }
 
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
-    const result = await ImportMeshAsync(MODEL_URL, scene);
+    const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("player-visual", scene);
     const material = new StandardMaterial("player-mat", scene);
     material.diffuseColor = MODEL_COLOR;

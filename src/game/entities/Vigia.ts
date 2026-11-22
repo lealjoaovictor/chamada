@@ -14,9 +14,10 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
+import { MODEL_OPTIONS, modelFile } from "../modelFile";
 import type { VigiaData } from "../../levels/types";
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/vigia.glb`;
+const MODEL_URL = modelFile("vigia");
 const MODEL_COLOR = new Color3(0.03, 0.03, 0.035);
 const MODEL_SCALE = 1.1;
 const WALK_CLIP_SPEED = 1.68;
@@ -54,6 +55,7 @@ export class Vigia {
   private facing = 1;
   private phase: Phase = "andando";
   private timer = 0;
+  private pause = 0;
 
   private constructor(scene: Scene, data: VigiaData, visual: TransformNode, anims: Map<string, AnimationGroup>) {
     this.scene = scene;
@@ -87,7 +89,7 @@ export class Vigia {
   }
 
   static async create(scene: Scene, data: VigiaData): Promise<Vigia> {
-    const result = await ImportMeshAsync(MODEL_URL, scene);
+    const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("vigia-visual", scene);
     visual.scaling.setAll(MODEL_SCALE);
     const material = new StandardMaterial("vigia-mat", scene);
@@ -166,13 +168,15 @@ export class Vigia {
         this.x = end;
         this.phase = "parado";
         this.timer = 0;
+        const max = this.data.pauseMax ?? this.data.pause;
+        this.pause = this.data.pause + Math.random() * (max - this.data.pause);
       }
     } else {
       this.timer += dt;
-      const turnStart = this.data.pause * 0.4;
-      const t = Math.min(Math.max((this.timer - turnStart) / (this.data.pause - turnStart), 0), 1);
+      const turnStart = this.pause * 0.4;
+      const t = Math.min(Math.max((this.timer - turnStart) / (this.pause - turnStart), 0), 1);
       this.facing = this.heading * Math.cos(Math.PI * smooth(t));
-      if (this.timer >= this.data.pause) {
+      if (this.timer >= this.pause) {
         this.heading = -this.heading;
         this.facing = this.heading;
         this.phase = "andando";

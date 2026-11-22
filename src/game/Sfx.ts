@@ -46,15 +46,41 @@ export class Sfx {
   async load(): Promise<void> {
     await Promise.all(
       NAMES.map(async (name) => {
-        const response = await fetch(`audio/sfx/${name}.ogg`);
-        const buffer = await this.context.decodeAudioData(await response.arrayBuffer());
-        this.buffers.set(name, buffer);
+        const buffer = (await this.decode(`audio/sfx/${name}.ogg`)) ?? (await this.decode(`audio/sfx/${name}.mp3`));
+        if (buffer) this.buffers.set(name, buffer);
+        else console.warn(`som ${name} não carregou`);
       }),
     );
   }
 
+  get audio(): AudioContext {
+    return this.context;
+  }
+
+  get output(): AudioNode {
+    return this.master;
+  }
+
+  // Celulares só liberam o áudio dentro do próprio toque: chamar direto do evento.
   unlock(): void {
-    if (this.context.state === "suspended") void this.context.resume();
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) session.type = "playback";
+    if (this.context.state !== "running") void this.context.resume();
+    const silence = this.context.createBufferSource();
+    silence.buffer = this.context.createBuffer(1, 1, this.context.sampleRate);
+    silence.connect(this.context.destination);
+    silence.start();
+  }
+
+  // O iPhone não decodifica Ogg Vorbis; a build para celular traz uma cópia em MP3.
+  private async decode(url: string): Promise<AudioBuffer | null> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      return await this.context.decodeAudioData(await response.arrayBuffer());
+    } catch {
+      return null;
+    }
   }
 
   play(name: SfxName, options: PlayOptions = {}): void {

@@ -22,6 +22,7 @@ export class Input {
   private readonly heldKeys = new Set<string>();
   private readonly padHeld = new Set<Action>();
   private readonly padPrevious = new Set<Action>();
+  private readonly touchHeld = new Set<Action>();
   private autopilot: number | null = null;
   private anyPressed = false;
   private padButtonsPrevious = false;
@@ -54,6 +55,7 @@ export class Input {
     this.held.clear();
     this.pressed.clear();
     this.padHeld.clear();
+    this.touchHeld.clear();
   };
 
   constructor() {
@@ -89,6 +91,15 @@ export class Input {
     this.padButtonsPrevious = anyButton;
   }
 
+  setTouch(action: Action, down: boolean): void {
+    if (down) {
+      if (!this.isDown(action)) this.pressed.add(action);
+      this.touchHeld.add(action);
+    } else {
+      this.touchHeld.delete(action);
+    }
+  }
+
   consumeAnyPress(): boolean {
     const pressed = this.anyPressed;
     this.anyPressed = false;
@@ -101,7 +112,7 @@ export class Input {
 
   isDown(action: Action): boolean {
     if (this.autopilot !== null) return false;
-    return this.held.has(action) || this.padHeld.has(action);
+    return this.held.has(action) || this.padHeld.has(action) || this.touchHeld.has(action);
   }
 
   wasPressed(action: Action): boolean {

@@ -92,6 +92,7 @@ export interface VigiaData {
   z: number;
   speed: number;
   pause: number;
+  pauseMax?: number;
   aimAhead: number;
   aimY: number;
   coneAngle: number;
@@ -162,4 +163,24 @@ export interface RattleData {
   minX: number;
   maxX: number;
   minFeetY: number;
+}
+
+export interface CallEntryData {
+  nome: string;
+  presente: boolean;
+}
+
+export interface CallData {
+  aluno: string;
+  entradas: CallEntryData[];
+  inicio: number;
+  tempoComResposta: number;
+  tempoSemResposta: number;
+  volumePorArea: number[];
+  filtroPorArea: number[];
+}
+
+export interface AreaData {
+  numero: number;
+  inicioX: number;
 }

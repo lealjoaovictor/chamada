@@ -4,7 +4,7 @@ Arquivo de contexto para qualquer IA que trabalhe neste projeto. **Leia tudo ant
 
 ## 1. O que é
 
-**Chamada** é um jogo de plataforma e puzzle 2.5D (mundo 3D, câmera lateral, jogabilidade num plano 2D) feito com **Babylon.js**, de cerca de 5 minutos. Um aluno sem rosto atravessa uma universidade vazia e sombria para chegar à sala antes que o alto-falante chame o nome dele. O relógio é um único áudio de chamada, sem barra de tempo.
+**Chamada** é um jogo de plataforma e puzzle 2.5D (mundo 3D, câmera lateral, jogabilidade num plano 2D) feito com **Babylon.js**, de 8 a 10 minutos (meta revista em 2026-11-22). Um aluno sem rosto atravessa uma universidade vazia e sombria para chegar à sala antes que o alto-falante chame o nome dele. O relógio é um único áudio de chamada, sem barra de tempo.
 
 Referências: INSIDE (clima, mundo sem palavras, perseguição) e SpeedRunners (pressão que empurra para frente, movimento fluido).
 
@@ -126,7 +126,7 @@ chamada/
 - **Plano 2D:** o jogador e as caixas ficam travados no eixo Z (movimento só em X e Y).
 - **Movimento:** velocidade única, aceleração e frenagem curtas, *coyote time* (~0,1 s) e *buffer de pulo* (~0,1 s). Valores em constantes no topo de `Player.ts`, fáceis de ajustar. Se a versão fixada tiver o controlador de personagem do Havok, use-o; caso contrário, um controlador cinemático próprio.
 - **Morte:** fade curto (~0,5 s) e reposicionamento no último checkpoint. O relógio da chamada **não reinicia**.
-- **Relógio:** `CallClock.ts` usa o tempo de reprodução do áudio da chamada. Volume e filtro mudam por área (longe e abafado nas áreas 1 e 2, próximo e alto na 5).
+- **Relógio:** `CallClock.ts` usa o tempo de jogo (`CallSchedule.ts` diz em que instante cada nome é lido; lista em `src/levels/chamada.ts`). A voz usa clipes gravados de `public/audio/chamada/` (lista em `manifest.json`) quando existem e, sem eles, a voz sintetizada do navegador, provisória. Volume e filtro mudam por área (longe e abafado nas áreas 1 e 2, próximo e alto na 5).
 - Use o **Inspector** do Babylon para depurar. Ele fica fora do build final.
 
 ## 6. Arquitetura resumida
@@ -165,8 +165,11 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Área 3: biblioteca (elevador, patrulha do Vigia) — montada em 2026-11-22 (`src/levels/area3.ts`, `entities/Vigia.ts`, `entities/Elevator.ts`). Vigia anda numa faixa ao fundo (z 3,2), estantes na faixa do meio fazem sombra real (ShadowGenerator) e bloqueiam a detecção (raycast); morte após 0,2 s no cone. Botão chama a plataforma, que sobe com o jogador até a galeria. Luzes longe da câmera são desligadas e cada material aceita 8 luzes (antes só 4 funcionavam). Testada por simulação, falta playtest humano
 - [ ] Área 4: subsolo (perseguição) — montada em 2026-11-22 (`src/levels/area4.ts`). Rampa de garagem desce da galeria; Vigia (modo perseguição, `Running.fbx`) surge em x 128 e corre a 3,8 m/s numa faixa paralela; toque mata. Barra de altura (deslizar), barreira de concreto (pular), portão de enrolar meio fechado que bate depois que o jogador passa (deslizar). Pré-aquecimento de shaders no carregamento (`Game.warmUp`) elimina a câmera lenta na primeira passagem. Testada por simulação, falta playtest humano
 - [ ] Área 5: corredor final e sala — montada em 2026-11-22 (`src/levels/area5.ts`, `entities/FinalDoor.ts`). Escada sobe 1,5 m, corredor de ~35 m com alto-falantes cada vez maiores e lâmpada que morre ao passar; tocar a porta tranca o controle (`Input.setAutopilot`), a porta abre, o boneco entra sozinho na sala vazia e a tela corta para preto (estados `chegada`/`fim` em `Game`). Falta: voz da chamada, final ruim e tela final. Testada por simulação, falta playtest humano
-- [ ] Relógio da chamada (áudio) e volume por área
-- [ ] Finais bom e ruim
+- [ ] Relógio da chamada e volume por área — feito em 2026-11-22 (`CallClock.ts`, `CallSchedule.ts`, `src/levels/chamada.ts`, áreas em `src/levels/areas.ts`). 160 nomes fictícios em ordem alfabética, aluno "Zacarias Vieira" por último, chamada de 10min48. "Presente" ou silêncio depois de cada nome. Volume e filtro passa-baixa por área, chiado de alto-falante. Falta: gravar a voz (ElevenLabs) e playtest humano
+- [ ] Finais bom e ruim — feito em 2026-11-22. Bom: chega à porta antes do nome e a voz chama o nome dele na sala. Ruim: o nome é chamado antes, o controle trava, a tela escurece e aparece "pressione qualquer botão para recomeçar". Final ruim testado no navegador automático; final bom falta testar jogando
+- [ ] Telemetria e testes por área — feito em 2026-11-22 (`Telemetry.ts`). `?telemetria=1` mostra tempo, nomes chamados e mortes por área; as últimas 20 partidas ficam no navegador (`chamadaTelemetria()` no console). `?area=N` começa no checkpoint antes da área N; `?chamada=S` adianta o relógio para S segundos (para testar o final ruim)
+- [ ] Ajustes de dificuldade da etapa 1 — feito em 2026-11-22: Vigia da perseguição 3,8 → 4,3 m/s; dicas mais tarde (brilho 45 s, ícone 90 s, encostado 4 s, elevador 20 s); pausa da patrulha varia entre 1,2 e 3,2 s (`pauseMax`). Falta playtest humano
+- [ ] Versão para celular — feita em 2026-11-22. Botões de toque (`src/ui/TouchControls.ts`, ligados por `VITE_TOQUE` ou `?toque=1`); `npm run build:celular` gera `dist-celular/` com `pagina.html` para publicar como página privada no claude.ai (modelos com extensão `.glb.mp4`, ver `ferramentas/build-celular.mjs`). O `node_modules` do Mac não roda no Linux; a build foi feita num ambiente Linux à parte
 - [ ] Menu, tela de morte e tela final — feito em 2026-11-22, estilo A escolhido (`src/ui/Screens.ts`, estilos em `index.html`, créditos em `src/ui/creditos.ts`). Menu sobre o pátio ao vivo depois do pré-aquecimento, "pressione qualquer botão" (teclado, clique ou controle) e linha de controles; tela de morte = escurecimento sem texto; tela final com créditos e recomeço (recarrega a página). Falta playtest humano
 - [ ] Orientação do jogador (UX) — feito em 2026-11-22. Camadas: 0 = cenário guia (vidro da catraca com moldura, porta principal chacoalha ao tocar, câmera mostra o elevador ao entrar na biblioteca, pilar na entrada da biblioteca); 1 = brilho pulsante no objeto da solução quando o jogador parece perdido; 2 = ícone de tecla/botão (sem palavras, exceção aprovada à regra de texto) só quando o detector dispara. Regras em `src/levels/dicas.ts`, lógica em `src/game/Hints.ts`. Também: ponto de carregamento, cursor oculto no jogo, morte por lanterna escurece em âmbar, linha de controles com controle. Falta playtest humano
 - [ ] Efeitos sonoros — feito em 2026-11-22 (`src/game/Sfx.ts` = Web Audio, `src/game/Soundscape.ts` = quando tocar). Passos, pulo, aterrissagem, deslize, empurrar, placa, portas, porta trancada, botão e motor do elevador, lâmpada que apaga, passos do Vigia (volume pela distância), Vigia surgindo, porta final e três sons de morte. Áudio liberado no primeiro botão do menu. Sem música ambiente por enquanto. Falta playtest humano (volumes e escolha dos sons)
@@ -252,5 +255,5 @@ Cole o papel no início da sessão, junto com este arquivo e o GDD.
 | Marco | Fim do dia |
 | --- | --- |
 | Protótipo pronto (prova de pipeline aprovada) | 1 |
-| Features congeladas (nada novo entra) | 5 |
+| Features congeladas (nada novo entra) | adiado para perto da entrega (decisão de 2026-11-22, para caber a meta de 8 a 10 minutos) |
 | Versão final (build testada em outro computador) | 7 |

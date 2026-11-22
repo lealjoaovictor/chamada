@@ -35,7 +35,12 @@ import { Soundscape } from "./Soundscape";
 import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
-import { EndScreen, MenuScreen } from "../ui/Screens";
+import { EndScreen, LateScreen, MenuScreen } from "../ui/Screens";
+import { CallClock } from "./CallClock";
+import { Telemetry } from "./Telemetry";
+import { CHAMADA } from "../levels/chamada";
+import { AREAS, areaAt } from "../levels/areas";
+import { TouchControls, touchControlsEnabled } from "../ui/TouchControls";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
@@ -52,7 +57,9 @@ const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
-const ROOM_HOLD = 2;
+const ROOM_HOLD = 3.5;
+const LATE_HOLD = 3;
+const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
 const RESTART_LOCK = 1.5;
@@ -60,7 +67,7 @@ const LIGHT_DEATH_COLOR = "#3a2306";
 const DEFAULT_FADE_COLOR = "#000";
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim";
+type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado";
 
 export class Game {
   private readonly boxes: Box[] = [];
@@ -77,7 +84,12 @@ export class Game {
   private arrivalTimer = 0;
   private readonly menu = new MenuScreen();
   private readonly endScreen = new EndScreen();
+  private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
+  private clock!: CallClock;
+  private telemetry!: Telemetry;
+  private startArea = 1;
+  private audioPrimed = false;
   private hints!: Hints;
   private props!: Props;
   private focusLock = false;
@@ -99,13 +111,30 @@ export class Game {
 
   private constructor(engine: AbstractEngine) {
     this.scene = new Scene(engine);
+    if (touchControlsEnabled()) new TouchControls(this.input);
+    const unlock = (): void => {
+      this.sfx.unlock();
+      if (this.clock && !this.audioPrimed) {
+        this.audioPrimed = true;
+        this.clock.primeSpeech();
+      }
+    };
+    for (const type of ["pointerdown", "touchend", "keydown"]) window.addEventListener(type, unlock, { capture: true });
   }
 
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
-    const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
+    const params = new URLSearchParams(location.search);
+    const debugLevel = params.get("fase") === "teste";
     const level = debugLevel ? pipelineLevel : worldLevel;
+    const area = Number(params.get("area"));
+    if (!debugLevel && Number.isInteger(area) && area >= 1 && area <= AREAS.length) game.startArea = area;
+    game.clock = new CallClock(CHAMADA, game.sfx);
+    const clockStart = Number(params.get("chamada"));
+    if (clockStart > 0) game.clock.setTime(clockStart);
+    game.telemetry = new Telemetry(game.startArea);
     await Promise.all([game.load(level), game.sfx.load()]);
+    await game.clock.load();
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, DICAS, FOCOS, CHACOALHAR);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
@@ -157,6 +186,7 @@ export class Game {
     );
 
     this.checkpoints = new Checkpoints(level.checkpoints);
+    if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
@@ -219,8 +249,16 @@ export class Game {
 
   private update(): void {
     if (this.warming) return;
-    const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
+    const realDt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
+    const dt = Math.min(realDt, MAX_DT);
     this.input.update();
+    const area = areaAt(this.player.position.x);
+    const running = this.state === "jogando" || this.state === "morto";
+    this.clock.update(realDt, area, running);
+    if (running) {
+      this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total);
+      if (this.clock.studentNameReached) this.late();
+    }
     for (const lamp of this.lamps) lamp.update(dt, this.player.position.x);
     this.finalDoor?.update(dt);
     this.updateDoors(dt);
@@ -228,6 +266,11 @@ export class Game {
     this.updateElevators(dt);
     if (this.state === "menu") {
       this.updateMenu(dt);
+      this.input.endFrame();
+      return;
+    }
+    if (this.state === "atrasado") {
+      this.updateLate(dt);
       this.input.endFrame();
       return;
     }
@@ -299,6 +342,7 @@ export class Game {
 
   private die(cause: "queda" | "luz" | "toque"): void {
     this.hints.registerDeath(this.player.position.x);
+    this.telemetry.death(areaAt(this.player.position.x), cause, this.player.position.x);
     this.soundscape.death(cause);
     this.soundscape.forget();
     this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
@@ -313,9 +357,29 @@ export class Game {
     if (!this.input.consumeAnyPress()) return;
     this.menu.hide();
     this.sfx.unlock();
+    this.clock.start();
     this.input.setAutopilot(null);
     document.body.style.cursor = "none";
     this.state = "jogando";
+  }
+
+  // Final ruim: o nome do aluno foi chamado antes de ele chegar.
+  private late(): void {
+    this.state = "atrasado";
+    this.arrivalTimer = 0;
+    this.endShownAt = -1;
+    this.input.setAutopilot(0);
+    this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.telemetry.finish("ruim");
+  }
+
+  private updateLate(dt: number): void {
+    this.arrivalTimer += dt;
+    if (this.arrivalTimer > LATE_HOLD) this.clock.stopHiss();
+    this.fade.set(Math.min(Math.max((this.arrivalTimer - LATE_HOLD) / END_FADE, 0), 1));
+    this.updateEndScreen(this.lateScreen, LATE_HOLD);
+    this.player.update(dt, this.input, false);
+    this.cullLights();
   }
 
   private arrive(): void {
@@ -359,10 +423,13 @@ export class Game {
       if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) {
         this.state = "fim";
         this.arrivalTimer = 0;
+        this.clock.callStudentNow();
+        this.telemetry.finish("bom");
       }
     } else {
+      if (this.arrivalTimer > ROOM_HOLD) this.clock.stopHiss();
       this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
-      this.updateEndScreen();
+      this.updateEndScreen(this.endScreen, ROOM_HOLD);
     }
     this.player.update(dt, this.input, false);
     this.cameraRig.update(dt, {
@@ -374,13 +441,13 @@ export class Game {
     this.cullLights();
   }
 
-  private updateEndScreen(): void {
+  private updateEndScreen(screen: EndScreen | LateScreen, hold: number): void {
     if (this.endShownAt < 0) {
-      if (this.arrivalTimer < ROOM_HOLD + END_FADE + END_SCREEN_DELAY) return;
+      if (this.arrivalTimer < hold + END_FADE + END_SCREEN_DELAY) return;
       this.endShownAt = this.arrivalTimer;
       this.input.consumeAnyPress();
       document.body.style.cursor = "";
-      this.endScreen.show();
+      screen.show();
       return;
     }
     if (this.arrivalTimer - this.endShownAt < RESTART_LOCK) {

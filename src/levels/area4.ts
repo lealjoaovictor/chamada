@@ -95,7 +95,7 @@ export const area4Level: LevelData = {
       x1: GATE_X - 0.6,
       y: 0,
       z: 1.4,
-      speed: 3.8,
+      speed: 4.3,
       pause: 0,
       aimAhead: 5,
       aimY: 0.9,

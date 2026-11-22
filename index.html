@@ -19,6 +19,12 @@
       .carregando { position: fixed; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: rgba(240, 190, 120, 0.8); animation: pulsa 1.4s ease-in-out infinite; z-index: 20; }
       .dica { position: fixed; left: 0; top: 0; min-width: 1.6em; padding: 0.25em 0.5em; border: 1.5px solid rgba(240, 200, 140, 0.85); border-radius: 0.35em; color: rgba(250, 230, 200, 0.95); background: rgba(0, 0, 0, 0.45); font-family: -apple-system, "Segoe UI", sans-serif; font-size: clamp(13px, 1.5vw, 18px); font-weight: 600; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; z-index: 5; }
       .dica.visivel { opacity: 1; animation: pulsa 1.6s ease-in-out infinite; }
+      .toque { position: fixed; inset: auto 0 0 0; display: flex; justify-content: space-between; padding: 0 max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); pointer-events: none; z-index: 15; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+      .toque-grupo { display: flex; gap: 14px; pointer-events: auto; }
+      .toque-grupo.direita { flex-direction: row; }
+      .toque-botao { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: rgba(240, 225, 200, 0.75); background: rgba(20, 20, 24, 0.35); border: 1.5px solid rgba(240, 210, 160, 0.35); touch-action: none; }
+      .toque-botao.ativo { background: rgba(240, 200, 140, 0.3); }
+      .telemetria { position: fixed; top: 8px; left: 8px; padding: 6px 10px; white-space: pre; font: 12px/1.5 ui-monospace, Menlo, monospace; color: #e8e2d4; background: rgba(0, 0, 0, 0.6); border-radius: 4px; pointer-events: none; z-index: 30; }
       @keyframes pulsa { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
     </style>
   </head>

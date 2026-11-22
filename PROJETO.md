@@ -4,7 +4,7 @@ Arquivo de contexto para qualquer IA que trabalhe neste projeto. **Leia tudo ant
 
 ## 1. O que é
 
-**Chamada** é um jogo de plataforma e puzzle 2.5D (mundo 3D, câmera lateral, jogabilidade num plano 2D) feito com **Babylon.js**, de 8 a 10 minutos (meta revista em 2026-11-22). Um aluno sem rosto atravessa uma universidade vazia e sombria para chegar à sala antes que o alto-falante chame o nome dele. O relógio é um único áudio de chamada, sem barra de tempo.
+**Chamada** é um jogo de plataforma e puzzle 2.5D (mundo 3D, câmera lateral, jogabilidade num plano 2D) feito com **Babylon.js**, de no máximo 8 minutos (meta revista em 2026-11-22). Um aluno de faculdade noturna (Zacarias Vieira) atravessa um prédio que está fechando para chegar à sala antes que o professor leia o nome dele na chamada. O relógio é a chamada, ouvida por uma ligação aberta de um colega, sem barra de tempo. História validada em 2026-11-22: ver seção "História" do GDD (versão 3).
 
 Referências: INSIDE (clima, mundo sem palavras, perseguição) e SpeedRunners (pressão que empurra para frente, movimento fluido).
 
@@ -142,6 +142,7 @@ chamada/
 
 Atualize esta lista a cada tarefa concluída.
 
+- [ ] **História nova (GDD v3, validada em 2026-11-22), falta implementar:** ligação do colega como fonte da chamada (filtro de telefone, falas do colega com legenda, sinal picotando no subsolo, voz real do professor na área 5); seguranças no lugar do Vigia (ser pego = levado para fora); vultos viram colegas sólidos saindo na direção contrária; remover o corredor em laço da área 5; final bom com o professor chamando fora da ordem e o jogador respondendo "presente"; final ruim com "...ele chamou" e caneta; tirar a regra de "quase ninguém responde no fim"; sensores de portão no lugar das placas (zeladoria: caixa trava a porta); falas dos seguranças (desconfiança, barulho, pego; 3 variações sorteadas) e conversa de fundo dos alunos nas áreas 1 e 2, com ducking quando o colega fala; relógio em duas partes (no máximo 8 minutos de jogo: fim da aula até 1:45 com falas do professor, depois chamada até 7:50 de 48 colegas + Zacarias com 3 interrupções e faltas com "Falta."), refazendo `chamada.ts` e `CallSchedule.ts` pela tabela do roteiro da voz
 - [x] Projeto base (Vite + TypeScript + Babylon + Havok)
 - [ ] **Prova de pipeline** (seção 8)
   - [x] 1. Projeto criado com versões fixadas

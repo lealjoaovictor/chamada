@@ -167,7 +167,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Área 5: corredor final e sala — montada em 2026-11-22 (`src/levels/area5.ts`, `entities/FinalDoor.ts`). Escada sobe 1,5 m, corredor de ~35 m com alto-falantes cada vez maiores e lâmpada que morre ao passar; tocar a porta tranca o controle (`Input.setAutopilot`), a porta abre, o boneco entra sozinho na sala vazia e a tela corta para preto (estados `chegada`/`fim` em `Game`). Falta: voz da chamada, final ruim e tela final. Testada por simulação, falta playtest humano
 - [ ] Relógio da chamada (áudio) e volume por área
 - [ ] Finais bom e ruim
-- [ ] Menu, tela de morte e tela final
+- [ ] Menu, tela de morte e tela final — feito em 2026-11-22, estilo A escolhido (`src/ui/Screens.ts`, estilos em `index.html`, créditos em `src/ui/creditos.ts`). Menu sobre o pátio ao vivo depois do pré-aquecimento, "pressione qualquer botão" (teclado, clique ou controle) e linha de controles; tela de morte = escurecimento sem texto; tela final com créditos e recomeço (recarrega a página). Falta playtest humano
 - [ ] Efeitos sonoros e ambiente
 - [ ] Build local e `iniciar.bat`
 - [ ] Backup publicado no itch.io

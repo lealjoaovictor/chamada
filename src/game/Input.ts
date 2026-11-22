@@ -23,8 +23,11 @@ export class Input {
   private readonly padHeld = new Set<Action>();
   private readonly padPrevious = new Set<Action>();
   private autopilot: number | null = null;
+  private anyPressed = false;
+  private padButtonsPrevious = false;
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (!e.repeat) this.anyPressed = true;
     const action = KEYBOARD_MAP[e.code];
     if (!action) return;
     e.preventDefault();
@@ -42,6 +45,10 @@ export class Input {
     if (!stillHeld) this.held.delete(action);
   };
 
+  private readonly onPointerDown = (): void => {
+    this.anyPressed = true;
+  };
+
   private readonly onBlur = (): void => {
     this.heldKeys.clear();
     this.held.clear();
@@ -53,6 +60,7 @@ export class Input {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("blur", this.onBlur);
+    window.addEventListener("pointerdown", this.onPointerDown);
   }
 
   update(): void {
@@ -61,8 +69,10 @@ export class Input {
     this.padHeld.clear();
 
     const pads = typeof navigator.getGamepads === "function" ? navigator.getGamepads() : [];
+    let anyButton = false;
     for (const pad of pads) {
       if (!pad || !pad.connected) continue;
+      if (pad.buttons.some((b) => b.pressed)) anyButton = true;
       const button = (i: number): boolean => pad.buttons[i]?.pressed ?? false;
       const x = pad.axes[0] ?? 0;
       const y = pad.axes[1] ?? 0;
@@ -75,6 +85,14 @@ export class Input {
     this.padHeld.forEach((action) => {
       if (!this.padPrevious.has(action) && !this.held.has(action)) this.pressed.add(action);
     });
+    if (anyButton && !this.padButtonsPrevious) this.anyPressed = true;
+    this.padButtonsPrevious = anyButton;
+  }
+
+  consumeAnyPress(): boolean {
+    const pressed = this.anyPressed;
+    this.anyPressed = false;
+    return pressed;
   }
 
   setAutopilot(axis: number | null): void {
@@ -104,5 +122,6 @@ export class Input {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("blur", this.onBlur);
+    window.removeEventListener("pointerdown", this.onPointerDown);
   }
 }

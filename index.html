@@ -7,6 +7,16 @@
     <style>
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
       #renderCanvas { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+      .tela { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: rgba(235, 235, 230, 0.8); font-family: Georgia, "Times New Roman", serif; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; user-select: none; z-index: 10; }
+      .tela.visivel { opacity: 1; }
+      .tela.menu { background: rgba(0, 0, 0, 0.35); }
+      .tela.fim { background: #000; }
+      .tela .titulo { font-size: clamp(16px, 2.4vw, 26px); letter-spacing: 0.6em; margin-right: -0.6em; text-transform: lowercase; }
+      .tela .aperte { margin-top: 2.2em; font-size: clamp(11px, 1.3vw, 14px); letter-spacing: 0.3em; color: #ddd; animation: pulsa 2.4s ease-in-out infinite; }
+      .tela .controles { position: absolute; bottom: 4vh; left: 0; right: 0; font-family: -apple-system, "Segoe UI", sans-serif; font-size: clamp(10px, 1vw, 12px); letter-spacing: 0.15em; color: rgba(220, 220, 215, 0.4); }
+      .tela .creditos { margin-top: 3em; font-size: clamp(10px, 1.1vw, 13px); line-height: 2; letter-spacing: 0.12em; color: rgba(220, 220, 215, 0.5); }
+      .tela.fim .aperte { position: absolute; bottom: 8vh; margin: 0; }
+      @keyframes pulsa { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
     </style>
   </head>
   <body>

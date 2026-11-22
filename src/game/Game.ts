@@ -27,6 +27,7 @@ import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
+import { EndScreen, MenuScreen } from "../ui/Screens";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
@@ -45,9 +46,11 @@ const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
 const ROOM_HOLD = 2;
 const END_FADE = 1.5;
+const END_SCREEN_DELAY = 0.6;
+const RESTART_LOCK = 1.5;
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "jogando" | "morto" | "chegada" | "fim";
+type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim";
 
 export class Game {
   private readonly boxes: Box[] = [];
@@ -62,11 +65,14 @@ export class Game {
   private warming = false;
   private finalDoor: FinalDoor | null = null;
   private arrivalTimer = 0;
+  private readonly menu = new MenuScreen();
+  private readonly endScreen = new EndScreen();
+  private endShownAt = -1;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
   private killY = -Infinity;
-  private state: GameState = "jogando";
+  private state: GameState = "menu";
   private deathTimer = 0;
   private respawned = false;
   private readonly fade = new Fade();
@@ -159,6 +165,9 @@ export class Game {
     camera.position.x = startX;
     this.cullLights();
     this.fade.set(0);
+    this.input.setAutopilot(0);
+    this.input.consumeAnyPress();
+    this.menu.show();
     this.warming = false;
   }
 
@@ -171,6 +180,11 @@ export class Game {
     this.updateDoors(dt);
     for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
     this.updateElevators(dt);
+    if (this.state === "menu") {
+      this.updateMenu(dt);
+      this.input.endFrame();
+      return;
+    }
     if (this.state === "chegada" || this.state === "fim") {
       this.updateArrival(dt);
       this.input.endFrame();
@@ -208,6 +222,15 @@ export class Game {
     this.respawned = false;
   }
 
+  private updateMenu(dt: number): void {
+    this.player.update(dt, this.input, false);
+    this.cullLights();
+    if (!this.input.consumeAnyPress()) return;
+    this.menu.hide();
+    this.input.setAutopilot(null);
+    this.state = "jogando";
+  }
+
   private arrive(): void {
     this.state = "chegada";
     this.arrivalTimer = 0;
@@ -227,6 +250,7 @@ export class Game {
       }
     } else {
       this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
+      this.updateEndScreen();
     }
     this.player.update(dt, this.input, false);
     this.cameraRig.update(dt, {
@@ -236,6 +260,21 @@ export class Game {
       facing: this.player.facingDirection,
     });
     this.cullLights();
+  }
+
+  private updateEndScreen(): void {
+    if (this.endShownAt < 0) {
+      if (this.arrivalTimer < ROOM_HOLD + END_FADE + END_SCREEN_DELAY) return;
+      this.endShownAt = this.arrivalTimer;
+      this.input.consumeAnyPress();
+      this.endScreen.show();
+      return;
+    }
+    if (this.arrivalTimer - this.endShownAt < RESTART_LOCK) {
+      this.input.consumeAnyPress();
+      return;
+    }
+    if (this.input.consumeAnyPress()) location.reload();
   }
 
   private updateDeath(dt: number): void {

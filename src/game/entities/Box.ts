@@ -1,12 +1,11 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
-import type { BoxData } from "../../levels/pipeline";
+import type { BoxData } from "../../levels/types";
 
 const BOX_FRICTION = 0.4;
 
@@ -18,14 +17,11 @@ export class Box {
   private readonly start: Vector3;
   private resetFrames = 0;
 
-  constructor(scene: Scene, data: BoxData, name: string) {
+  constructor(scene: Scene, data: BoxData, name: string, material: StandardMaterial) {
     this.halfSize = data.size / 2;
     this.start = new Vector3(data.x, data.y, 0);
     this.mesh = CreateBox(name, { size: data.size }, scene);
     this.mesh.position.set(data.x, data.y, 0);
-    const material = new StandardMaterial(`${name}-mat`, scene);
-    material.diffuseColor = new Color3(0.35, 0.28, 0.2);
-    material.specularColor = Color3.Black();
     this.mesh.material = material;
 
     this.aggregate = new PhysicsAggregate(

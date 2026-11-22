@@ -1,34 +1,4 @@
-export interface BlockData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface BoxData {
-  x: number;
-  y: number;
-  size: number;
-  mass: number;
-}
-
-export interface PointData {
-  x: number;
-  y: number;
-}
-
-export interface LevelData {
-  checkpoints: PointData[];
-  killY: number;
-  bounds: { minX: number; maxX: number };
-  depth: number;
-  ground: BlockData[];
-  walls: BlockData[];
-  platforms: BlockData[];
-  obstacles: BlockData[];
-  boxes: BoxData[];
-  lamps: PointData[];
-}
+import type { LevelData } from "./types";
 
 export const pipelineLevel: LevelData = {
   checkpoints: [
@@ -51,9 +21,11 @@ export const pipelineLevel: LevelData = {
     { x: 11, y: 2.2, width: 3, height: 0.4 },
   ],
   obstacles: [{ x: 2, y: 1.7, width: 1.5, height: 1.2 }],
+  ramps: [],
   boxes: [{ x: -3, y: 0.5, size: 1, mass: 20 }],
   lamps: [
     { x: -3, y: 3.2 },
     { x: 9, y: 4 },
   ],
+  decor: [],
 };

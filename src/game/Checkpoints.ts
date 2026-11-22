@@ -1,4 +1,4 @@
-import type { PointData } from "../levels/pipeline";
+import type { PointData } from "../levels/types";
 
 export class Checkpoints {
   private readonly points: readonly PointData[];

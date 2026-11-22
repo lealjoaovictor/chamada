@@ -54,6 +54,12 @@ export class CameraRig {
     this.apply();
   }
 
+  /** Desloca a câmera junto com o jogador (corredor que se repete), sem suavização. */
+  shift(dx: number): void {
+    this.x += dx;
+    this.apply();
+  }
+
   focus(x: number, seconds: number): void {
     this.focusX = x;
     this.focusTimer = seconds;

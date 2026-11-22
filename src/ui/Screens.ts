@@ -49,3 +49,10 @@ export class EndScreen extends Screen {
     );
   }
 }
+
+export class LateScreen extends Screen {
+  constructor() {
+    super("fim");
+    this.root.append(element("titulo", "chamada"), element("aperte", "pressione qualquer botão para recomeçar"));
+  }
+}

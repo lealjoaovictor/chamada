@@ -17,7 +17,12 @@ export type MaterialName =
   | "carrinho"
   | "livros"
   | "luar"
-  | "quadro";
+  | "quadro"
+  | "papel"
+  | "tecido"
+  | "tela";
+
+export type ModelName = "estante-1" | "estante-2" | "estante-3";
 
 export interface BlockData {
   x: number;
@@ -27,6 +32,7 @@ export interface BlockData {
   material?: MaterialName;
   z?: number;
   depth?: number;
+  model?: ModelName;
 }
 
 export interface DecorData extends BlockData {
@@ -59,7 +65,8 @@ export interface PointData {
 }
 
 export interface LampData extends PointData {
-  flicker?: boolean;
+  /** true = falha às vezes; "escuro" = quase sempre apagada, acende em lampejos curtos. */
+  flicker?: boolean | "escuro";
   moonlight?: boolean;
   diesWhenPassed?: boolean;
 }
@@ -89,6 +96,10 @@ export interface VigiaData {
   z: number;
   speed: number;
   pause: number;
+  pauseMax?: number;
+  startHeading?: 1 | -1;
+  /** Perseguição elástica: acelera quando o jogador abre distância e alivia quando chega perto. */
+  elastico?: { distancia: number; ganho: number; min: number; max: number };
   aimAhead: number;
   aimY: number;
   coneAngle: number;
@@ -131,6 +142,23 @@ export interface LevelData {
   elevators: ElevatorData[];
   finalDoor?: FinalDoorData;
   decor: DecorData[];
+  /** Trechos em que o personagem anda agachado e devagar (furtividade). */
+  furtivo?: { minX: number; maxX: number }[];
+  /** Trechos em que a luz ambiente quase some: só as lâmpadas iluminam. */
+  escuro?: { minX: number; maxX: number }[];
+  /** Corredor que se repete: ao cruzar gatilhoX o jogador recua `recuo` metros; a cada volta apaga um grupo de lâmpadas (por X). */
+  laco?: { gatilhoX: number; recuo: number; apagar: number[][] };
+  /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
+  vultos?: VultoData[];
+}
+
+export interface VultoData {
+  x: number;
+  y: number;
+  z?: number;
+  facing?: 1 | -1;
+  /** Começa a andar quando o jogador se aproxima. */
+  anda?: boolean;
 }
 
 export type HintAction = "empurrar" | "deslizar" | "pular";
@@ -159,4 +187,24 @@ export interface RattleData {
   minX: number;
   maxX: number;
   minFeetY: number;
+}
+
+export interface CallEntryData {
+  nome: string;
+  presente: boolean;
+}
+
+export interface CallData {
+  aluno: string;
+  entradas: CallEntryData[];
+  inicio: number;
+  tempoComResposta: number;
+  tempoSemResposta: number;
+  volumePorArea: number[];
+  filtroPorArea: number[];
+}
+
+export interface AreaData {
+  numero: number;
+  inicioX: number;
 }

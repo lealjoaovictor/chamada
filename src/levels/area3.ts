@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, ModelName } from "./types";
 
 const START = 80;
 const HALL_START = 84;
@@ -6,6 +6,16 @@ const SHAFT_X = 105.5;
 const SHAFT_WIDTH = 2;
 const GALLERY_Y = 3.5;
 const END = 117;
+
+// Sala 2 (sala de leitura), no nível da galeria: um Vigia de guarda olha para a entrada.
+// Derrubar o carrinho do mezanino faz barulho; ele vai olhar e o jogador passa por trás.
+const READING_END = 141;
+const READING_CEILING = 8.6;
+const STEP_X = 117.9;
+const MEZZ_X0 = 120.5;
+const MEZZ_X1 = 125.5;
+const MEZZ_TOP = GALLERY_Y + 2;
+const GUARD_X = 133;
 const CORRIDOR_CEILING = 3.2;
 const HALL_CEILING = 6.5;
 const SHELF_Z = 1.45;
@@ -15,15 +25,10 @@ const SHELF_WIDTH = 1.4;
 const SHELF_XS = [86.5, 89.5, 92.5, 95.5, 98.5, 101.5];
 const BACK_Z = 4.6;
 
-function shelf(x: number): BlockData {
-  return { x, y: SHELF_HEIGHT / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: SHELF_WIDTH, height: SHELF_HEIGHT, material: "madeira" };
-}
+const SHELF_MODELS: ModelName[] = ["estante-1", "estante-2", "estante-3"];
 
-function books(x: number): DecorData[] {
-  const front = SHELF_Z - SHELF_DEPTH / 2 - 0.02;
-  return [0.35, 0.95, 1.55, 2.15].map((y) => ({
-    x, y, z: front, width: SHELF_WIDTH - 0.2, height: 0.38, depth: 0.04, material: "livros",
-  }));
+function shelf(x: number, i: number): BlockData {
+  return { x, y: SHELF_HEIGHT / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: SHELF_WIDTH, height: SHELF_HEIGHT, material: "madeira", model: SHELF_MODELS[i % SHELF_MODELS.length] };
 }
 
 function tallWindow(x: number): DecorData[] {
@@ -39,32 +44,44 @@ const lamps: LampData[] = [
   { x: 111, y: 5.6, flicker: true },
   { x: 89, y: 5, moonlight: true },
   { x: 98, y: 5, moonlight: true },
+  { x: 127, y: 7.4 },
+  { x: 137, y: 7.4, flicker: true },
+  { x: 122, y: 7.6, moonlight: true },
 ];
 
 export const area3Level: LevelData = {
   checkpoints: [{ x: 110, y: GALLERY_Y + 1.2 }],
   killY: -5,
-  bounds: { minX: START, maxX: END },
+  bounds: { minX: START, maxX: READING_END },
+  vultos: [],
   depth: 4,
   ground: [{ x: (START + SHAFT_X + SHAFT_WIDTH / 2) / 2, y: -0.5, width: SHAFT_X + SHAFT_WIDTH / 2 - START, height: 1, material: "piso" }],
   walls: [
     { x: (START + HALL_START) / 2, y: CORRIDOR_CEILING + 0.2, width: HALL_START - START, height: 0.4, material: "concreto" },
     { x: (HALL_START + END) / 2, y: HALL_CEILING + 0.2, width: END - HALL_START, height: 0.4, material: "concreto" },
+    { x: (END + READING_END) / 2, y: READING_CEILING + 0.2, width: READING_END - END, height: 0.4, material: "concreto" },
+    { x: END, y: (HALL_CEILING + READING_CEILING) / 2 + 0.2, width: 0.6, height: READING_CEILING - HALL_CEILING, material: "concreto" },
   ],
   platforms: [],
   obstacles: [
     { x: HALL_START + 0.5, y: HALL_CEILING / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: 0.9, height: HALL_CEILING, material: "pedra" },
     ...SHELF_XS.map(shelf),
     {
-      x: (SHAFT_X + SHAFT_WIDTH / 2 + END) / 2,
+      x: (SHAFT_X + SHAFT_WIDTH / 2 + READING_END) / 2,
       y: GALLERY_Y / 2,
-      width: END - SHAFT_X - SHAFT_WIDTH / 2,
+      width: READING_END - SHAFT_X - SHAFT_WIDTH / 2,
       height: GALLERY_Y,
       material: "pedra",
     },
+    // Degrau (caixote fixo) e mezanino de leitura.
+    { x: STEP_X, y: GALLERY_Y + 0.5, width: 1, height: 1, material: "madeira" },
+    { x: (MEZZ_X0 + MEZZ_X1) / 2, y: (GALLERY_Y + MEZZ_TOP) / 2, width: MEZZ_X1 - MEZZ_X0, height: MEZZ_TOP - GALLERY_Y, material: "madeira" },
+    // Mureta na borda direita do mezanino: esconde quem está em cima.
+    { x: MEZZ_X1 - 0.1, y: MEZZ_TOP + 0.3, width: 0.2, height: 0.6, material: "madeira" },
   ],
   ramps: [],
-  boxes: [],
+  furtivo: [{ minX: HALL_START + 1, maxX: 102.6 }],
+  boxes: [{ x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho" }],
   lamps,
   plates: [],
   doors: [],
@@ -75,9 +92,23 @@ export const area3Level: LevelData = {
       y: 0,
       z: 3.2,
       speed: 1.1,
-      pause: 2.2,
+      pause: 1.2,
+      pauseMax: 3.2,
       aimAhead: 2.5,
       aimY: 0.4,
+      coneAngle: 0.5,
+      range: 10,
+    },
+    {
+      x0: GUARD_X,
+      x1: GUARD_X,
+      y: GALLERY_Y,
+      z: 3,
+      speed: 1.1,
+      pause: 1,
+      startHeading: -1,
+      aimAhead: 2.5,
+      aimY: GALLERY_Y + 0.4,
       coneAngle: 0.5,
       range: 10,
     },
@@ -86,15 +117,28 @@ export const area3Level: LevelData = {
     { x: SHAFT_X, width: SHAFT_WIDTH, bottomY: 0, topY: GALLERY_Y, buttonX: 103.4, buttonY: 1 },
   ],
   decor: [
+    // Narrativa: livros abertos e folhas na sala de leitura.
+    { x: 127.4, y: GALLERY_Y + 0.01, z: -0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 128.1, y: GALLERY_Y + 0.01, z: -1.2, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 129.6, y: GALLERY_Y + 0.01, z: -0.5, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 134.2, y: GALLERY_Y + 0.01, z: -1.0, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 122.9, y: MEZZ_TOP + 0.04, z: -1.2, width: 0.42, height: 0.06, depth: 0.3, material: "livros" },
     { x: (START + HALL_START) / 2, y: CORRIDOR_CEILING + 2.1, z: 0, width: HALL_START - START, height: 3.4, depth: 4.6, material: "pedra" },
     { x: (START + HALL_START) / 2, y: 0.55, z: 2.1, width: HALL_START - START, height: 1.1, depth: 0.1, material: "pedra" },
     { x: (START + HALL_START) / 2, y: 2.15, z: 2.15, width: HALL_START - START, height: 2.1, depth: 0.1, material: "parede" },
 
     { x: (HALL_START + SHAFT_X) / 2, y: -0.5, z: 3.4, width: SHAFT_X - HALL_START, height: 1, depth: 2.8, material: "piso" },
     { x: (HALL_START + END) / 2, y: 0.6, z: BACK_Z, width: END - HALL_START, height: 1.2, depth: 0.1, material: "madeira" },
+    // Sala de leitura.
+    { x: (END + READING_END) / 2, y: READING_CEILING + 2, z: 0, width: READING_END - END, height: 3.4, depth: 4.6, material: "pedra" },
+    { x: (END + READING_END) / 2, y: GALLERY_Y + 0.6, z: BACK_Z, width: READING_END - END, height: 1.2, depth: 0.1, material: "madeira" },
+    { x: (END + READING_END) / 2, y: (GALLERY_Y + 1.2 + READING_CEILING) / 2, z: BACK_Z + 0.05, width: READING_END - END, height: READING_CEILING - GALLERY_Y - 1.2, depth: 0.1, material: "parede" },
+    { x: END, y: (HALL_CEILING + READING_CEILING) / 2 + 0.2, z: 0, width: 0.6, height: READING_CEILING - HALL_CEILING, depth: 4.4, material: "concreto" },
+    ...[122, 130, 136].flatMap((x) => tallWindow(x).map((d) => ({ ...d, y: d.y + GALLERY_Y - 0.6 }))),
+    ...[128.5, 131, 135.5, 138].map((x): DecorData => ({ x, y: GALLERY_Y + 1.1, z: 2.4, width: 1.6, height: 2.2, depth: 0.5, material: "madeira" })),
+    { x: (MEZZ_X0 + MEZZ_X1) / 2, y: MEZZ_TOP + 0.95, z: -1.6, width: MEZZ_X1 - MEZZ_X0, height: 0.05, depth: 0.05, material: "metal" },
     { x: (HALL_START + END) / 2, y: 3.85, z: BACK_Z + 0.05, width: END - HALL_START, height: 5.3, depth: 0.1, material: "parede" },
     ...[85.5, 88, 91, 94, 97, 100].flatMap(tallWindow),
-    ...SHELF_XS.flatMap(books),
     
     { x: SHAFT_X - SHAFT_WIDTH / 2 - 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },
     { x: SHAFT_X + SHAFT_WIDTH / 2 + 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },

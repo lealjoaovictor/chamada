@@ -23,7 +23,7 @@ export interface SoundState {
   elevatorsMoving: boolean[];
   elevatorsCalled: boolean[];
   lampsDead: boolean[];
-  vigias: { x: number; walking: boolean; chases: boolean; shown: boolean }[];
+  vigias: { x: number; walking: boolean; chases: boolean; shown: boolean; suspicious: boolean }[];
   finalDoorOpen: boolean;
   lockedDoorTouched: boolean;
 }
@@ -127,6 +127,7 @@ export class Soundscape {
     state.vigias.forEach((vigia, i) => {
       const was = before.vigias[i];
       if (vigia.chases && vigia.shown && was && !was.shown) this.sfx.play("vigia-surge", { volume: 1 });
+      if (vigia.suspicious && was && !was.suspicious) this.sfx.play("vigia-surge", { volume: 0.45, pitch: 1.4 });
       const distance = Math.abs(vigia.x - state.playerX);
       if (!vigia.shown || !vigia.walking || distance > HEARING_DISTANCE) {
         this.vigiaTimers[i] = 0;

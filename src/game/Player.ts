@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -15,6 +15,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
+import { MODEL_OPTIONS, modelFile } from "./modelFile";
 
 const MOVE_SPEED = 4.5;
 const PUSH_SPEED = 1.2;
@@ -34,8 +35,27 @@ const SLIDE_MIN_SPEED = 2;
 const SLIDE_TIME = 0.55;
 const SLIDE_COOLDOWN = 0.25;
 const SLIDE_HEIGHT = 0.8;
+const CROUCH_SPEED = 2.4;
+const CROUCH_BLEND = 4;
+const CROUCH_DROP = 0.17;
+// Pose agachada montada por cima da animação de andar: ângulos (rad) somados em cada osso,
+// no eixo X local (flexão). Inspirada na furtividade de INSIDE: tronco curvado, joelhos dobrados.
+const CROUCH_POSE: [string, number][] = [
+  ["mixamorig:Hips", 0.12],
+  ["mixamorig:Spine", 0.15],
+  ["mixamorig:Spine1", 0.15],
+  ["mixamorig:Spine2", 0.1],
+  ["mixamorig:Neck", -0.2],
+  ["mixamorig:Head", -0.25],
+  ["mixamorig:LeftUpLeg", -0.6],
+  ["mixamorig:RightUpLeg", -0.6],
+  ["mixamorig:LeftLeg", 0.85],
+  ["mixamorig:RightLeg", 0.85],
+  ["mixamorig:LeftArm", 0.25],
+  ["mixamorig:RightArm", 0.25],
+];
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/personagem.glb`;
+const MODEL_URL = modelFile("personagem");
 const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
@@ -78,6 +98,9 @@ export class Player {
   meshes: AbstractMesh[] = [];
   private readonly rayFrom = new Vector3();
   private readonly rayTo = new Vector3();
+  private crouchWanted = false;
+  private crouch = 0;
+  private crouchBones: { node: TransformNode; offset: Quaternion; full: Quaternion }[] = [];
 
   private constructor(
     scene: Scene,
@@ -99,10 +122,11 @@ export class Player {
       group.weight = name === this.current ? 1 : 0;
     }
     this.syncVisual(0);
+    scene.onAfterAnimationsObservable.add(() => this.applyCrouchPose());
   }
 
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
-    const result = await ImportMeshAsync(MODEL_URL, scene);
+    const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("player-visual", scene);
     const material = new StandardMaterial("player-mat", scene);
     material.diffuseColor = MODEL_COLOR;
@@ -121,11 +145,21 @@ export class Player {
     }
     const player = new Player(scene, spawn, visual, anims);
     player.meshes = result.meshes;
+    player.crouchBones = CROUCH_POSE.flatMap(([name, angle]) => {
+      const node = result.transformNodes.find((n) => n.name === name);
+      if (!node) return [];
+      const full = Quaternion.RotationAxis(Vector3.Right(), angle);
+      return [{ node, offset: Quaternion.Identity(), full }];
+    });
     return player;
   }
 
   get feetY(): number {
     return this.position.y - this.height / 2;
+  }
+
+  placeVisual(x: number, y: number): void {
+    this.visual.position.set(x, y, 0);
   }
 
   get isSliding(): boolean {
@@ -134,6 +168,15 @@ export class Player {
 
   get isGrounded(): boolean {
     return this.grounded;
+  }
+
+  /** 0 = em pé, 1 = totalmente agachado. */
+  get crouchAmount(): number {
+    return this.crouch;
+  }
+
+  setCrouch(on: boolean): void {
+    this.crouchWanted = on;
   }
 
   get facingDirection(): number {
@@ -173,11 +216,15 @@ export class Player {
     }
 
     if (this.sliding) {
+      this.crouch = approach(this.crouch, 0, CROUCH_BLEND * dt);
       this.slideSpeed = Math.max(this.slideSpeed - SLIDE_DECEL * dt, SLIDE_MIN_SPEED);
       this.velocity.x = this.slideDir * this.slideSpeed;
     } else {
       if (axis !== 0) this.facing = axis;
-      const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : MOVE_SPEED);
+      const crouchTarget = this.crouchWanted && this.grounded && !pushing ? 1 : 0;
+      this.crouch = approach(this.crouch, crouchTarget, CROUCH_BLEND * dt);
+      const walkSpeed = MOVE_SPEED + (CROUCH_SPEED - MOVE_SPEED) * this.crouch;
+      const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : walkSpeed);
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);
     }
@@ -211,6 +258,15 @@ export class Player {
     this.syncVisual(dt);
   }
 
+  /** Move o jogador em X mantendo velocidade e estado (corredor que se repete). */
+  shiftX(dx: number): void {
+    const pos = this.controller.getPosition();
+    pos.x += dx;
+    this.controller.setPosition(pos);
+    this.position.x += dx;
+    this.syncVisual(0);
+  }
+
   respawn(point: { x: number; y: number }): void {
     if (this.sliding) {
       this.sliding = false;
@@ -225,6 +281,7 @@ export class Player {
     this.controller.setPosition(new Vector3(point.x, point.y, 0));
     this.position.set(point.x, point.y, 0);
     this.facing = 1;
+    this.crouch = 0;
     this.current = "parado";
     for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
     this.syncVisual(0);
@@ -281,7 +338,7 @@ export class Player {
     this.current = next;
 
     const walk = this.anims.get("andar");
-    if (walk) walk.speedRatio = Math.max(speedX / WALK_CLIP_SPEED, 0.5);
+    if (walk) walk.speedRatio = Math.max(speedX / (WALK_CLIP_SPEED - 2.2 * this.crouch), 0.5);
     const push = this.anims.get("empurrar");
     if (push) push.speedRatio = PUSH_ANIM_RATIO;
 
@@ -316,7 +373,17 @@ export class Player {
     const t = dt > 0 ? 1 - Math.exp(-TURN_SPEED * dt) : 1;
     this.yaw += (targetYaw - this.yaw) * t;
     this.visual.rotation.y = this.yaw;
-    this.visual.position.set(this.position.x, this.position.y - this.height / 2, 0);
+    this.visual.position.set(this.position.x, this.position.y - this.height / 2 - CROUCH_DROP * this.crouch, 0);
+  }
+
+  private applyCrouchPose(): void {
+    if (this.crouch <= 0) return;
+    for (const bone of this.crouchBones) {
+      const rotation = bone.node.rotationQuaternion;
+      if (!rotation) continue;
+      Quaternion.SlerpToRef(Quaternion.Identity(), bone.full, this.crouch, bone.offset);
+      rotation.multiplyInPlace(bone.offset);
+    }
   }
 }
 

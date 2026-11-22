@@ -14,9 +14,10 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
+import { MODEL_OPTIONS, modelFile } from "../modelFile";
 import type { VigiaData } from "../../levels/types";
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/vigia.glb`;
+const MODEL_URL = modelFile("vigia");
 const MODEL_COLOR = new Color3(0.03, 0.03, 0.035);
 const MODEL_SCALE = 1.1;
 const WALK_CLIP_SPEED = 1.68;
@@ -24,7 +25,16 @@ const RUN_CLIP_SPEED = 5.33;
 const CATCH_DISTANCE = 0.55;
 const BLEND_TIME = 0.25;
 const LIGHT_COLOR = new Color3(1, 0.82, 0.55);
-const LIGHT_INTENSITY = 9;
+const ALERT_COLOR = new Color3(1, 0.1, 0.03);
+const ALERT_RISE = 1 / 0.85;
+const ALERT_FALL = 0.45;
+const SUSPICIOUS_AT = 0.12;
+const HEAR_RANGE = 16;
+const HEAR_HEIGHT = 2.5;
+const INVESTIGATE_STOP = 2;
+const INVESTIGATE_LOOK = 4;
+const INVESTIGATE_SPEED = 1.3;
+const LIGHT_INTENSITY = 22;
 const HAND_HEIGHT = 1.3;
 const HAND_FORWARD = 0.35;
 const LENS_SIZE = 0.12;
@@ -52,8 +62,13 @@ export class Vigia {
   private x = 0;
   private heading = 1;
   private facing = 1;
+  private currentSpeed = 0;
+  private alert = 0;
+  private investigate: { x: number; looking: boolean; timer: number } | null = null;
+  private readonly lightColor = new Color3();
   private phase: Phase = "andando";
   private timer = 0;
+  private pause = 0;
 
   private constructor(scene: Scene, data: VigiaData, visual: TransformNode, anims: Map<string, AnimationGroup>) {
     this.scene = scene;
@@ -68,7 +83,7 @@ export class Vigia {
     this.cosHalf = Math.cos(data.coneAngle);
 
     this.light = new SpotLight("vigia-luz", new Vector3(), new Vector3(1, 0, 0), data.coneAngle * 2, 2, scene);
-    this.light.diffuse = LIGHT_COLOR;
+    this.light.diffuse = LIGHT_COLOR.clone();
     this.light.specular = Color3.Black();
     this.light.intensity = LIGHT_INTENSITY;
     this.light.range = data.range;
@@ -78,7 +93,7 @@ export class Vigia {
 
     this.lens = CreateSphere("vigia-lente", { diameter: LENS_SIZE, segments: 8 }, scene);
     this.lensMaterial = new StandardMaterial("vigia-lente-mat", scene);
-    this.lensMaterial.emissiveColor = LIGHT_COLOR;
+    this.lensMaterial.emissiveColor = LIGHT_COLOR.clone();
     this.lensMaterial.disableLighting = true;
     this.lens.material = this.lensMaterial;
     this.lens.isPickable = false;
@@ -87,7 +102,7 @@ export class Vigia {
   }
 
   static async create(scene: Scene, data: VigiaData): Promise<Vigia> {
-    const result = await ImportMeshAsync(MODEL_URL, scene);
+    const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("vigia-visual", scene);
     visual.scaling.setAll(MODEL_SCALE);
     const material = new StandardMaterial("vigia-mat", scene);
@@ -112,6 +127,15 @@ export class Vigia {
     for (const mesh of meshes) this.shadows.addShadowCaster(mesh, true);
   }
 
+  placeVisual(x: number, y: number): void {
+    this.visual.position.set(x, y, this.data.z);
+    this.setShown(true);
+  }
+
+  get meshes(): AbstractMesh[] {
+    return this.visual.getChildMeshes();
+  }
+
   get positionX(): number {
     return this.x;
   }
@@ -129,9 +153,12 @@ export class Vigia {
   }
 
   reset(): void {
-    this.x = this.data.x0;
-    this.heading = 1;
-    this.facing = 1;
+    this.alert = 0;
+    this.investigate = null;
+    this.updateAlert(0, false);
+    this.heading = this.data.startHeading ?? 1;
+    this.x = this.heading > 0 ? this.data.x0 : this.data.x1;
+    this.facing = this.heading;
     this.phase = this.chases ? "escondido" : "andando";
     this.timer = 0;
     if (this.walk) this.walk.weight = this.chases ? 0 : 1;
@@ -139,6 +166,10 @@ export class Vigia {
     if (this.run) this.run.weight = this.chases ? 1 : 0;
     this.setShown(!this.chases);
     this.syncVisual();
+  }
+
+  get debugState(): { x: number; facing: number } {
+    return { x: +this.x.toFixed(2), facing: +this.facing.toFixed(2) };
   }
 
   catches(x: number): boolean {
@@ -150,27 +181,39 @@ export class Vigia {
       this.updateChase(dt, playerX);
       return;
     }
-    if (this.phase === "andando") {
+    const guard = this.data.x0 === this.data.x1;
+    if (this.suspicious) {
+      // Desconfiado: para e encara até perder o jogador de vista.
+    } else if (this.investigate) {
+      this.updateInvestigate(dt);
+    } else if (this.phase === "andando") {
       this.x += this.heading * this.data.speed * dt;
       const end = this.heading > 0 ? this.data.x1 : this.data.x0;
       if ((end - this.x) * this.heading <= 0) {
         this.x = end;
         this.phase = "parado";
         this.timer = 0;
+        const max = this.data.pauseMax ?? this.data.pause;
+        this.pause = this.data.pause + Math.random() * (max - this.data.pause);
       }
+    } else if (guard) {
+      // Guarda parado no posto, sempre olhando para o mesmo lado.
+      const look = this.data.startHeading ?? 1;
+      this.facing = approach(this.facing, look, dt * 1.5);
+      this.heading = look;
     } else {
       this.timer += dt;
-      const turnStart = this.data.pause * 0.4;
-      const t = Math.min(Math.max((this.timer - turnStart) / (this.data.pause - turnStart), 0), 1);
+      const turnStart = this.pause * 0.4;
+      const t = Math.min(Math.max((this.timer - turnStart) / (this.pause - turnStart), 0), 1);
       this.facing = this.heading * Math.cos(Math.PI * smooth(t));
-      if (this.timer >= this.data.pause) {
+      if (this.timer >= this.pause) {
         this.heading = -this.heading;
         this.facing = this.heading;
         this.phase = "andando";
       }
     }
 
-    const walking = this.phase === "andando";
+    const walking = !this.suspicious && (this.investigate ? !this.investigate.looking : this.phase === "andando");
     const step = dt / BLEND_TIME;
     if (this.walk) {
       this.walk.weight = approach(this.walk.weight, walking ? 1 : 0, step);
@@ -180,6 +223,13 @@ export class Vigia {
     this.syncVisual();
   }
 
+  private chaseSpeed(playerX: number): number {
+    const e = this.data.elastico;
+    if (!e) return this.data.speed;
+    const factor = 1 + (playerX - this.x - e.distancia) * e.ganho;
+    return this.data.speed * Math.min(Math.max(factor, e.min), e.max);
+  }
+
   private updateChase(dt: number, playerX: number): void {
     if (this.phase === "escondido") {
       if (playerX < (this.data.triggerX ?? this.data.x0)) return;
@@ -187,14 +237,15 @@ export class Vigia {
       this.setShown(true);
     }
     if (this.phase === "andando") {
-      this.x = Math.min(this.x + this.data.speed * dt, this.data.x1);
+      this.currentSpeed = this.chaseSpeed(playerX);
+      this.x = Math.min(this.x + this.currentSpeed * dt, this.data.x1);
       if (this.x >= this.data.x1) this.phase = "parado";
     }
     const running = this.phase === "andando";
     const step = dt / BLEND_TIME;
     if (this.run) {
       this.run.weight = approach(this.run.weight, running ? 1 : 0, step);
-      this.run.speedRatio = this.data.speed / RUN_CLIP_SPEED;
+      this.run.speedRatio = this.currentSpeed / RUN_CLIP_SPEED;
     }
     if (this.idle) this.idle.weight = approach(this.idle.weight, running ? 0 : 1, step);
     this.syncVisual();
@@ -204,6 +255,53 @@ export class Vigia {
     this.visual.setEnabled(shown);
     this.lens.setEnabled(shown);
     this.light.intensity = shown ? LIGHT_INTENSITY : 0;
+  }
+
+  /** Barulho (caixa caindo): o Vigia de patrulha vai até lá olhar e depois volta. */
+  hear(x: number, y: number): void {
+    if (this.chases || this.phase === "escondido") return;
+    if (Math.abs(x - this.x) > HEAR_RANGE || Math.abs(y - this.data.y) > HEAR_HEIGHT) return;
+    this.investigate = { x, looking: false, timer: 0 };
+  }
+
+  private updateInvestigate(dt: number): void {
+    const inv = this.investigate;
+    if (!inv) return;
+    if (!inv.looking) {
+      const dir = Math.sign(inv.x - this.x) || this.heading;
+      const stopAt = inv.x - dir * INVESTIGATE_STOP;
+      this.heading = dir;
+      this.facing = dir;
+      if ((stopAt - this.x) * dir > 0.05) {
+        this.x += dir * this.data.speed * INVESTIGATE_SPEED * dt;
+        return;
+      }
+      inv.looking = true;
+      inv.timer = 0;
+      return;
+    }
+    inv.timer += dt;
+    if (inv.timer < INVESTIGATE_LOOK) return;
+    this.investigate = null;
+    const center = (this.data.x0 + this.data.x1) / 2;
+    this.heading = this.x < center ? 1 : -1;
+    if (this.x >= this.data.x0 && this.x <= this.data.x1 && this.data.x0 !== this.data.x1) this.heading = this.facing > 0 ? 1 : -1;
+    this.facing = this.heading;
+    this.phase = "andando";
+  }
+
+  get suspicious(): boolean {
+    return this.alert > SUSPICIOUS_AT;
+  }
+
+  /** Sobe enquanto vê o jogador, desce quando perde; devolve true quando chega ao máximo (pegou). */
+  updateAlert(dt: number, seeing: boolean): boolean {
+    this.alert = seeing ? Math.min(1, this.alert + ALERT_RISE * dt) : Math.max(0, this.alert - ALERT_FALL * dt);
+    Color3.LerpToRef(LIGHT_COLOR, ALERT_COLOR, this.alert, this.lightColor);
+    this.light.diffuse.copyFrom(this.lightColor);
+    this.lensMaterial.emissiveColor.copyFrom(this.lightColor);
+    if (this.phase !== "escondido") this.light.intensity = LIGHT_INTENSITY * (1 - 0.25 * this.alert);
+    return this.alert >= 1;
   }
 
   sees(points: readonly Vector3[]): boolean {

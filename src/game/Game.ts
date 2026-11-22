@@ -8,7 +8,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
@@ -27,28 +27,40 @@ import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
 import { Sfx } from "./Sfx";
+import { createDust } from "./Dust";
+import { Vultos } from "./entities/Vultos";
+import { applyWorldUVs } from "./WorldUV";
+import { Props } from "./Props";
+import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
-import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
-import { EndScreen, MenuScreen } from "../ui/Screens";
+import { EndScreen, LateScreen, MenuScreen } from "../ui/Screens";
+import { CallClock } from "./CallClock";
+import { Telemetry } from "./Telemetry";
+import { CHAMADA } from "../levels/chamada";
+import { AREAS, areaAt } from "../levels/areas";
+import { TouchControls, touchMode } from "../ui/TouchControls";
+import { GestureControls } from "../ui/GestureControls";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
-import { worldLevel } from "../levels/world";
+import { WORLD, worldLevel } from "../levels/world";
 
+const DARK_AMBIENT = 0.2;
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
 const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
-const SEEN_GRACE = 0.2;
 const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
-const ROOM_HOLD = 2;
+const ROOM_HOLD = 3.5;
+const LATE_HOLD = 3;
+const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
 const RESTART_LOCK = 1.5;
@@ -56,10 +68,14 @@ const LIGHT_DEATH_COLOR = "#3a2306";
 const DEFAULT_FADE_COLOR = "#000";
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim";
+type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado";
 
 export class Game {
   private readonly boxes: Box[] = [];
+  private ambient: HemisphericLight | null = null;
+  private darkZones: { minX: number; maxX: number }[] = [];
+  private loopsDone = 0;
+  private vultos: Vultos | null = null;
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
@@ -67,14 +83,19 @@ export class Game {
   private readonly elevators: Elevator[] = [];
   private readonly obstacleMeshes: AbstractMesh[] = [];
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
-  private seenTimer = 0;
   private warming = false;
   private finalDoor: FinalDoor | null = null;
   private arrivalTimer = 0;
   private readonly menu = new MenuScreen();
   private readonly endScreen = new EndScreen();
+  private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
+  private clock!: CallClock;
+  private telemetry!: Telemetry;
+  private startArea = 1;
+  private audioPrimed = false;
   private hints!: Hints;
+  private props!: Props;
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
@@ -94,14 +115,41 @@ export class Game {
 
   private constructor(engine: AbstractEngine) {
     this.scene = new Scene(engine);
+    const mode = touchMode();
+    if (mode === "botoes") new TouchControls(this.input);
+    else if (mode === "gestos") new GestureControls(this.input);
+    const unlock = (): void => {
+      this.sfx.unlock();
+      if (this.clock && !this.audioPrimed) {
+        this.audioPrimed = true;
+        this.clock.primeSpeech();
+      }
+    };
+    for (const type of ["pointerdown", "touchend", "keydown"]) window.addEventListener(type, unlock, { capture: true });
   }
 
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
-    const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
+    const params = new URLSearchParams(location.search);
+    const debugLevel = params.get("fase") === "teste";
     const level = debugLevel ? pipelineLevel : worldLevel;
+    const area = Number(params.get("area"));
+    if (!debugLevel && Number.isInteger(area) && area >= 1 && area <= AREAS.length) game.startArea = area;
+    game.clock = new CallClock(CHAMADA, game.sfx);
+    const clockStart = Number(params.get("chamada"));
+    if (clockStart > 0) game.clock.setTime(clockStart);
+    game.telemetry = new Telemetry(game.startArea);
     await Promise.all([game.load(level), game.sfx.load()]);
-    game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, DICAS, FOCOS, CHACOALHAR);
+    await game.clock.load();
+    if (params.get("telemetria") === "1") {
+      (window as unknown as { chamadaDebug: () => unknown }).chamadaDebug = () => ({
+        caixas: game.boxes.map((b) => [+b.mesh.position.x.toFixed(2), +b.mesh.position.y.toFixed(2)]),
+        placas: game.plates.map((p) => p.pressed),
+        portas: game.doors.map((d) => +d.bottom.toFixed(2)),
+        vigias: game.vigias.map((v) => v.debugState),
+      });
+    }
+    game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
   }
@@ -115,14 +163,27 @@ export class Game {
     await Physics.enable(scene);
 
     const light = new HemisphericLight("light", new Vector3(0.3, 1, -0.4), scene);
+    this.ambient = light;
+    this.darkZones = level.escuro ?? [];
     light.groundColor = new Color3(0.08, 0.08, 0.1);
     level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
     this.materials = new MaterialLibrary(scene);
+    this.props = new Props(scene);
+    await this.props.load(level.obstacles.flatMap((block) => (block.model ? [block.model] : [])));
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
       this.createStatic(block, level.depth, `solid-${i}`);
     }
-    level.obstacles.forEach((block, i) => this.obstacleMeshes.push(this.createStatic(block, level.depth, `obstacle-${i}`)));
+    level.obstacles.forEach((block, i) => {
+      const mesh = this.createStatic(block, level.depth, `obstacle-${i}`);
+      if (!block.model) {
+        this.obstacleMeshes.push(mesh);
+        return;
+      }
+      mesh.isVisible = false;
+      const size = { width: block.width, height: block.height, depth: block.depth ?? level.depth };
+      this.obstacleMeshes.push(this.props.place(block, block.model, size));
+    });
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
     level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
     level.doors.forEach((door, i) =>
@@ -141,6 +202,9 @@ export class Game {
     );
 
     this.checkpoints = new Checkpoints(level.checkpoints);
+    if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
+    const checkpoint = Number(new URLSearchParams(location.search).get("checkpoint"));
+    if (level === worldLevel && Number.isInteger(checkpoint) && checkpoint > 0) this.checkpoints.jumpTo(checkpoint);
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
@@ -151,6 +215,20 @@ export class Game {
     }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+    this.applySurfaceUVs();
+    this.vultos = await Vultos.create(scene, level.vultos ?? []);
+    if (VISUAL.dust) createDust(scene, level.lamps);
+    if (VISUAL.rim > 0) {
+      const rim = new FresnelParameters({
+        leftColor: new Color3(0.62, 0.72, 0.9).scale(VISUAL.rim),
+        rightColor: Color3.Black(),
+        power: 2.5,
+        bias: 0.1,
+      });
+      for (const mesh of [...this.player.meshes, ...this.vigias.flatMap((vigia) => vigia.meshes)]) {
+        if (mesh.material instanceof StandardMaterial) mesh.material.emissiveFresnelParameters = rim;
+      }
+    }
 
     for (const material of scene.materials) {
       if (material instanceof StandardMaterial) material.maxSimultaneousLights = MAX_LIGHTS_PER_MATERIAL;
@@ -167,13 +245,18 @@ export class Game {
     this.fade.set(1);
     const camera = this.cameraRig.camera;
     const startX = camera.position.x;
+    await this.materials.whenTexturesReady();
     for (let x = minX; x <= maxX + WARMUP_STEP; x += WARMUP_STEP) {
       camera.position.x = x;
+      this.player.placeVisual(x, camera.position.y - 2.5);
+      for (const vigia of this.vigias) vigia.placeVisual(x + 1, camera.position.y - 2.5);
       this.cullLights();
       this.scene.render();
       await this.scene.whenReadyAsync();
     }
     camera.position.x = startX;
+    this.player.placeVisual(this.player.position.x, this.player.feetY);
+    for (const vigia of this.vigias) vigia.reset();
     this.cullLights();
     this.fade.set(0);
     this.input.setAutopilot(0);
@@ -185,8 +268,16 @@ export class Game {
 
   private update(): void {
     if (this.warming) return;
-    const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
+    const realDt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
+    const dt = Math.min(realDt, MAX_DT);
     this.input.update();
+    const area = areaAt(this.player.position.x);
+    const running = this.state === "jogando" || this.state === "morto";
+    this.clock.update(realDt, area, running);
+    if (running) {
+      this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total, this.player.position.x, this.player.feetY);
+      if (this.clock.studentNameReached) this.late();
+    }
     for (const lamp of this.lamps) lamp.update(dt, this.player.position.x);
     this.finalDoor?.update(dt);
     this.updateDoors(dt);
@@ -194,6 +285,11 @@ export class Game {
     this.updateElevators(dt);
     if (this.state === "menu") {
       this.updateMenu(dt);
+      this.input.endFrame();
+      return;
+    }
+    if (this.state === "atrasado") {
+      this.updateLate(dt);
       this.input.endFrame();
       return;
     }
@@ -223,7 +319,17 @@ export class Game {
       this.focusLock = false;
       this.input.setAutopilot(null);
     }
+    const px = this.player.position.x;
+    if (this.ambient) {
+      const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
+      const target = dark ? DARK_AMBIENT : 1;
+      this.ambient.intensity += (target - this.ambient.intensity) * Math.min(1, dt * 1.5);
+    }
+    this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.update(dt, this.input, this.pushTimer > 0);
+    this.updateLoop(px);
+    this.vultos?.update(dt, this.player.position.x);
+    this.updateNoise();
     this.cameraRig.update(dt, {
       x: this.player.position.x,
       feetY: this.player.feetY,
@@ -265,6 +371,7 @@ export class Game {
 
   private die(cause: "queda" | "luz" | "toque"): void {
     this.hints.registerDeath(this.player.position.x);
+    this.telemetry.death(areaAt(this.player.position.x), cause, this.player.position.x);
     this.soundscape.death(cause);
     this.soundscape.forget();
     this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
@@ -279,9 +386,29 @@ export class Game {
     if (!this.input.consumeAnyPress()) return;
     this.menu.hide();
     this.sfx.unlock();
+    this.clock.start();
     this.input.setAutopilot(null);
     document.body.style.cursor = "none";
     this.state = "jogando";
+  }
+
+  // Final ruim: o nome do aluno foi chamado antes de ele chegar.
+  private late(): void {
+    this.state = "atrasado";
+    this.arrivalTimer = 0;
+    this.endShownAt = -1;
+    this.input.setAutopilot(0);
+    this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.telemetry.finish("ruim");
+  }
+
+  private updateLate(dt: number): void {
+    this.arrivalTimer += dt;
+    if (this.arrivalTimer > LATE_HOLD) this.clock.stopHiss();
+    this.fade.set(Math.min(Math.max((this.arrivalTimer - LATE_HOLD) / END_FADE, 0), 1));
+    this.updateEndScreen(this.lateScreen, LATE_HOLD);
+    this.player.update(dt, this.input, false);
+    this.cullLights();
   }
 
   private arrive(): void {
@@ -309,6 +436,7 @@ export class Game {
         walking: vigia.walking,
         chases: vigia.chases,
         shown: vigia.shown,
+        suspicious: vigia.suspicious,
       })),
       finalDoorOpen: this.finalDoor?.isOpening ?? false,
       lockedDoorTouched: this.hints.touchingLocked,
@@ -325,10 +453,13 @@ export class Game {
       if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) {
         this.state = "fim";
         this.arrivalTimer = 0;
+        this.clock.callStudentNow();
+        this.telemetry.finish("bom");
       }
     } else {
+      if (this.arrivalTimer > ROOM_HOLD) this.clock.stopHiss();
       this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
-      this.updateEndScreen();
+      this.updateEndScreen(this.endScreen, ROOM_HOLD);
     }
     this.player.update(dt, this.input, false);
     this.cameraRig.update(dt, {
@@ -340,13 +471,13 @@ export class Game {
     this.cullLights();
   }
 
-  private updateEndScreen(): void {
+  private updateEndScreen(screen: EndScreen | LateScreen, hold: number): void {
     if (this.endShownAt < 0) {
-      if (this.arrivalTimer < ROOM_HOLD + END_FADE + END_SCREEN_DELAY) return;
+      if (this.arrivalTimer < hold + END_FADE + END_SCREEN_DELAY) return;
       this.endShownAt = this.arrivalTimer;
       this.input.consumeAnyPress();
       document.body.style.cursor = "";
-      this.endScreen.show();
+      screen.show();
       return;
     }
     if (this.arrivalTimer - this.endShownAt < RESTART_LOCK) {
@@ -370,7 +501,6 @@ export class Game {
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
       for (const elevator of this.elevators) elevator.reset();
-      this.seenTimer = 0;
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
@@ -380,6 +510,31 @@ export class Game {
       this.state = "jogando";
       this.fade.setColor(DEFAULT_FADE_COLOR);
     }
+  }
+
+  // Caixa que cai com força faz barulho: os Vigias de patrulha por perto vão investigar.
+  private updateNoise(): void {
+    for (const box of this.boxes) {
+      const impact = box.takeImpact();
+      if (impact <= 0) continue;
+      const p = box.mesh.position;
+      this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
+      for (const vigia of this.vigias) vigia.hear(p.x, p.y);
+    }
+  }
+
+  // Corredor que se repete (área 5): ao cruzar o gatilho, jogador e câmera recuam juntos.
+  private updateLoop(previousX: number): void {
+    const loop = worldLevel.laco;
+    if (!loop || this.loopsDone >= loop.apagar.length) return;
+    const x = this.player.position.x;
+    if (previousX >= loop.gatilhoX || x < loop.gatilhoX) return;
+    this.player.shiftX(-loop.recuo);
+    this.cameraRig.shift(-loop.recuo);
+    for (const lamp of this.lamps) {
+      if (loop.apagar[this.loopsDone].some((lx) => Math.abs(lamp.positionX - lx) < 0.01)) lamp.makeDark();
+    }
+    this.loopsDone += 1;
   }
 
   private updateDoors(dt: number): void {
@@ -415,14 +570,18 @@ export class Game {
     if (this.vigias.length === 0) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
-    const height = (p.y - feetY) * 2;
+    const height = (p.y - feetY) * 2 * (1 - 0.25 * this.player.crouchAmount);
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
     if (this.vigias.some((vigia) => vigia.catches(p.x))) return "toque";
-    const seen = this.vigias.some((vigia) => !vigia.chases && vigia.sees(this.sightPoints));
-    this.seenTimer = seen ? this.seenTimer + dt : 0;
-    return this.seenTimer > SEEN_GRACE ? "luz" : null;
+    // Desconfiança: a lanterna esquenta enquanto o jogador está no cone e esfria quando ele sai.
+    let caught = false;
+    for (const vigia of this.vigias) {
+      if (vigia.chases) continue;
+      if (vigia.updateAlert(dt, vigia.sees(this.sightPoints))) caught = true;
+    }
+    return caught ? "luz" : null;
   }
 
   private isPushingBox(): boolean {
@@ -445,6 +604,14 @@ export class Game {
     new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.8 }, this.scene);
     mesh.freezeWorldMatrix();
     return mesh;
+  }
+
+  private applySurfaceUVs(): void {
+    for (const mesh of this.scene.meshes) {
+      if (!(mesh instanceof Mesh)) continue;
+      const tile = this.materials.tileSizeOf(mesh.material);
+      if (tile !== undefined && mesh.getTotalVertices() <= 24) applyWorldUVs(mesh, tile);
+    }
   }
 
   private createRamp(ramp: RampData, depth: number, name: string): void {

@@ -15,9 +15,12 @@ export class Box {
   readonly halfSize: number;
   private readonly aggregate: PhysicsAggregate;
   private readonly velocity = new Vector3();
+  private readonly start: Vector3;
+  private resetFrames = 0;
 
   constructor(scene: Scene, data: BoxData, name: string) {
     this.halfSize = data.size / 2;
+    this.start = new Vector3(data.x, data.y, 0);
     this.mesh = CreateBox(name, { size: data.size }, scene);
     this.mesh.position.set(data.x, data.y, 0);
     const material = new StandardMaterial(`${name}-mat`, scene);
@@ -35,8 +38,23 @@ export class Box {
     this.aggregate.body.setLinearDamping(0.5);
   }
 
+  reset(): void {
+    const body = this.aggregate.body;
+    body.disablePreStep = false;
+    this.mesh.position.copyFrom(this.start);
+    body.setLinearVelocity(Vector3.Zero());
+    body.setAngularVelocity(Vector3.Zero());
+    this.resetFrames = 2;
+  }
+
   lockToPlane(): void {
     const body = this.aggregate.body;
+    if (this.resetFrames > 0) {
+      this.resetFrames--;
+      this.mesh.position.copyFrom(this.start);
+      body.setLinearVelocity(Vector3.Zero());
+      return;
+    }
     body.getLinearVelocityToRef(this.velocity);
     if (this.velocity.z !== 0) {
       this.velocity.z = 0;

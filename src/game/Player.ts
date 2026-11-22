@@ -199,6 +199,25 @@ export class Player {
     this.syncVisual(dt);
   }
 
+  respawn(point: { x: number; y: number }): void {
+    if (this.sliding) {
+      this.sliding = false;
+      this.setHeight(CAPSULE_HEIGHT);
+    }
+    this.slideCooldown = 0;
+    this.slideArmed = false;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+    this.velocity.setAll(0);
+    this.controller.setVelocity(this.velocity);
+    this.controller.setPosition(new Vector3(point.x, point.y, 0));
+    this.position.set(point.x, point.y, 0);
+    this.facing = 1;
+    this.current = "parado";
+    for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
+    this.syncVisual(0);
+  }
+
   private startSlide(dir: number, currentSpeed: number): void {
     this.sliding = true;
     this.slideArmed = false;

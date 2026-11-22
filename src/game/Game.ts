@@ -13,17 +13,29 @@ import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
 import { Box } from "./entities/Box";
+import { Checkpoints } from "./Checkpoints";
+import { Fade } from "../ui/Fade";
 import type { BlockData, LevelData } from "../levels/pipeline";
 import { pipelineLevel } from "../levels/pipeline";
 
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
+const DEATH_FADE_OUT = 0.25;
+const DEATH_FADE_IN = 0.25;
+
+type GameState = "jogando" | "morto";
 
 export class Game {
   private readonly boxes: Box[] = [];
   private player!: Player;
   private cameraRig!: CameraRig;
+  private checkpoints!: Checkpoints;
+  private killY = -Infinity;
+  private state: GameState = "jogando";
+  private deathTimer = 0;
+  private respawned = false;
+  private readonly fade = new Fade();
   private readonly scene: Scene;
   private readonly input = new Input();
   private pushTimer = 0;
@@ -57,14 +69,17 @@ export class Game {
     solidMaterial.diffuseColor = new Color3(0.22, 0.23, 0.25);
     solidMaterial.specularColor = Color3.Black();
 
-    for (const [i, block] of [level.ground, ...level.walls, ...level.platforms, ...level.obstacles].entries()) {
+    for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms, ...level.obstacles].entries()) {
       this.createStatic(block, level.depth, solidMaterial, `solid-${i}`);
     }
 
     level.boxes.forEach((data, i) => this.boxes.push(new Box(scene, data, `box-${i}`)));
 
-    this.player = await Player.create(scene, level.spawn);
-    this.cameraRig = new CameraRig(scene, level.spawn.x);
+    this.checkpoints = new Checkpoints(level.checkpoints);
+    this.killY = level.killY;
+    const spawn = this.checkpoints.current;
+    this.player = await Player.create(scene, spawn);
+    this.cameraRig = new CameraRig(scene, spawn.x);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
@@ -75,6 +90,11 @@ export class Game {
   private update(): void {
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
     this.input.update();
+    if (this.state === "morto") {
+      this.updateDeath(dt);
+      this.input.endFrame();
+      return;
+    }
     const dir = this.input.axisX();
     if (this.isPushingBox()) {
       this.pushTimer = PUSH_GRACE;
@@ -84,7 +104,34 @@ export class Game {
     }
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.cameraRig.update(dt, this.player.position.x);
+    this.checkpoints.update(this.player.position.x);
+    if (this.player.position.y < this.killY) this.die();
     this.input.endFrame();
+  }
+
+  private die(): void {
+    this.state = "morto";
+    this.deathTimer = 0;
+    this.respawned = false;
+  }
+
+  private updateDeath(dt: number): void {
+    this.deathTimer += dt;
+    if (this.deathTimer < DEATH_FADE_OUT) {
+      this.fade.set(this.deathTimer / DEATH_FADE_OUT);
+      return;
+    }
+    if (!this.respawned) {
+      this.respawned = true;
+      const point = this.checkpoints.current;
+      this.player.respawn(point);
+      for (const box of this.boxes) box.reset();
+      this.cameraRig.snap(point.x);
+      this.pushTimer = 0;
+    }
+    const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;
+    this.fade.set(1 - t);
+    if (t >= 1) this.state = "jogando";
   }
 
   private isPushingBox(): boolean {

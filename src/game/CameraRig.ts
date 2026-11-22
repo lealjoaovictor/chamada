@@ -18,6 +18,11 @@ export class CameraRig {
     this.camera.setTarget(new Vector3(startX, LOOK_HEIGHT, 0));
   }
 
+  snap(x: number): void {
+    this.x = x;
+    this.camera.position.x = x;
+  }
+
   update(dt: number, targetX: number): void {
     const t = 1 - Math.exp(-FOLLOW_SHARPNESS * dt);
     this.x += (targetX - this.x) * t;

@@ -12,10 +12,16 @@ export interface BoxData {
   mass: number;
 }
 
+export interface PointData {
+  x: number;
+  y: number;
+}
+
 export interface LevelData {
-  spawn: { x: number; y: number };
+  checkpoints: PointData[];
+  killY: number;
   depth: number;
-  ground: BlockData;
+  ground: BlockData[];
   walls: BlockData[];
   platforms: BlockData[];
   obstacles: BlockData[];
@@ -23,9 +29,16 @@ export interface LevelData {
 }
 
 export const pipelineLevel: LevelData = {
-  spawn: { x: -8, y: 1.2 },
+  checkpoints: [
+    { x: -8, y: 1.2 },
+    { x: 5, y: 1.2 },
+  ],
+  killY: -5,
   depth: 4,
-  ground: { x: 0, y: -0.5, width: 40, height: 1 },
+  ground: [
+    { x: -3.5, y: -0.5, width: 33, height: 1 },
+    { x: 17.5, y: -0.5, width: 5, height: 1 },
+  ],
   walls: [
     { x: -20.5, y: 3, width: 1, height: 8 },
     { x: 20.5, y: 3, width: 1, height: 8 },

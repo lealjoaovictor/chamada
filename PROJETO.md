@@ -157,7 +157,7 @@ Atualize esta lista a cada tarefa concluída.
 - [x] Jogador: andar e pular (playtest aprovado)
 - [x] Jogador: empurrar caixa (playtest aprovado; sem botão, empurrão lento: caixa a ~0,5 m/s)
 - [x] Jogador: deslizar (playtest aprovado em 2026-11-22)
-- [ ] Morte, checkpoint e reinício
+- [ ] Morte, checkpoint e reinício (implementado em 2026-11-22: queda abaixo de `killY` mata, fade de 0,5 s, volta ao último checkpoint e caixas resetam; teste automático em `tests/checkpoints.test.ts` com `npm test`; falta playtest humano)
 - [ ] Câmera lateral
 - [ ] Atmosfera visual (névoa, grão, vinheta, luz)
 - [ ] Área 1: pátio

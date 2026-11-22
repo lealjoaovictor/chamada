@@ -91,7 +91,7 @@ export const area1Level: LevelData = {
     ...windowRow(3, 12.8, 29.2, 2.05, [21]),
     ...windowRow(7.3, 12.8, 29.2, 2.05),
     { x: 21, y: 2.9, z: 2.3, width: 2.2, height: 3, depth: 0.3, material: "moldura" },
-    { x: 21, y: 2.85, z: 2.2, width: 1.7, height: 2.7, depth: 0.3, material: "madeira" },
+    { id: "porta-principal", x: 21, y: 2.85, z: 2.2, width: 1.7, height: 2.7, depth: 0.3, material: "madeira" },
 
     { x: 34.5, y: 2.22, z: 0, width: 7, height: 0.04, depth: 1.6, material: "metal" },
     { x: 34.5, y: 3.15, z: 1.6, width: 7, height: 0.06, depth: 0.06, material: "metal" },

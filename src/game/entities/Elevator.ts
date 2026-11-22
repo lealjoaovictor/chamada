@@ -28,6 +28,7 @@ export class Elevator {
   private readonly data: ElevatorData;
   private readonly body: PhysicsBody;
   private readonly buttonMaterial: StandardMaterial;
+  readonly button: Mesh;
   private readonly target = new Vector3();
   private readonly rotation = Quaternion.Identity();
   private surface: number;
@@ -46,6 +47,7 @@ export class Elevator {
     this.body.setMotionType(PhysicsMotionType.ANIMATED);
 
     const button = CreateBox(`${name}-botao`, { width: 0.25, height: 0.25, depth: 0.1 }, scene);
+    this.button = button;
     button.position.set(data.buttonX, data.buttonY, 1.9);
     this.buttonMaterial = new StandardMaterial(`${name}-botao-mat`, scene);
     this.buttonMaterial.emissiveColor = BUTTON_IDLE;
@@ -77,6 +79,10 @@ export class Elevator {
     this.buttonMaterial.emissiveColor = moving || this.goal === this.data.bottomY ? BUTTON_ACTIVE : BUTTON_IDLE;
     this.target.set(this.data.x, this.surface - THICKNESS / 2, 0);
     this.body.setTargetTransform(this.target, this.rotation);
+  }
+
+  get called(): boolean {
+    return this.goal === this.data.bottomY || this.surface < this.data.topY - 0.01;
   }
 
   reset(): void {

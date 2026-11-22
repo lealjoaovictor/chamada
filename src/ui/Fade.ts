@@ -13,6 +13,10 @@ export class Fade {
     document.body.appendChild(this.element);
   }
 
+  setColor(color: string): void {
+    this.element.style.background = color;
+  }
+
   set(alpha: number): void {
     this.element.style.opacity = String(Math.min(Math.max(alpha, 0), 1));
   }

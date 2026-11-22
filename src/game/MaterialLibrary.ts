@@ -30,7 +30,7 @@ const EMISSIVE: Partial<Record<MaterialName, Color3>> = {
 };
 
 const ALPHA: Partial<Record<MaterialName, number>> = {
-  vidro: 0.18,
+  vidro: 0.3,
 };
 
 export class MaterialLibrary {

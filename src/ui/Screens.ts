@@ -1,6 +1,6 @@
 import { CREDITOS } from "./creditos";
 
-const CONTROLES = "A / D andar · ESPAÇO pular · S deslizar · ande contra a caixa para empurrar";
+const CONTROLES = "A / D andar · ESPAÇO pular · S deslizar (correndo) · ande contra a caixa para empurrar · controle: analógico, A pula, ↓ desliza";
 
 function element(className: string, text?: string): HTMLDivElement {
   const div = document.createElement("div");

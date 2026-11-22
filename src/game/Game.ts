@@ -25,6 +25,8 @@ import { PressurePlate } from "./entities/PressurePlate";
 import { Vigia } from "./entities/Vigia";
 import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
+import { Hints } from "./Hints";
+import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { EndScreen, MenuScreen } from "../ui/Screens";
@@ -48,6 +50,8 @@ const ROOM_HOLD = 2;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
 const RESTART_LOCK = 1.5;
+const LIGHT_DEATH_COLOR = "#3a2306";
+const DEFAULT_FADE_COLOR = "#000";
 const RAMP_THICKNESS = 0.4;
 
 type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim";
@@ -68,6 +72,8 @@ export class Game {
   private readonly menu = new MenuScreen();
   private readonly endScreen = new EndScreen();
   private endShownAt = -1;
+  private hints!: Hints;
+  private focusLock = false;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -91,6 +97,7 @@ export class Game {
     const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
     const level = debugLevel ? pipelineLevel : worldLevel;
     await game.load(level);
+    game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, DICAS, FOCOS, CHACOALHAR);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
   }
@@ -167,6 +174,7 @@ export class Game {
     this.fade.set(0);
     this.input.setAutopilot(0);
     this.input.consumeAnyPress();
+    document.getElementById("carregando")?.remove();
     this.menu.show();
     this.warming = false;
   }
@@ -202,6 +210,15 @@ export class Game {
     } else {
       this.pushTimer = dir === this.pushDir ? Math.max(0, this.pushTimer - dt) : 0;
     }
+    const beat = this.hints.cameraBeat(this.player.position.x);
+    if (beat) {
+      this.cameraRig.focus(beat.focusX, beat.seconds);
+      this.focusLock = true;
+      this.input.setAutopilot(0);
+    } else if (this.focusLock && !this.cameraRig.focusing) {
+      this.focusLock = false;
+      this.input.setAutopilot(null);
+    }
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.cameraRig.update(dt, {
       x: this.player.position.x,
@@ -211,12 +228,39 @@ export class Game {
     });
     this.checkpoints.update(this.player.position.x);
     this.cullLights();
-    if (this.player.position.y < this.killY || this.isSeen(dt)) this.die();
+    this.hints.update(dt, this.hintWorld(), this.cameraRig.camera);
+    const cause = this.player.position.y < this.killY ? "queda" : this.isSeen(dt);
+    if (cause) this.die(cause);
     else if (this.finalDoor && this.player.position.x >= this.finalDoor.data.triggerX) this.arrive();
     this.input.endFrame();
   }
 
-  private die(): void {
+  private hintWorld() {
+    const player = this.player;
+    return {
+      playerX: player.position.x,
+      feetY: player.feetY,
+      axis: this.input.axisX(),
+      sliding: player.isSliding,
+      grounded: player.isGrounded,
+      boxOffset: (i: number) => this.boxes[i]?.offset ?? 0,
+      boxTop: (i: number) => {
+        const box = this.boxes[i];
+        return box ? { x: box.mesh.position.x, y: box.mesh.position.y + box.halfSize } : { x: 0, y: 0 };
+      },
+      platePressed: (i: number) => this.plates[i]?.pressed ?? false,
+      elevatorCalled: (i: number) => this.elevators[i]?.called ?? false,
+      glowMesh: (target: "box" | "plate" | "elevator", i: number) => {
+        if (target === "box") return this.boxes[i]?.mesh ?? null;
+        if (target === "plate") return this.plates[i]?.mesh ?? null;
+        return this.elevators[i]?.button ?? null;
+      },
+    };
+  }
+
+  private die(cause: "queda" | "luz" | "toque"): void {
+    this.hints.registerDeath(this.player.position.x);
+    this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
     this.state = "morto";
     this.deathTimer = 0;
     this.respawned = false;
@@ -228,6 +272,7 @@ export class Game {
     if (!this.input.consumeAnyPress()) return;
     this.menu.hide();
     this.input.setAutopilot(null);
+    document.body.style.cursor = "none";
     this.state = "jogando";
   }
 
@@ -267,6 +312,7 @@ export class Game {
       if (this.arrivalTimer < ROOM_HOLD + END_FADE + END_SCREEN_DELAY) return;
       this.endShownAt = this.arrivalTimer;
       this.input.consumeAnyPress();
+      document.body.style.cursor = "";
       this.endScreen.show();
       return;
     }
@@ -297,7 +343,10 @@ export class Game {
     }
     const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;
     this.fade.set(1 - t);
-    if (t >= 1) this.state = "jogando";
+    if (t >= 1) {
+      this.state = "jogando";
+      this.fade.setColor(DEFAULT_FADE_COLOR);
+    }
   }
 
   private updateDoors(dt: number): void {
@@ -329,18 +378,18 @@ export class Game {
     for (const elevator of this.elevators) elevator.update(dt, rider);
   }
 
-  private isSeen(dt: number): boolean {
-    if (this.vigias.length === 0) return false;
+  private isSeen(dt: number): "luz" | "toque" | null {
+    if (this.vigias.length === 0) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
     const height = (p.y - feetY) * 2;
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
-    if (this.vigias.some((vigia) => vigia.catches(p.x))) return true;
+    if (this.vigias.some((vigia) => vigia.catches(p.x))) return "toque";
     const seen = this.vigias.some((vigia) => !vigia.chases && vigia.sees(this.sightPoints));
     this.seenTimer = seen ? this.seenTimer + dt : 0;
-    return this.seenTimer > SEEN_GRACE;
+    return this.seenTimer > SEEN_GRACE ? "luz" : null;
   }
 
   private isPushingBox(): boolean {
@@ -396,6 +445,7 @@ export class Game {
       mesh = CreateBox(name, { width: decor.width, height: decor.height, depth: decor.depth }, this.scene);
     }
     mesh.position.set(decor.x, decor.y, decor.z);
+    if (decor.id) mesh.name = decor.id;
     mesh.material = this.materials.get(decor.material ?? "concreto");
     mesh.isPickable = false;
     mesh.receiveShadows = true;

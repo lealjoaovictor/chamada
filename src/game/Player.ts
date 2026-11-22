@@ -128,6 +128,10 @@ export class Player {
     return this.position.y - this.height / 2;
   }
 
+  get isSliding(): boolean {
+    return this.sliding;
+  }
+
   get isGrounded(): boolean {
     return this.grounded;
   }

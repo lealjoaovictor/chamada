@@ -30,6 +30,7 @@ export interface BlockData {
 }
 
 export interface DecorData extends BlockData {
+  id?: string;
   z: number;
   depth: number;
   shape?: "box" | "sphere" | "cylinder" | "disc";
@@ -130,4 +131,32 @@ export interface LevelData {
   elevators: ElevatorData[];
   finalDoor?: FinalDoorData;
   decor: DecorData[];
+}
+
+export type HintAction = "empurrar" | "deslizar" | "pular";
+
+export interface HintData {
+  zone: { minX: number; maxX: number };
+  trigger: "tempo" | "encostado" | "mortes";
+  glowAfter?: number;
+  iconAfter?: number;
+  deaths?: number;
+  deathZone?: { minX: number; maxX: number };
+  icon?: { action: HintAction; x: number; y: number; followBox?: number };
+  glow?: { box?: number; plate?: number; elevator?: number };
+  requires?: { platePressed?: number };
+  doneWhen: { boxMoved?: number; platePressed?: number; elevatorCalled?: number; passedX?: number };
+}
+
+export interface CameraBeatData {
+  triggerX: number;
+  focusX: number;
+  seconds: number;
+}
+
+export interface RattleData {
+  meshId: string;
+  minX: number;
+  maxX: number;
+  minFeetY: number;
 }

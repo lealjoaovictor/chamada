@@ -34,6 +34,10 @@ export class Box {
     this.aggregate.body.setLinearDamping(0.5);
   }
 
+  get offset(): number {
+    return Vector3.Distance(this.mesh.position, this.start);
+  }
+
   reset(): void {
     const body = this.aggregate.body;
     body.disablePreStep = false;

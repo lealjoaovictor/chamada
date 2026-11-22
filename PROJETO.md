@@ -168,6 +168,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Relógio da chamada (áudio) e volume por área
 - [ ] Finais bom e ruim
 - [ ] Menu, tela de morte e tela final — feito em 2026-11-22, estilo A escolhido (`src/ui/Screens.ts`, estilos em `index.html`, créditos em `src/ui/creditos.ts`). Menu sobre o pátio ao vivo depois do pré-aquecimento, "pressione qualquer botão" (teclado, clique ou controle) e linha de controles; tela de morte = escurecimento sem texto; tela final com créditos e recomeço (recarrega a página). Falta playtest humano
+- [ ] Orientação do jogador (UX) — feito em 2026-11-22. Camadas: 0 = cenário guia (vidro da catraca com moldura, porta principal chacoalha ao tocar, câmera mostra o elevador ao entrar na biblioteca, pilar na entrada da biblioteca); 1 = brilho pulsante no objeto da solução quando o jogador parece perdido; 2 = ícone de tecla/botão (sem palavras, exceção aprovada à regra de texto) só quando o detector dispara. Regras em `src/levels/dicas.ts`, lógica em `src/game/Hints.ts`. Também: ponto de carregamento, cursor oculto no jogo, morte por lanterna escurece em âmbar, linha de controles com controle. Falta playtest humano
 - [ ] Efeitos sonoros e ambiente
 - [ ] Build local e `iniciar.bat`
 - [ ] Backup publicado no itch.io

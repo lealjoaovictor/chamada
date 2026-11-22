@@ -11,6 +11,7 @@ const VERTICAL_SHARPNESS = 3;
 const LOOKAHEAD = 1.5;
 const LOOKAHEAD_SHARPNESS = 2;
 const FALL_THRESHOLD = 1;
+const FOCUS_SHARPNESS = 2.5;
 
 export interface CameraTarget {
   x: number;
@@ -32,6 +33,8 @@ export class CameraRig {
   private y: number;
   private groundY: number;
   private lookahead = 0;
+  private focusX = 0;
+  private focusTimer = 0;
 
   constructor(scene: Scene, start: { x: number; feetY: number }, bounds: CameraBounds) {
     this.bounds = bounds;
@@ -51,7 +54,22 @@ export class CameraRig {
     this.apply();
   }
 
+  focus(x: number, seconds: number): void {
+    this.focusX = x;
+    this.focusTimer = seconds;
+  }
+
+  get focusing(): boolean {
+    return this.focusTimer > 0;
+  }
+
   update(dt: number, target: CameraTarget): void {
+    if (this.focusTimer > 0) {
+      this.focusTimer -= dt;
+      this.x += (this.focusX - this.x) * smoothing(FOCUS_SHARPNESS, dt);
+      this.apply();
+      return;
+    }
     if (target.grounded || target.feetY < this.groundY - FALL_THRESHOLD) {
       this.groundY = target.feetY;
     }

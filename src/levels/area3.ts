@@ -53,6 +53,7 @@ export const area3Level: LevelData = {
   ],
   platforms: [],
   obstacles: [
+    { x: HALL_START + 0.5, y: HALL_CEILING / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: 0.9, height: HALL_CEILING, material: "pedra" },
     ...SHELF_XS.map(shelf),
     {
       x: (SHAFT_X + SHAFT_WIDTH / 2 + END) / 2,

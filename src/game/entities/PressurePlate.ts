@@ -11,7 +11,8 @@ const PRESSED_SINK = 0.025;
 export class PressurePlate {
   readonly door: number;
   private readonly data: PlateData;
-  private readonly mesh;
+  readonly mesh;
+  pressed = false;
 
   constructor(scene: Scene, data: PlateData, depth: number, material: StandardMaterial, name: string) {
     this.data = data;
@@ -29,6 +30,7 @@ export class PressurePlate {
       return onTop && p.y - box.halfSize < this.data.y + PRESS_TOLERANCE;
     });
     this.mesh.position.y = this.data.y + PLATE_THICKNESS / 2 - (pressed ? PRESSED_SINK : 0);
+    this.pressed = pressed;
     return pressed;
   }
 }

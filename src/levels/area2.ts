@@ -75,6 +75,9 @@ export const area2Level: LevelData = {
     { x: 55, y: 0.5, z: -1.3, width: 0.35, height: 1, depth: 0.5, material: "metal" },
     { x: 55, y: ARM_HEIGHT - 0.03, z: 0, width: 0.08, height: 0.06, depth: 2.6, material: "metal" },
     { x: 55, y: CEILING - 0.05, z: 0, width: 0.2, height: 0.1, depth: 4, material: "metal" },
+    { x: 55, y: ARM_HEIGHT + 0.04, z: 0, width: 0.18, height: 0.08, depth: 4, material: "metal" },
+    { x: 55, y: (ARM_HEIGHT + CEILING) / 2, z: -1.97, width: 0.18, height: CEILING - ARM_HEIGHT, depth: 0.06, material: "metal" },
+    { x: 55, y: (ARM_HEIGHT + CEILING) / 2, z: 0, width: 0.05, height: 0.04, depth: 4, material: "moldura" },
 
     { x: DOOR_X, y: CEILING / 2, z: BACK_Z - 0.05, width: 0.6, height: CEILING, depth: 0.2, material: "concreto" },
     { x: DOOR_X - 0.25, y: CEILING / 2, z: -1.95, width: 0.25, height: CEILING, depth: 0.15, material: "concreto" },

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CallSchedule } from "../src/game/CallSchedule.ts";
 import { CHAMADA } from "../src/levels/chamada.ts";
-import { areaAt } from "../src/levels/areas.ts";
+import { AREAS, areaAt } from "../src/levels/areas.ts";
 import { Checkpoints } from "../src/game/Checkpoints.ts";
 
 const schedule = new CallSchedule(CHAMADA);
@@ -53,10 +53,8 @@ test("calledAt conta quantos nomes já foram chamados", () => {
 
 test("áreas por posição no mundo", () => {
   assert.equal(areaAt(0), 1);
-  assert.equal(areaAt(60), 2);
-  assert.equal(areaAt(100), 3);
-  assert.equal(areaAt(150), 4);
-  assert.equal(areaAt(200), 5);
+  AREAS.forEach((area) => assert.equal(areaAt(area.inicioX + 1), area.numero));
+  assert.equal(areaAt(AREAS[1].inicioX - 0.5), 1);
 });
 
 test("começar numa área usa o último checkpoint antes dela", () => {

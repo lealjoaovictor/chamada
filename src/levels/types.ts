@@ -62,7 +62,8 @@ export interface PointData {
 }
 
 export interface LampData extends PointData {
-  flicker?: boolean;
+  /** true = falha às vezes; "escuro" = quase sempre apagada, acende em lampejos curtos. */
+  flicker?: boolean | "escuro";
   moonlight?: boolean;
   diesWhenPassed?: boolean;
 }
@@ -93,6 +94,9 @@ export interface VigiaData {
   speed: number;
   pause: number;
   pauseMax?: number;
+  startHeading?: 1 | -1;
+  /** Perseguição elástica: acelera quando o jogador abre distância e alivia quando chega perto. */
+  elastico?: { distancia: number; ganho: number; min: number; max: number };
   aimAhead: number;
   aimY: number;
   coneAngle: number;
@@ -135,6 +139,10 @@ export interface LevelData {
   elevators: ElevatorData[];
   finalDoor?: FinalDoorData;
   decor: DecorData[];
+  /** Trechos em que o personagem anda agachado e devagar (furtividade). */
+  furtivo?: { minX: number; maxX: number }[];
+  /** Trechos em que a luz ambiente quase some: só as lâmpadas iluminam. */
+  escuro?: { minX: number; maxX: number }[];
 }
 
 export type HintAction = "empurrar" | "deslizar" | "pular";

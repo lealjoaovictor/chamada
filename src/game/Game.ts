@@ -32,7 +32,6 @@ import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
-import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { EndScreen, LateScreen, MenuScreen } from "../ui/Screens";
@@ -44,8 +43,9 @@ import { TouchControls, touchControlsEnabled } from "../ui/TouchControls";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
-import { worldLevel } from "../levels/world";
+import { WORLD, worldLevel } from "../levels/world";
 
+const DARK_AMBIENT = 0.2;
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
@@ -71,6 +71,8 @@ type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado";
 
 export class Game {
   private readonly boxes: Box[] = [];
+  private ambient: HemisphericLight | null = null;
+  private darkZones: { minX: number; maxX: number }[] = [];
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
@@ -135,7 +137,15 @@ export class Game {
     game.telemetry = new Telemetry(game.startArea);
     await Promise.all([game.load(level), game.sfx.load()]);
     await game.clock.load();
-    game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, DICAS, FOCOS, CHACOALHAR);
+    if (params.get("telemetria") === "1") {
+      (window as unknown as { chamadaDebug: () => unknown }).chamadaDebug = () => ({
+        caixas: game.boxes.map((b) => [+b.mesh.position.x.toFixed(2), +b.mesh.position.y.toFixed(2)]),
+        placas: game.plates.map((p) => p.pressed),
+        portas: game.doors.map((d) => +d.bottom.toFixed(2)),
+        vigias: game.vigias.map((v) => v.debugState),
+      });
+    }
+    game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
   }
@@ -149,6 +159,8 @@ export class Game {
     await Physics.enable(scene);
 
     const light = new HemisphericLight("light", new Vector3(0.3, 1, -0.4), scene);
+    this.ambient = light;
+    this.darkZones = level.escuro ?? [];
     light.groundColor = new Color3(0.08, 0.08, 0.1);
     level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
@@ -187,6 +199,8 @@ export class Game {
 
     this.checkpoints = new Checkpoints(level.checkpoints);
     if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
+    const checkpoint = Number(new URLSearchParams(location.search).get("checkpoint"));
+    if (level === worldLevel && Number.isInteger(checkpoint) && checkpoint > 0) this.checkpoints.jumpTo(checkpoint);
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
@@ -256,7 +270,7 @@ export class Game {
     const running = this.state === "jogando" || this.state === "morto";
     this.clock.update(realDt, area, running);
     if (running) {
-      this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total);
+      this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total, this.player.position.x, this.player.feetY);
       if (this.clock.studentNameReached) this.late();
     }
     for (const lamp of this.lamps) lamp.update(dt, this.player.position.x);
@@ -300,6 +314,13 @@ export class Game {
       this.focusLock = false;
       this.input.setAutopilot(null);
     }
+    const px = this.player.position.x;
+    if (this.ambient) {
+      const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
+      const target = dark ? DARK_AMBIENT : 1;
+      this.ambient.intensity += (target - this.ambient.intensity) * Math.min(1, dt * 1.5);
+    }
+    this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.cameraRig.update(dt, {
       x: this.player.position.x,
@@ -516,7 +537,7 @@ export class Game {
     if (this.vigias.length === 0) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
-    const height = (p.y - feetY) * 2;
+    const height = (p.y - feetY) * 2 * (1 - 0.25 * this.player.crouchAmount);
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);

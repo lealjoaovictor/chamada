@@ -17,6 +17,9 @@ const OFF_LEVEL = 0.06;
 const ON_TIME = [0.3, 2.6];
 const OFF_TIME = [0.03, 0.16];
 const BURST_CHANCE = 0.45;
+const DARK_ON_TIME = [0.12, 0.4];
+const DARK_OFF_TIME = [0.9, 2.2];
+const DARK_OFF_LEVEL = 0;
 
 function between(range: number[]): number {
   return range[0] + Math.random() * (range[1] - range[0]);
@@ -27,6 +30,7 @@ export class Lamp {
   private readonly bulbMaterial: StandardMaterial;
   private readonly intensity: number;
   private readonly flicker: boolean;
+  private readonly dark: boolean;
   private readonly x: number;
   private readonly diesWhenPassed: boolean;
   private dead = false;
@@ -36,7 +40,8 @@ export class Lamp {
   constructor(scene: Scene, data: LampData, intensity: number, name: string) {
     const moon = data.moonlight ?? false;
     this.intensity = moon ? MOON_INTENSITY : intensity;
-    this.flicker = data.flicker ?? false;
+    this.flicker = (data.flicker ?? false) !== false;
+    this.dark = data.flicker === "escuro";
     this.x = data.x;
     this.diesWhenPassed = data.diesWhenPassed ?? false;
     this.light = new PointLight(name, new Vector3(data.x, data.y, moon ? MOON_Z : LAMP_Z), scene);
@@ -70,6 +75,11 @@ export class Lamp {
     this.timer -= dt;
     if (this.timer > 0) return;
     this.on = !this.on;
+    if (this.dark) {
+      this.timer = between(this.on ? DARK_ON_TIME : DARK_OFF_TIME);
+      this.setLevel(this.on ? 1 : DARK_OFF_LEVEL);
+      return;
+    }
     if (this.on) {
       this.timer = Math.random() < BURST_CHANCE ? between(OFF_TIME) : between(ON_TIME);
     } else {

@@ -59,6 +59,7 @@ export const area3Level: LevelData = {
     },
   ],
   ramps: [],
+  furtivo: [{ minX: HALL_START + 1, maxX: 102.6 }],
   boxes: [],
   lamps,
   plates: [],

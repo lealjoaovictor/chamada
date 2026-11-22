@@ -42,7 +42,7 @@ export class Telemetry {
     }
   }
 
-  update(dt: number, area: number, calledCount: number, totalNames: number): void {
+  update(dt: number, area: number, calledCount: number, totalNames: number, x = 0, y = 0): void {
     this.run.segundos += dt;
     this.run.nomesChamados = calledCount;
     this.stats(area).segundos += dt;
@@ -52,7 +52,7 @@ export class Telemetry {
     this.panelTimer = 0.25;
     const lines = [
       `tempo ${formatTime(this.run.segundos)}  ·  área ${area}`,
-      `chamada ${calledCount}/${totalNames}`,
+      `chamada ${calledCount}/${totalNames}  ·  x ${x.toFixed(1)} y ${y.toFixed(1)}`,
       ...Object.entries(this.run.areas).map(
         ([n, s]) => `área ${n}: ${formatTime(s.segundos)}  ·  ${s.mortes.length} morte(s)`,
       ),

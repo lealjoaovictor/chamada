@@ -64,7 +64,7 @@ O Vigia é o único inimigo: uma silhueta humana com lanterna, sem rosto, com co
 | Área | Comportamento | Regra |
 | --- | --- | --- |
 | 3 (biblioteca) | Patrulha em linha reta entre dois pontos, com cone de luz da lanterna. | Entrar no cone de luz é morte. O jogador passa quando o Vigia está de costas ou se mantém atrás de estantes, fora do cone. |
-| 4 (subsolo) | Persegue em velocidade constante por um corredor longo, como os cães do INSIDE. | Ser tocado é morte. O corredor tem três obstáculos curtos: deslizar, pular, deslizar. |
+| 4 (subsolo) | Persegue por um corredor longo, como os cães do INSIDE, em velocidade elástica: acelera quando o jogador abre distância e alivia quando ele erra, para a tensão não sumir. | Ser tocado é morte. Duas perseguições com obstáculos em ritmo irregular (deslizar e pular), separadas por um depósito com caixa e placa. |
 
 É um único modelo reaproveitado nas duas áreas. O cone de luz é uma luz do tipo spot mais uma checagem geométrica simples.
 
@@ -74,10 +74,10 @@ A fase tem cinco áreas em sequência, cada uma com uma ideia principal; o check
 
 | # | Área | Ação principal | Puzzle ou perigo | Clima |
 | --- | --- | --- | --- | --- |
-| 1 | Pátio externo (noite, névoa) | Andar, pular, empurrar | Primeira caixa para alcançar o portão lateral, já que o principal está fechado | Ensina sem tutorial; primeiros nomes ao longe |
-| 2 | Corredor do bloco principal | Deslizar | Catraca baixa; placa de pressão que abre uma porta quando uma caixa é empurrada sobre ela | Luzes falhando |
-| 3 | Biblioteca e escadas | Todas | Elevador ou plataforma com botão; Vigia patrulhando com lanterna | Furtividade |
-| 4 | Subsolo ou laboratório | Pular e deslizar | Perseguição do Vigia com três obstáculos curtos | Pico de tensão |
+| 1 | Pátio externo (noite, névoa) | Andar, pular, empurrar | Primeira caixa para alcançar o portão lateral, já que o principal está fechado; na garagem, caixote que cai sobre a placa; na guarita, primeiro encontro com o Vigia | Ensina sem tutorial; primeiros nomes ao longe |
+| 2 | Corredor do bloco principal | Deslizar | Catraca baixa; placa de pressão que abre uma porta quando uma caixa é empurrada sobre ela; zeladoria com palco alto; sala escura com vãos no piso | Luzes falhando |
+| 3 | Biblioteca e escadas | Todas | Elevador ou plataforma com botão; Vigia patrulhando com lanterna; o personagem anda agachado entre as estantes | Furtividade |
+| 4 | Subsolo ou laboratório | Pular e deslizar | Duas perseguições elásticas (o Vigia acelera se o jogador abre distância) com obstáculos em ritmo irregular; depósito com caixa e placa entre elas | Pico de tensão |
 | 5 | Corredor final e sala de aula | Andar | Porta final; alto-falante muito próximo | Silêncio e o nome chegando |
 
 A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e deslizar, a 3 junta puzzle e inimigo, a 4 é puro movimento sob pressão e a 5 é só tensão.

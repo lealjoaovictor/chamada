@@ -53,6 +53,7 @@ export class Vigia {
   private x = 0;
   private heading = 1;
   private facing = 1;
+  private currentSpeed = 0;
   private phase: Phase = "andando";
   private timer = 0;
   private pause = 0;
@@ -140,9 +141,9 @@ export class Vigia {
   }
 
   reset(): void {
-    this.x = this.data.x0;
-    this.heading = 1;
-    this.facing = 1;
+    this.heading = this.data.startHeading ?? 1;
+    this.x = this.heading > 0 ? this.data.x0 : this.data.x1;
+    this.facing = this.heading;
     this.phase = this.chases ? "escondido" : "andando";
     this.timer = 0;
     if (this.walk) this.walk.weight = this.chases ? 0 : 1;
@@ -150,6 +151,10 @@ export class Vigia {
     if (this.run) this.run.weight = this.chases ? 1 : 0;
     this.setShown(!this.chases);
     this.syncVisual();
+  }
+
+  get debugState(): { x: number; facing: number } {
+    return { x: +this.x.toFixed(2), facing: +this.facing.toFixed(2) };
   }
 
   catches(x: number): boolean {
@@ -193,6 +198,13 @@ export class Vigia {
     this.syncVisual();
   }
 
+  private chaseSpeed(playerX: number): number {
+    const e = this.data.elastico;
+    if (!e) return this.data.speed;
+    const factor = 1 + (playerX - this.x - e.distancia) * e.ganho;
+    return this.data.speed * Math.min(Math.max(factor, e.min), e.max);
+  }
+
   private updateChase(dt: number, playerX: number): void {
     if (this.phase === "escondido") {
       if (playerX < (this.data.triggerX ?? this.data.x0)) return;
@@ -200,14 +212,15 @@ export class Vigia {
       this.setShown(true);
     }
     if (this.phase === "andando") {
-      this.x = Math.min(this.x + this.data.speed * dt, this.data.x1);
+      this.currentSpeed = this.chaseSpeed(playerX);
+      this.x = Math.min(this.x + this.currentSpeed * dt, this.data.x1);
       if (this.x >= this.data.x1) this.phase = "parado";
     }
     const running = this.phase === "andando";
     const step = dt / BLEND_TIME;
     if (this.run) {
       this.run.weight = approach(this.run.weight, running ? 1 : 0, step);
-      this.run.speedRatio = this.data.speed / RUN_CLIP_SPEED;
+      this.run.speedRatio = this.currentSpeed / RUN_CLIP_SPEED;
     }
     if (this.idle) this.idle.weight = approach(this.idle.weight, running ? 0 : 1, step);
     this.syncVisual();

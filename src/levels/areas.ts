@@ -1,13 +1,8 @@
 import type { AreaData } from "./types";
+import { WORLD } from "./world.ts";
 
-// Onde começa cada área no mundo contínuo (mesmo X de `bounds.minX` de cada fase).
-export const AREAS: AreaData[] = [
-  { numero: 1, inicioX: -5 },
-  { numero: 2, inicioX: 48 },
-  { numero: 3, inicioX: 80 },
-  { numero: 4, inicioX: 117 },
-  { numero: 5, inicioX: 166 },
-];
+// Onde começa cada área no mundo contínuo (calculado em `world.ts`).
+export const AREAS: AreaData[] = WORLD.areas;
 
 export function areaAt(x: number): number {
   let numero = AREAS[0].numero;

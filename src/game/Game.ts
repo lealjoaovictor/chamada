@@ -27,6 +27,8 @@ import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
 import { Sfx } from "./Sfx";
+import { createDust } from "./Dust";
+import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { CHACOALHAR, DICAS, FOCOS } from "../levels/dicas";
 import { Checkpoints } from "./Checkpoints";
@@ -151,6 +153,18 @@ export class Game {
     }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+    if (VISUAL.dust) createDust(scene, level.lamps);
+    if (VISUAL.rim > 0) {
+      const rim = new FresnelParameters({
+        leftColor: new Color3(0.62, 0.72, 0.9).scale(VISUAL.rim),
+        rightColor: Color3.Black(),
+        power: 2.5,
+        bias: 0.1,
+      });
+      for (const mesh of [...this.player.meshes, ...this.vigias.flatMap((vigia) => vigia.meshes)]) {
+        if (mesh.material instanceof StandardMaterial) mesh.material.emissiveFresnelParameters = rim;
+      }
+    }
 
     for (const material of scene.materials) {
       if (material instanceof StandardMaterial) material.maxSimultaneousLights = MAX_LIGHTS_PER_MATERIAL;

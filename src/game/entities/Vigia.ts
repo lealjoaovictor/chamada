@@ -112,6 +112,10 @@ export class Vigia {
     for (const mesh of meshes) this.shadows.addShadowCaster(mesh, true);
   }
 
+  get meshes(): AbstractMesh[] {
+    return this.visual.getChildMeshes();
+  }
+
   get positionX(): number {
     return this.x;
   }

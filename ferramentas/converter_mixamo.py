@@ -15,6 +15,8 @@ PERFIS = {
             ("pular", "Jump.fbx", False),
             ("empurrar", "Pushing.fbx", True),
             ("deslizar", "Running Slide.fbx", True),
+            ("agachado", "Crouch Idle.fbx", False),
+            ("agachado_andar", "Crouched Walking.fbx", True),
         ],
     ),
     "vigia": (

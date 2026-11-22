@@ -13,7 +13,7 @@ import { Input } from "./Input";
 import { Physics } from "./Physics";
 import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
-import { PostFX } from "./PostFX";
+import { PostFX, VISUAL } from "./PostFX";
 import { Box } from "./entities/Box";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
@@ -62,11 +62,10 @@ export class Game {
   private async load(level: LevelData): Promise<void> {
     const scene = this.scene;
     await Physics.enable(scene);
-    const visual = PostFX.preset();
 
     const light = new HemisphericLight("light", new Vector3(0.3, 1, -0.4), scene);
     light.groundColor = new Color3(0.08, 0.08, 0.1);
-    level.lamps.forEach((lamp, i) => this.createLamp(lamp, visual.lampIntensity, `lamp-${i}`));
+    level.lamps.forEach((lamp, i) => this.createLamp(lamp, VISUAL.lampIntensity, `lamp-${i}`));
 
     const solidMaterial = new StandardMaterial("solid-mat", scene);
     solidMaterial.diffuseColor = new Color3(0.22, 0.23, 0.25);
@@ -83,7 +82,7 @@ export class Game {
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
-    PostFX.apply(scene, this.cameraRig.camera, light, visual);
+    PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {

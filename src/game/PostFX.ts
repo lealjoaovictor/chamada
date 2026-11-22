@@ -18,53 +18,20 @@ export interface VisualPreset {
   vignette: number;
 }
 
-const PRESETS: Record<string, VisualPreset> = {
-  a: {
-    background: new Color3(0.05, 0.06, 0.08),
-    fogDensity: 0.05,
-    ambientIntensity: 0.6,
-    ambientColor: new Color3(0.7, 0.78, 0.9),
-    lampIntensity: 2,
-    saturation: -40,
-    contrast: 1.1,
-    exposure: 1,
-    grain: 8,
-    vignette: 1.5,
-  },
-  b: {
-    background: new Color3(0.035, 0.045, 0.06),
-    fogDensity: 0.075,
-    ambientIntensity: 0.4,
-    ambientColor: new Color3(0.6, 0.7, 0.88),
-    lampIntensity: 2.8,
-    saturation: -65,
-    contrast: 1.25,
-    exposure: 1,
-    grain: 14,
-    vignette: 2.5,
-  },
-  c: {
-    background: new Color3(0.03, 0.03, 0.035),
-    fogDensity: 0.1,
-    ambientIntensity: 0.3,
-    ambientColor: new Color3(0.75, 0.75, 0.8),
-    lampIntensity: 3.4,
-    saturation: -90,
-    contrast: 1.4,
-    exposure: 1.05,
-    grain: 20,
-    vignette: 3.5,
-  },
+export const VISUAL: VisualPreset = {
+  background: new Color3(0.035, 0.045, 0.06),
+  fogDensity: 0.075,
+  ambientIntensity: 0.4,
+  ambientColor: new Color3(0.6, 0.7, 0.88),
+  lampIntensity: 2.8,
+  saturation: -65,
+  contrast: 1.25,
+  exposure: 1,
+  grain: 14,
+  vignette: 2.5,
 };
 
-const DEFAULT_PRESET = "b";
-
 export class PostFX {
-  static preset(): VisualPreset {
-    const key = new URLSearchParams(window.location.search).get("visual") ?? DEFAULT_PRESET;
-    return PRESETS[key] ?? PRESETS[DEFAULT_PRESET];
-  }
-
   static apply(scene: Scene, camera: Camera, ambient: HemisphericLight, preset: VisualPreset): void {
     scene.clearColor = Color4.FromColor3(preset.background, 1);
     scene.fogMode = Scene.FOGMODE_EXP2;

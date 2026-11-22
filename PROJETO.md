@@ -159,7 +159,7 @@ Atualize esta lista a cada tarefa concluída.
 - [x] Jogador: deslizar (playtest aprovado em 2026-11-22)
 - [x] Morte, checkpoint e reinício (queda abaixo de `killY` mata, fade de 0,5 s, volta ao último checkpoint e caixas resetam; teste automático em `tests/checkpoints.test.ts` com `npm test`; playtest aprovado)
 - [x] Câmera lateral (segue em X com antecipação de 1,5 m, segue a altura do chão ao pousar, respeita `bounds` da fase; playtest aprovado)
-- [ ] Atmosfera visual (névoa, grão, vinheta, luz)
+- [ ] Atmosfera visual (névoa, grão, vinheta, luz) — opção B escolhida em 2026-11-22 (`VISUAL` em `src/game/PostFX.ts`; lâmpadas quentes por fase em `lamps`); falta playtest humano
 - [ ] Área 1: pátio
 - [ ] Área 2: corredor (catraca, placa de pressão)
 - [ ] Área 3: biblioteca (elevador, patrulha do Vigia)

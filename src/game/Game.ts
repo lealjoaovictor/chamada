@@ -79,7 +79,7 @@ export class Game {
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
-    this.cameraRig = new CameraRig(scene, spawn.x);
+    this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
@@ -103,7 +103,12 @@ export class Game {
       this.pushTimer = dir === this.pushDir ? Math.max(0, this.pushTimer - dt) : 0;
     }
     this.player.update(dt, this.input, this.pushTimer > 0);
-    this.cameraRig.update(dt, this.player.position.x);
+    this.cameraRig.update(dt, {
+      x: this.player.position.x,
+      feetY: this.player.feetY,
+      grounded: this.player.isGrounded,
+      facing: this.player.facingDirection,
+    });
     this.checkpoints.update(this.player.position.x);
     if (this.player.position.y < this.killY) this.die();
     this.input.endFrame();
@@ -126,7 +131,7 @@ export class Game {
       const point = this.checkpoints.current;
       this.player.respawn(point);
       for (const box of this.boxes) box.reset();
-      this.cameraRig.snap(point.x);
+      this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
     const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;

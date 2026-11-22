@@ -20,6 +20,7 @@ export interface PointData {
 export interface LevelData {
   checkpoints: PointData[];
   killY: number;
+  bounds: { minX: number; maxX: number };
   depth: number;
   ground: BlockData[];
   walls: BlockData[];
@@ -34,6 +35,7 @@ export const pipelineLevel: LevelData = {
     { x: 5, y: 1.2 },
   ],
   killY: -5,
+  bounds: { minX: -21, maxX: 21 },
   depth: 4,
   ground: [
     { x: -3.5, y: -0.5, width: 33, height: 1 },

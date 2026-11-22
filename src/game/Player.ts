@@ -120,6 +120,10 @@ export class Player {
     return new Player(scene, spawn, visual, anims);
   }
 
+  get feetY(): number {
+    return this.position.y - this.height / 2;
+  }
+
   get isGrounded(): boolean {
     return this.grounded;
   }

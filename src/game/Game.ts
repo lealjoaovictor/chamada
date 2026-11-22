@@ -17,7 +17,8 @@ import type { BlockData, LevelData } from "../levels/pipeline";
 import { pipelineLevel } from "../levels/pipeline";
 
 const MAX_DT = 1 / 30;
-const PUSH_REACH = 0.15;
+const PUSH_REACH = 0.5;
+const PUSH_GRACE = 0.2;
 
 export class Game {
   private readonly boxes: Box[] = [];
@@ -25,6 +26,8 @@ export class Game {
   private cameraRig!: CameraRig;
   private readonly scene: Scene;
   private readonly input = new Input();
+  private pushTimer = 0;
+  private pushDir = 0;
 
   private constructor(engine: AbstractEngine) {
     this.scene = new Scene(engine);
@@ -72,7 +75,14 @@ export class Game {
   private update(): void {
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
     this.input.update();
-    this.player.update(dt, this.input, this.isPushingBox());
+    const dir = this.input.axisX();
+    if (this.isPushingBox()) {
+      this.pushTimer = PUSH_GRACE;
+      this.pushDir = dir;
+    } else {
+      this.pushTimer = dir === this.pushDir ? Math.max(0, this.pushTimer - dt) : 0;
+    }
+    this.player.update(dt, this.input, this.pushTimer > 0);
     this.cameraRig.update(dt, this.player.position.x);
     this.input.endFrame();
   }

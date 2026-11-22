@@ -14,6 +14,8 @@ import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
 
 const MOVE_SPEED = 4.5;
+const PUSH_SPEED = 1.2;
+const PUSH_ANIM_RATIO = 1.5;
 const GROUND_ACCEL = 45;
 const GROUND_DECEL = 60;
 const AIR_ACCEL = 25;
@@ -117,7 +119,7 @@ export class Player {
     const current = this.controller.getVelocity();
     const axis = input.axisX();
     if (axis !== 0) this.facing = axis;
-    const targetX = axis * MOVE_SPEED;
+    const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : MOVE_SPEED);
     const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
     this.velocity.x = approach(current.x, targetX, accel * dt);
 
@@ -165,6 +167,8 @@ export class Player {
 
     const walk = this.anims.get("andar");
     if (walk) walk.speedRatio = Math.max(speedX / WALK_CLIP_SPEED, 0.5);
+    const push = this.anims.get("empurrar");
+    if (push) push.speedRatio = PUSH_ANIM_RATIO;
 
     const step = dt / BLEND_TIME;
     for (const [name, group] of this.anims) {

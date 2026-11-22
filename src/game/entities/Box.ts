@@ -8,6 +8,8 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import type { BoxData } from "../../levels/pipeline";
 
+const BOX_FRICTION = 0.4;
+
 export class Box {
   readonly mesh: Mesh;
   readonly halfSize: number;
@@ -26,7 +28,7 @@ export class Box {
     this.aggregate = new PhysicsAggregate(
       this.mesh,
       PhysicsShapeType.BOX,
-      { mass: data.mass, friction: 0.8, restitution: 0 },
+      { mass: data.mass, friction: BOX_FRICTION, restitution: 0 },
       scene,
     );
     this.aggregate.body.setMassProperties({ inertia: Vector3.Zero() });

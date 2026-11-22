@@ -22,6 +22,11 @@ export class Door {
     const aggregate = new PhysicsAggregate(this.mesh, PhysicsShapeType.BOX, { mass: 0 }, scene);
     aggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
     aggregate.body.disablePreStep = false;
+    this.reset();
+  }
+
+  get closeAfterX(): number | undefined {
+    return this.data.closeAfterX;
   }
 
   get bottom(): number {
@@ -42,7 +47,7 @@ export class Door {
   }
 
   reset(): void {
-    this.offset = 0;
-    this.mesh.position.y = this.data.y;
+    this.offset = this.data.closeAfterX === undefined ? 0 : this.data.openHeight;
+    this.mesh.position.y = this.data.y + this.offset;
   }
 }

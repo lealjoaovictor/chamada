@@ -22,6 +22,7 @@ PERFIS = {
         [
             ("parado", "Idle.fbx", False),
             ("andar", "Walking.fbx", True),
+            ("correr", "Running.fbx", True),
         ],
     ),
 }

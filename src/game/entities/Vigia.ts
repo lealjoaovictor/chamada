@@ -20,6 +20,8 @@ const MODEL_URL = `${import.meta.env.BASE_URL}models/vigia.glb`;
 const MODEL_COLOR = new Color3(0.03, 0.03, 0.035);
 const MODEL_SCALE = 1.1;
 const WALK_CLIP_SPEED = 1.68;
+const RUN_CLIP_SPEED = 5.33;
+const CATCH_DISTANCE = 0.55;
 const BLEND_TIME = 0.25;
 const LIGHT_COLOR = new Color3(1, 0.82, 0.55);
 const LIGHT_INTENSITY = 9;
@@ -29,7 +31,7 @@ const LENS_SIZE = 0.12;
 const SHADOW_MAP_SIZE = 1024;
 const SIGHT_MARGIN = 0.4;
 
-type Phase = "andando" | "parado";
+type Phase = "andando" | "parado" | "escondido";
 
 export class Vigia {
   private readonly scene: Scene;
@@ -37,6 +39,8 @@ export class Vigia {
   private readonly visual: TransformNode;
   private readonly walk?: AnimationGroup;
   private readonly idle?: AnimationGroup;
+  private readonly run?: AnimationGroup;
+  private readonly lensMaterial: StandardMaterial;
   private readonly light: SpotLight;
   private readonly lens: Mesh;
   private readonly shadows: ShadowGenerator;
@@ -57,8 +61,10 @@ export class Vigia {
     this.visual = visual;
     this.walk = anims.get("andar");
     this.idle = anims.get("parado");
+    this.run = anims.get("correr");
     this.walk?.start(true);
     this.idle?.start(true);
+    this.run?.start(true);
     this.cosHalf = Math.cos(data.coneAngle);
 
     this.light = new SpotLight("vigia-luz", new Vector3(), new Vector3(1, 0, 0), data.coneAngle * 2, 2, scene);
@@ -71,10 +77,10 @@ export class Vigia {
     this.shadows.bias = 0.0005;
 
     this.lens = CreateSphere("vigia-lente", { diameter: LENS_SIZE, segments: 8 }, scene);
-    const lensMaterial = new StandardMaterial("vigia-lente-mat", scene);
-    lensMaterial.emissiveColor = LIGHT_COLOR;
-    lensMaterial.disableLighting = true;
-    this.lens.material = lensMaterial;
+    this.lensMaterial = new StandardMaterial("vigia-lente-mat", scene);
+    this.lensMaterial.emissiveColor = LIGHT_COLOR;
+    this.lensMaterial.disableLighting = true;
+    this.lens.material = this.lensMaterial;
     this.lens.isPickable = false;
 
     this.reset();
@@ -106,18 +112,32 @@ export class Vigia {
     for (const mesh of meshes) this.shadows.addShadowCaster(mesh, true);
   }
 
+  get chases(): boolean {
+    return this.data.mode === "perseguicao";
+  }
+
   reset(): void {
     this.x = this.data.x0;
     this.heading = 1;
     this.facing = 1;
-    this.phase = "andando";
+    this.phase = this.chases ? "escondido" : "andando";
     this.timer = 0;
-    if (this.walk) this.walk.weight = 1;
+    if (this.walk) this.walk.weight = this.chases ? 0 : 1;
     if (this.idle) this.idle.weight = 0;
+    if (this.run) this.run.weight = this.chases ? 1 : 0;
+    this.setShown(!this.chases);
     this.syncVisual();
   }
 
-  update(dt: number): void {
+  catches(x: number): boolean {
+    return this.chases && this.phase === "andando" && Math.abs(x - this.x) < CATCH_DISTANCE;
+  }
+
+  update(dt: number, playerX: number): void {
+    if (this.chases) {
+      this.updateChase(dt, playerX);
+      return;
+    }
     if (this.phase === "andando") {
       this.x += this.heading * this.data.speed * dt;
       const end = this.heading > 0 ? this.data.x1 : this.data.x0;
@@ -146,6 +166,32 @@ export class Vigia {
     }
     if (this.idle) this.idle.weight = approach(this.idle.weight, walking ? 0 : 1, step);
     this.syncVisual();
+  }
+
+  private updateChase(dt: number, playerX: number): void {
+    if (this.phase === "escondido") {
+      if (playerX < (this.data.triggerX ?? this.data.x0)) return;
+      this.phase = "andando";
+      this.setShown(true);
+    }
+    if (this.phase === "andando") {
+      this.x = Math.min(this.x + this.data.speed * dt, this.data.x1);
+      if (this.x >= this.data.x1) this.phase = "parado";
+    }
+    const running = this.phase === "andando";
+    const step = dt / BLEND_TIME;
+    if (this.run) {
+      this.run.weight = approach(this.run.weight, running ? 1 : 0, step);
+      this.run.speedRatio = this.data.speed / RUN_CLIP_SPEED;
+    }
+    if (this.idle) this.idle.weight = approach(this.idle.weight, running ? 0 : 1, step);
+    this.syncVisual();
+  }
+
+  private setShown(shown: boolean): void {
+    this.visual.setEnabled(shown);
+    this.lens.setEnabled(shown);
+    this.light.intensity = shown ? LIGHT_INTENSITY : 0;
   }
 
   sees(points: readonly Vector3[]): boolean {

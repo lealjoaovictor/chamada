@@ -40,6 +40,7 @@ const DOOR_CLEARANCE = 0.05;
 const SEEN_GRACE = 0.2;
 const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
+const WARMUP_STEP = 2;
 const RAMP_THICKNESS = 0.4;
 
 type GameState = "jogando" | "morto";
@@ -54,6 +55,7 @@ export class Game {
   private readonly obstacleMeshes: AbstractMesh[] = [];
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
   private seenTimer = 0;
+  private warming = false;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -75,7 +77,9 @@ export class Game {
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
     const debugLevel = new URLSearchParams(location.search).get("fase") === "teste";
-    await game.load(debugLevel ? pipelineLevel : worldLevel);
+    const level = debugLevel ? pipelineLevel : worldLevel;
+    await game.load(level);
+    await game.warmUp(level.bounds.minX, level.bounds.maxX);
     return game;
   }
 
@@ -134,12 +138,30 @@ export class Game {
     });
   }
 
+  private async warmUp(minX: number, maxX: number): Promise<void> {
+    this.warming = true;
+    this.fade.set(1);
+    const camera = this.cameraRig.camera;
+    const startX = camera.position.x;
+    for (let x = minX; x <= maxX + WARMUP_STEP; x += WARMUP_STEP) {
+      camera.position.x = x;
+      this.cullLights();
+      this.scene.render();
+      await this.scene.whenReadyAsync();
+    }
+    camera.position.x = startX;
+    this.cullLights();
+    this.fade.set(0);
+    this.warming = false;
+  }
+
   private update(): void {
+    if (this.warming) return;
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
     this.input.update();
     for (const lamp of this.lamps) lamp.update(dt);
     this.updateDoors(dt);
-    for (const vigia of this.vigias) vigia.update(dt);
+    for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
     this.updateElevators(dt);
     if (this.state === "morto") {
       this.updateDeath(dt);
@@ -202,6 +224,7 @@ export class Game {
     }
     const p = this.player.position;
     this.doors.forEach((door, i) => {
+      if (door.closeAfterX !== undefined && p.x < door.closeAfterX) open[i] = true;
       const under = door.isOver(p.x, CAPSULE_RADIUS + DOOR_CLEARANCE) && this.player.feetY < door.bottom;
       door.update(dt, open[i], under);
     });
@@ -231,7 +254,8 @@ export class Game {
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
-    const seen = this.vigias.some((vigia) => vigia.sees(this.sightPoints));
+    if (this.vigias.some((vigia) => vigia.catches(p.x))) return true;
+    const seen = this.vigias.some((vigia) => !vigia.chases && vigia.sees(this.sightPoints));
     this.seenTimer = seen ? this.seenTimer + dt : 0;
     return this.seenTimer > SEEN_GRACE;
   }

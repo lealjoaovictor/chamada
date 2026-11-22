@@ -48,7 +48,6 @@ export const area3Level: LevelData = {
   depth: 4,
   ground: [{ x: (START + SHAFT_X + SHAFT_WIDTH / 2) / 2, y: -0.5, width: SHAFT_X + SHAFT_WIDTH / 2 - START, height: 1, material: "piso" }],
   walls: [
-    { x: END + 0.5, y: 4, width: 1, height: 8, material: "pedra" },
     { x: (START + HALL_START) / 2, y: CORRIDOR_CEILING + 0.2, width: HALL_START - START, height: 0.4, material: "concreto" },
     { x: (HALL_START + END) / 2, y: HALL_CEILING + 0.2, width: END - HALL_START, height: 0.4, material: "concreto" },
   ],

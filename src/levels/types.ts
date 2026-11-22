@@ -74,9 +74,12 @@ export interface DoorData {
   width: number;
   height: number;
   openHeight: number;
+  closeAfterX?: number;
 }
 
 export interface VigiaData {
+  mode?: "patrulha" | "perseguicao";
+  triggerX?: number;
   x0: number;
   x1: number;
   y: number;

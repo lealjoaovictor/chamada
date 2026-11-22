@@ -57,7 +57,7 @@ export class Game {
     solidMaterial.diffuseColor = new Color3(0.22, 0.23, 0.25);
     solidMaterial.specularColor = Color3.Black();
 
-    for (const [i, block] of [level.ground, ...level.walls, ...level.platforms].entries()) {
+    for (const [i, block] of [level.ground, ...level.walls, ...level.platforms, ...level.obstacles].entries()) {
       this.createStatic(block, level.depth, solidMaterial, `solid-${i}`);
     }
 

@@ -16,7 +16,8 @@ export type MaterialName =
   | "vidro"
   | "carrinho"
   | "livros"
-  | "luar";
+  | "luar"
+  | "quadro";
 
 export interface BlockData {
   x: number;
@@ -59,6 +60,7 @@ export interface PointData {
 export interface LampData extends PointData {
   flicker?: boolean;
   moonlight?: boolean;
+  diesWhenPassed?: boolean;
 }
 
 export interface PlateData {
@@ -101,6 +103,15 @@ export interface ElevatorData {
   buttonY: number;
 }
 
+export interface FinalDoorData {
+  x: number;
+  floorY: number;
+  height: number;
+  depth: number;
+  triggerX: number;
+  walkToX: number;
+}
+
 export interface LevelData {
   checkpoints: PointData[];
   killY: number;
@@ -117,5 +128,6 @@ export interface LevelData {
   doors: DoorData[];
   vigias: VigiaData[];
   elevators: ElevatorData[];
+  finalDoor?: FinalDoorData;
   decor: DecorData[];
 }

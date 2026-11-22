@@ -27,6 +27,9 @@ export class Lamp {
   private readonly bulbMaterial: StandardMaterial;
   private readonly intensity: number;
   private readonly flicker: boolean;
+  private readonly x: number;
+  private readonly diesWhenPassed: boolean;
+  private dead = false;
   private on = true;
   private timer = 0;
 
@@ -34,6 +37,8 @@ export class Lamp {
     const moon = data.moonlight ?? false;
     this.intensity = moon ? MOON_INTENSITY : intensity;
     this.flicker = data.flicker ?? false;
+    this.x = data.x;
+    this.diesWhenPassed = data.diesWhenPassed ?? false;
     this.light = new PointLight(name, new Vector3(data.x, data.y, moon ? MOON_Z : LAMP_Z), scene);
     this.light.diffuse = moon ? MOON_COLOR : LAMP_COLOR;
     this.light.specular = Color3.Black();
@@ -50,7 +55,13 @@ export class Lamp {
     this.timer = between(ON_TIME);
   }
 
-  update(dt: number): void {
+  update(dt: number, playerX: number): void {
+    if (this.dead) return;
+    if (this.diesWhenPassed && playerX > this.x) {
+      this.dead = true;
+      this.setLevel(0);
+      return;
+    }
     if (!this.flicker) return;
     this.timer -= dt;
     if (this.timer > 0) return;
@@ -60,7 +71,10 @@ export class Lamp {
     } else {
       this.timer = between(OFF_TIME);
     }
-    const level = this.on ? 1 : OFF_LEVEL;
+    this.setLevel(this.on ? 1 : OFF_LEVEL);
+  }
+
+  private setLevel(level: number): void {
     this.light.intensity = this.intensity * level;
     this.bulbMaterial.emissiveColor = LAMP_COLOR.scale(level);
   }

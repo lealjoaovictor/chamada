@@ -22,6 +22,7 @@ export class Input {
   private readonly heldKeys = new Set<string>();
   private readonly padHeld = new Set<Action>();
   private readonly padPrevious = new Set<Action>();
+  private autopilot: number | null = null;
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
     const action = KEYBOARD_MAP[e.code];
@@ -76,15 +77,22 @@ export class Input {
     });
   }
 
+  setAutopilot(axis: number | null): void {
+    this.autopilot = axis;
+  }
+
   isDown(action: Action): boolean {
+    if (this.autopilot !== null) return false;
     return this.held.has(action) || this.padHeld.has(action);
   }
 
   wasPressed(action: Action): boolean {
+    if (this.autopilot !== null) return false;
     return this.pressed.has(action);
   }
 
   axisX(): number {
+    if (this.autopilot !== null) return this.autopilot;
     return (this.isDown("right") ? 1 : 0) - (this.isDown("left") ? 1 : 0);
   }
 

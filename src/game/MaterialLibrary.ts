@@ -22,6 +22,7 @@ const PALETTE: Record<MaterialName, Color3> = {
   carrinho: new Color3(0.16, 0.26, 0.38),
   livros: new Color3(0.32, 0.12, 0.1),
   luar: new Color3(0.05, 0.06, 0.08),
+  quadro: new Color3(0.07, 0.12, 0.09),
 };
 
 const EMISSIVE: Partial<Record<MaterialName, Color3>> = {

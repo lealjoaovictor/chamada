@@ -74,7 +74,6 @@ export const area4Level: LevelData = {
   depth: 4,
   ground: [{ x: (START + END + 1) / 2, y: -0.5, width: END + 1 - START, height: 1, material: "asfalto" }],
   walls: [
-    { x: END + 0.5, y: 4, width: 1, height: 8, material: "concreto" },
     { x: (START + RAMP_END) / 2, y: HALL_CEILING + 0.2, width: RAMP_END - START, height: 0.4, material: "concreto" },
     { x: (RAMP_END + END) / 2, y: CEILING + 0.2, width: END - RAMP_END, height: 0.4, material: "concreto" },
   ],

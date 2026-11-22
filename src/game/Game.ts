@@ -24,6 +24,7 @@ import { Lamp } from "./entities/Lamp";
 import { PressurePlate } from "./entities/PressurePlate";
 import { Vigia } from "./entities/Vigia";
 import { Elevator } from "./entities/Elevator";
+import { FinalDoor } from "./entities/FinalDoor";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { MaterialLibrary } from "./MaterialLibrary";
@@ -41,9 +42,12 @@ const SEEN_GRACE = 0.2;
 const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
+const ARRIVAL_PAUSE = 0.6;
+const ROOM_HOLD = 2;
+const END_FADE = 1.5;
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "jogando" | "morto";
+type GameState = "jogando" | "morto" | "chegada" | "fim";
 
 export class Game {
   private readonly boxes: Box[] = [];
@@ -56,6 +60,8 @@ export class Game {
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
   private seenTimer = 0;
   private warming = false;
+  private finalDoor: FinalDoor | null = null;
+  private arrivalTimer = 0;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -108,6 +114,7 @@ export class Game {
     level.plates.forEach((plate, i) =>
       this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials.get("metal"), `plate-${i}`)),
     );
+    if (level.finalDoor) this.finalDoor = new FinalDoor(scene, level.finalDoor, this.materials.get("madeira"), "porta-final");
     level.elevators.forEach((elevator, i) =>
       this.elevators.push(new Elevator(scene, elevator, level.depth, this.materials.get("metal"), `elevator-${i}`)),
     );
@@ -159,10 +166,16 @@ export class Game {
     if (this.warming) return;
     const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_DT);
     this.input.update();
-    for (const lamp of this.lamps) lamp.update(dt);
+    for (const lamp of this.lamps) lamp.update(dt, this.player.position.x);
+    this.finalDoor?.update(dt);
     this.updateDoors(dt);
     for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
     this.updateElevators(dt);
+    if (this.state === "chegada" || this.state === "fim") {
+      this.updateArrival(dt);
+      this.input.endFrame();
+      return;
+    }
     if (this.state === "morto") {
       this.updateDeath(dt);
       this.input.endFrame();
@@ -185,6 +198,7 @@ export class Game {
     this.checkpoints.update(this.player.position.x);
     this.cullLights();
     if (this.player.position.y < this.killY || this.isSeen(dt)) this.die();
+    else if (this.finalDoor && this.player.position.x >= this.finalDoor.data.triggerX) this.arrive();
     this.input.endFrame();
   }
 
@@ -192,6 +206,36 @@ export class Game {
     this.state = "morto";
     this.deathTimer = 0;
     this.respawned = false;
+  }
+
+  private arrive(): void {
+    this.state = "chegada";
+    this.arrivalTimer = 0;
+    this.input.setAutopilot(0);
+    this.finalDoor?.open();
+  }
+
+  private updateArrival(dt: number): void {
+    this.arrivalTimer += dt;
+    const target = this.finalDoor?.data.walkToX ?? this.player.position.x;
+    if (this.state === "chegada") {
+      const walking = this.arrivalTimer > ARRIVAL_PAUSE && this.player.position.x < target;
+      this.input.setAutopilot(walking ? 1 : 0);
+      if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) {
+        this.state = "fim";
+        this.arrivalTimer = 0;
+      }
+    } else {
+      this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
+    }
+    this.player.update(dt, this.input, false);
+    this.cameraRig.update(dt, {
+      x: this.player.position.x,
+      feetY: this.player.feetY,
+      grounded: this.player.isGrounded,
+      facing: this.player.facingDirection,
+    });
+    this.cullLights();
   }
 
   private updateDeath(dt: number): void {

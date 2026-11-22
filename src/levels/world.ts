@@ -3,6 +3,7 @@ import { area1Level } from "./area1";
 import { area2Level } from "./area2";
 import { area3Level } from "./area3";
 import { area4Level } from "./area4";
+import { area5Level } from "./area5";
 
 function joinAreas(areas: LevelData[]): LevelData {
   let doorOffset = 0;
@@ -31,7 +32,8 @@ function joinAreas(areas: LevelData[]): LevelData {
     vigias: areas.flatMap((area) => area.vigias),
     elevators: areas.flatMap((area) => area.elevators),
     decor: areas.flatMap((area) => area.decor),
+    finalDoor: areas.find((area) => area.finalDoor)?.finalDoor,
   };
 }
 
-export const worldLevel = joinAreas([area1Level, area2Level, area3Level, area4Level]);
+export const worldLevel = joinAreas([area1Level, area2Level, area3Level, area4Level, area5Level]);

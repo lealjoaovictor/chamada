@@ -50,7 +50,7 @@ export class Player {
   private jumpBufferTimer = 0;
   private grounded = false;
   private facing = 1;
-  private yaw = -Math.PI / 2;
+  private yaw = Math.PI / 2;
   private current: AnimName = "parado";
 
   private constructor(
@@ -184,7 +184,7 @@ export class Player {
   }
 
   private syncVisual(dt: number): void {
-    const targetYaw = this.facing > 0 ? -Math.PI / 2 : Math.PI / 2;
+    const targetYaw = this.facing > 0 ? Math.PI / 2 : -Math.PI / 2;
     const t = dt > 0 ? 1 - Math.exp(-TURN_SPEED * dt) : 1;
     this.yaw += (targetYaw - this.yaw) * t;
     this.visual.rotation.y = this.yaw;

@@ -146,7 +146,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] **Prova de pipeline** (seção 8)
   - [x] 1. Projeto criado com versões fixadas
   - [x] 2. Cena com câmera lateral e chão
-  - [x] 3. Cubo anda, pula e empurra caixa (Havok, controlador de personagem, plano 2D) — falta playtest humano
+  - [x] 3. Cubo anda, pula e empurra caixa (Havok, controlador de personagem, plano 2D) — playtest humano aprovado (2026-11-21)
   - [ ] 4. Personagem do Mixamo convertido para GLB
   - [ ] 5. GLB importado com animações
   - [x] 6. Névoa e luz simples

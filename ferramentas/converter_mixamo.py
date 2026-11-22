@@ -11,9 +11,9 @@ DESTINO = os.path.join(RAIZ, "public", "models", "personagem.glb")
 PERSONAGEM = "Y Bot.fbx"
 ANIMACOES = [
     ("parado", "Idle.fbx", False),
-    ("andar", "Walking.fbx", True),
+    ("andar", "Running.fbx", True),
     ("pular", "Jump.fbx", False),
-    ("empurrar", "Push Stop.fbx", True),
+    ("empurrar", "Pushing.fbx", True),
     ("deslizar", "Running Slide.fbx", True),
 ]
 CANAL_AVANCO = 2

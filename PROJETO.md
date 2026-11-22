@@ -148,7 +148,7 @@ Atualize esta lista a cada tarefa concluída.
   - [x] 2. Cena com câmera lateral e chão
   - [x] 3. Cubo anda, pula e empurra caixa (Havok, controlador de personagem, plano 2D) — playtest humano aprovado (2026-11-21)
   - [x] 4. Personagem do Mixamo convertido para GLB (`ferramentas/converter_mixamo.py`, Blender 5.3.0, saída `public/models/personagem.glb`) — deslocamento usa "Running" e empurrar usa "Pushing" (ambos In Place)
-  - [x] 5. GLB importado, escurecido e trocando parado/andar/pular/empurrar conforme o movimento e deslizar — falta playtest humano
+  - [x] 5. GLB importado, escurecido e trocando parado/andar/pular/empurrar conforme o movimento e deslizar — playtest aprovado
   - [x] 6. Névoa e luz simples
   - Desempenho: 60 fps estáveis no Mac do humano (teste manual, 2026-11-21)
   - [x] 7. Leitura de controle (analógico/direcional, botão inferior pula, para baixo = deslizar) — testado só com controle simulado; falta teste com controle real
@@ -156,7 +156,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Entrada: teclado e controle
 - [x] Jogador: andar e pular (playtest aprovado)
 - [x] Jogador: empurrar caixa (playtest aprovado; sem botão, empurrão lento: caixa a ~0,5 m/s)
-- [ ] Jogador: deslizar (implementado em 2026-11-22; falta playtest humano)
+- [x] Jogador: deslizar (playtest aprovado em 2026-11-22)
 - [ ] Morte, checkpoint e reinício
 - [ ] Câmera lateral
 - [ ] Atmosfera visual (névoa, grão, vinheta, luz)

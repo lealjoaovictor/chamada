@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de vozes</title>
+<style>
+  :root { --bg:#14161a; --card:#1d2026; --line:#2c3038; --text:#e8e6e1; --muted:#9a9890; --accent:#e0b85a; --on:#3d6b4f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, sans-serif; }
+  main { max-width:980px; margin:0 auto; padding:24px 16px 80px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.lead { color:var(--muted); margin:0 0 16px; }
+  .bar { position:sticky; top:0; z-index:2; background:var(--bg); padding:10px 0; border-bottom:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .bar button { background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 12px; cursor:pointer; font:inherit; }
+  .bar button.on { background:var(--on); border-color:var(--on); }
+  h2 { font-size:18px; margin:28px 0 6px; }
+  .dir { color:var(--muted); margin:0 0 10px; font-size:14px; }
+  .fala { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:8px 0; }
+  .fala .txt { margin-bottom:8px; }
+  .fala .id { color:var(--muted); font-size:12px; font-family:ui-monospace, monospace; }
+  .takes { display:flex; flex-wrap:wrap; gap:6px; }
+  .takes button { background:#262a31; color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 9px; cursor:pointer; font:13px system-ui; }
+  .takes button.tocando { background:var(--accent); color:#1a1a1a; border-color:var(--accent); }
+  .takes .grupo { display:flex; gap:3px; align-items:center; padding-right:8px; border-right:1px solid var(--line); margin-right:2px; }
+  .takes .grupo:last-child { border-right:0; }
+  .takes .nome { font-size:12px; color:var(--muted); margin-right:2px; }
+  .seq { margin:6px 0 0; display:flex; gap:6px; flex-wrap:wrap; }
+  .seq button { background:transparent; color:var(--accent); border:1px dashed var(--line); border-radius:7px; padding:4px 9px; cursor:pointer; font:13px system-ui; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Teste de vozes (ElevenLabs, Eleven v4)</h1>
+  <p class="lead">Todas as 94 falas, com as versões geradas de cada uma. A versão que está no jogo vem marcada com ★; para trocar, me diga a fala e o número. "Como no jogo" passa o áudio pelo mesmo filtro de telefone e eco de sala do jogo.</p>
+  <div class="bar">
+    <button id="limpo" class="on">Limpo</button>
+    <button id="jogo">Como no jogo</button>
+    <button id="parar">Parar</button>
+    <a href="/" style="color:var(--accent); margin-left:auto">Abrir o jogo →</a>
+  </div>
+  <div id="conteudo"></div>
+</main>
+<script>
+const GRUPOS = {
+  prof: { titulo: "Professor (Ulisses)", dir: "Tom normal de sala de aula. No jogo ele chega pelo celular do Davi, de longe, com eco de sala." },
+  davi: { titulo: "Davi (Gabriel)", dir: "Sussurrando perto do microfone. No jogo passa só pelo filtro de telefone." },
+  seg: { titulo: "Seguranças (Leonardo)", dir: "Homem de uns 50 anos, cansado. No jogo é a voz ao vivo, sem telefone." },
+  alunas: { titulo: "Alunas (opções de voz)", dir: "Cada aluna pode ter uma voz diferente. Elas falam de longe, pelo celular." },
+  alunos: { titulo: "Alunos (opções de voz)", dir: "Idem para os alunos." },
+  zacarias: { titulo: "Zacarias (opções de voz)", dir: "O \"Presente!\" final, sem fôlego, ao vivo na sala." },
+};
+const VOZES = { ulisses: "Ulisses", gabriel: "Gabriel", leonardo: "Leonardo", nandinha: "Nandinha", serena: "Serena", melodie: "Melodie", raquel: "Raquel",
+  dagozin: "Dagozin", wellerson: "Wellerson", jorge: "Jorge" };
+const AO_VIVO = new Set(["seg", "zacarias"]);
+const DIRETO = new Set(["davi"]);
+
+let modo = "limpo", ctx, atual, botaoAtual, fila = [];
+const cache = {};
+async function buffer(nome) {
+  if (!cache[nome]) cache[nome] = fetch(`audio/teste-vozes/${nome}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b));
+  return cache[nome];
+}
+function impulso(seg) {
+  const n = Math.floor(ctx.sampleRate * seg), b = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.5); }
+  return b;
+}
+function cadeiaTelefone() {
+  const entrada = ctx.createGain(), hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), sh = ctx.createWaveShaper(), comp = ctx.createDynamicsCompressor(), out = ctx.createGain();
+  hp.type = "highpass"; hp.frequency.value = 300; lp.type = "lowpass"; lp.frequency.value = 3400;
+  const curva = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 1023 * 2 - 1; curva[i] = Math.tanh(x * 2.2) / Math.tanh(2.2); } sh.curve = curva;
+  comp.threshold.value = -28; comp.ratio.value = 6; comp.attack.value = 0.005; comp.release.value = 0.15; out.gain.value = 1.1;
+  entrada.connect(hp).connect(lp).connect(sh).connect(comp).connect(out).connect(ctx.destination);
+  return entrada;
+}
+function parar() { fila = []; if (atual) { try { atual.onended = null; atual.stop(); } catch {} atual = null; } if (botaoAtual) botaoAtual.classList.remove("tocando"); }
+async function tocar(nome, botao) {
+  ctx ??= new AudioContext();
+  if (atual) { try { atual.onended = null; atual.stop(); } catch {} } if (botaoAtual) botaoAtual.classList.remove("tocando");
+  const src = ctx.createBufferSource(); src.buffer = await buffer(nome);
+  const grupo = nome.split("__")[1].split("_")[0];
+  if (modo === "jogo" && AO_VIVO.has(grupo)) {
+    const g = ctx.createGain(); g.gain.value = 0.9; const hall = ctx.createConvolver(); hall.buffer = impulso(0.7); const w = ctx.createGain(); w.gain.value = 0.18;
+    src.connect(g).connect(ctx.destination); src.connect(hall).connect(w).connect(ctx.destination);
+  } else if (modo === "jogo") {
+    const tel = cadeiaTelefone();
+    if (DIRETO.has(grupo)) { const g = ctx.createGain(); g.gain.value = 1.15; src.connect(g).connect(tel); }
+    else {
+      const seco = ctx.createGain(); seco.gain.value = grupo === "prof" ? 0.55 : 0.385; const sala = ctx.createConvolver(); sala.buffer = impulso(0.9); const molhado = ctx.createGain(); molhado.gain.value = 0.45;
+      src.connect(seco).connect(tel); seco.connect(sala).connect(molhado).connect(tel);
+    }
+  } else src.connect(ctx.destination);
+  atual = src; botaoAtual = botao; botao?.classList.add("tocando");
+  src.onended = () => { botao?.classList.remove("tocando"); if (atual === src) { atual = null; const prox = fila.shift(); if (prox) setTimeout(() => tocar(prox[0], prox[1]), 350); } };
+  src.start();
+}
+function tocarSequencia(itens) { parar(); fila = itens.slice(1); tocar(itens[0][0], itens[0][1]); }
+
+fetch("audio/teste-vozes/dados.json").then(r => r.json()).then(({ lista, escolha, textos, ordem }) => {
+  const raiz = document.getElementById("conteudo");
+  for (const [g, info] of Object.entries(GRUPOS)) {
+    const deste = lista.filter(n => n.split("__")[1].startsWith(g + "_"));
+    if (!deste.length) continue;
+    const h = document.createElement("h2"); h.textContent = info.titulo; raiz.append(h);
+    const d = document.createElement("p"); d.className = "dir"; d.textContent = info.dir; raiz.append(d);
+    const ids = ordem.filter(id => deste.some(n => n.startsWith(id + "__")));
+    const escolhidas = [];
+    for (const id of ids) {
+      const f = document.createElement("div"); f.className = "fala";
+      f.innerHTML = `<div class="txt"></div><div class="takes"></div>`;
+      f.querySelector(".txt").textContent = textos[id] + " "; const sid = document.createElement("span"); sid.className = "id"; sid.textContent = id; f.querySelector(".txt").append(sid);
+      const takes = f.querySelector(".takes");
+      const porVoz = {};
+      for (const n of deste.filter(n => n.startsWith(id + "__"))) { const [, , v, t] = n.split("__")[1].match(/^([a-z]+)_([a-z]+)_(\d)$/) || []; (porVoz[v] ??= []).push([t, n]); }
+      for (const [v, ts] of Object.entries(porVoz)) {
+        const gr = document.createElement("span"); gr.className = "grupo"; gr.innerHTML = `<span class="nome">${VOZES[v] ?? v}</span>`;
+        for (const [t, nome] of ts.sort()) {
+          const b = document.createElement("button"); const no = escolha[id] === `${v}_${t}`; b.textContent = (no ? "★ " : "") + t;
+          b.onclick = () => { parar(); tocar(nome, b); }; gr.append(b); if (no) escolhidas.push([nome, b]);
+        }
+        takes.append(gr);
+      }
+      raiz.append(f);
+    }
+    const seq = document.createElement("div"); seq.className = "seq";
+    const b = document.createElement("button"); b.textContent = "▶ tocar em sequência as que estão no jogo (★)"; b.onclick = () => tocarSequencia(escolhidas); seq.append(b);
+    raiz.append(seq);
+  }
+});
+for (const m of ["limpo", "jogo"]) document.getElementById(m).onclick = () => { modo = m; document.getElementById("limpo").classList.toggle("on", m === "limpo"); document.getElementById("jogo").classList.toggle("on", m === "jogo"); };
+document.getElementById("parar").onclick = parar;
+</script>
+</body>
+</html>

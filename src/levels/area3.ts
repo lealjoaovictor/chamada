@@ -71,9 +71,10 @@ const lamps: LampData[] = [
   { x: 127, y: 7.4, forca: 0.8 },
   { x: 137, y: 7.4, forca: 0.8 },
   { x: 122, y: 7.6, moonlight: true },
-  // Acervo: só metade das luzes ainda acesa.
-  { x: 147.5, y: 7.4, forca: 0.7 },
-  { x: 160, y: 7.4, flicker: true, forca: 0.65 },
+  // Acervo: o prédio está fechando. Uma luminária já foi desligada e a outra falha, fraca; o resto é luar e as
+  // lanternas dos dois seguranças, que assim se destacam de longe.
+  { x: 147.5, y: 7.4, desligada: true },
+  { x: 160, y: 7.4, flicker: true, forca: 0.45 },
   { x: 155, y: 7.6, moonlight: true },
 ];
 
@@ -90,8 +91,8 @@ export const area3Level: LevelData = {
     { x0: ARCHIVE_RAMP_X1, x1: ARCHIVE_END, y0: GALLERY_Y },
   ],
   ambiente: [
-    { minX: START, maxX: READING_END, intensidade: 0.4, cor: [0.5, 0.56, 0.66] },
-    { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.32, cor: [0.48, 0.54, 0.64] },
+    { minX: START, maxX: READING_END, intensidade: 0.36, cor: [0.5, 0.56, 0.66] },
+    { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.17, cor: [0.4, 0.48, 0.66] },
   ],
   vultos: [],
   depth: 4,
@@ -233,6 +234,8 @@ export const area3Level: LevelData = {
     { model: "power_box_01", x: 80.9, y: 1.4, z: 2.08, rotY: 180 },
   ],
   decor: [
+    // Placa verde de saída sobre a escada do acervo: a única coisa acesa de verdade no fundo da sala escura.
+    { x: (ARCHIVE_RAMP_X0 + ARCHIVE_RAMP_X1) / 2, y: GALLERY_Y + 2.5, z: BACK_Z - 0.06, width: 0.42, height: 0.16, depth: 0.04, material: "saida" },
     // Narrativa: livros abertos e folhas na sala de leitura.
     { x: 127.4, y: GALLERY_Y + 0.01, z: -0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 128.1, y: GALLERY_Y + 0.01, z: -1.2, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },

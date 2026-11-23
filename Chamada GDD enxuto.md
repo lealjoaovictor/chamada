@@ -133,9 +133,7 @@ O som carrega metade do clima. **Decisão (2026-11-23): todas as vozes são gera
 
 ## Escopo, cronograma e ordem de corte
 
-Sete dias, uma pessoa com IA, e a semana termina com uma fase curta e polida em vez de um jogo grande e incompleto.
-
-&#91;embedded content: cronograma · 7 dias, 3 marcos\]
+Prazo curto e equipe pequena com IA: melhor uma fase curta e polida do que um jogo grande e incompleto.
 
 **Congelamento (decisão de 2026-11-23):** features congeladas na noite de 24/11; o dia 25/11 é só para corrigir bugs e entregar.
 
@@ -161,7 +159,7 @@ O jogo está pronto quando uma pessoa de fora consegue jogá-lo do menu ao final
 - [ ] A voz da chamada acompanha o tempo real e o nome final chega na hora certa.
 - [ ] Roda a 60 quadros por segundo estáveis no Mac da apresentação.
 - [ ] Plano B: vídeo de uma partida completa gravado na véspera da apresentação (23 ou 24/11).
-- [ ] Pelo menos duas pessoas de fora jogaram uma vez, sem ajuda, a partir do dia 6, com anotações de onde morreram demais ou se perderam.
+- [ ] Pelo menos duas pessoas de fora jogaram uma vez, sem ajuda, na reta final, com anotações de onde morreram demais ou se perderam.
 - [ ] A tabela de licenças cobre todos os assets e áudios.
 
 Marcos de controle: **protótipo pronto** (feito em 21/11), **congelamento de features** na noite de 24/11 e **versão final** em 25/11.

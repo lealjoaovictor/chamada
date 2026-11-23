@@ -71,17 +71,17 @@ A regra foi: **a equipe decide, a IA executa e testa, a equipe joga e aprova.**
 
 **Exemplo real, o empurrar:** a primeira versão funcionou, mas no playtest a caixa parecia leve demais. Pedimos um empurrão mais lento e pesado (velocidade máxima de 1,2 m/s e mais atrito), depois a animação tremia e foi estabilizada, e por fim trocamos por uma animação melhor do Mixamo. Só então seguimos para o deslizar.
 
-### Linha do tempo
+### As etapas
 
-| Dia | Foco | O que ficou pronto |
+| Etapa | Foco | O que ficou pronto |
 | --- | --- | --- |
 | **1** | **Base técnica** | Documentos, prova de pipeline (um cubo anda, pula e empurra com física a 60 fps), personagem do Mixamo animado, leitura de controle |
-| **2** | **Jogabilidade** | Deslizar, câmera, morte e checkpoints, as cinco áreas montadas em blocos simples, seguranças, relógio da chamada, menu, sons e o visual noturno. No fim do dia, a história foi reescrita para ficar mais realista |
+| **2** | **Jogabilidade** | Deslizar, câmera, morte e checkpoints, as cinco áreas montadas em blocos simples, seguranças, relógio da chamada, menu, sons e o visual noturno. No fim da etapa, a história foi reescrita para ficar mais realista |
 | **3** | **Acabamento** | Cenário com modelos prontos, 94 vozes do ElevenLabs, a ligação do colega na tela, mãos que seguram os objetos de verdade e playtests de cada área |
 
 **Princípios que guiaram tudo:** jogabilidade antes da arte · uma coisa de cada vez · nada é "pronto" sem alguém jogar · escopo fechado, com uma lista do que cortar primeiro.
 
-**Em números:** 3 dias · 50 commits · ~8.700 linhas de TypeScript · 5 áreas · 94 falas.
+**Em números:** ~8.700 linhas de TypeScript · 5 áreas · 94 falas.
 
 ---
 

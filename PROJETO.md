@@ -76,7 +76,7 @@ O humano pode estar longe do computador, acompanhando e dando ordens pelo celula
 | `@babylonjs/havok` | 1.3.14 |
 | `@babylonjs/inspector` | 9.37.1 (só em desenvolvimento) |
 
-**No dia 1:** rode `npm view @babylonjs/core version`, instale exatamente essa versão (sem `^`, em `package.json`) e escreva-a na tabela acima. Todos os pacotes `@babylonjs/*` precisam ter a **mesma versão**. Nunca atualize no meio do projeto.
+**No início do projeto:** rode `npm view @babylonjs/core version`, instale exatamente essa versão (sem `^`, em `package.json`) e escreva-a na tabela acima. Todos os pacotes `@babylonjs/*` precisam ter a **mesma versão**. Nunca atualize no meio do projeto.
 
 Atenção: a IA tende a conhecer melhor as versões 6 a 8 do Babylon. Se a versão fixada for mais nova, confirme na documentação qualquer método que gere dúvida, principalmente física (Havok) e pipeline de renderização.
 
@@ -212,7 +212,7 @@ Atualize esta lista a cada tarefa concluída.
 - [ ] Build local e `iniciar.bat`
 - [ ] Backup publicado no itch.io
 
-## 8. Prova de pipeline (dia 1)
+## 8. Prova de pipeline (primeira etapa)
 
 Objetivo: descobrir em poucas horas se a base funciona, antes de investir no resto. **Só siga adiante quando todos os itens passarem.**
 
@@ -332,8 +332,8 @@ Cole o papel no início da sessão, junto com este arquivo e o GDD.
 
 ## 12. Marcos
 
-| Marco | Fim do dia |
+| Marco | Quando |
 | --- | --- |
-| Protótipo pronto (prova de pipeline aprovada) | 1 |
+| Protótipo pronto (prova de pipeline aprovada) | primeira etapa |
 | Features congeladas (nada novo entra) | noite de 24/11 (decisão de 2026-11-23) |
 | Versão final (build testada em outro computador) | 25/11 (só correção de bugs) |

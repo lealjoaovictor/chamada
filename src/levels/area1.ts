@@ -93,7 +93,7 @@ export const area1Level: LevelData = {
   bounds: { minX: -5, maxX: END },
   furtivo: [{ minX: FURTIVO_MIN_X, maxX: FURTIVO_MAX_X }],
   // Lá fora a névoa puxa para o brilho alaranjado da cidade, e o horizonte ganha silhuetas de prédios.
-  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.14, 0.12, 0.125] }],
+  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.14, 0.12, 0.125], preenchimento: 0.3 }],
   cidade: [{ minX: -10, maxX: END }],
   fios: [
     // Entre os postes da frente: três fios com barriga.
@@ -448,11 +448,8 @@ export const area1Level: LevelData = {
       floors: Array.from({ length: 3 }, () => Array<BayKind>(9).fill("janela")),
     }),
 
-    // Muro, doca, floreira e guarita revestidos com peças dos kits.
-    ...clad({ model: "modular_urban_apartments_facade", part: "base_standard_01", pieceWidth: 3, pieceHeight: 0.75, x0: 31, width: 7, y0: 0, height: 2.2, z: -2 }),
-    ...clad({ model: "modular_urban_apartments_facade", part: "base_standard_01", pieceWidth: 3, pieceHeight: 0.75, x0: 19, width: 4, y0: 0, height: 1.5, z: -2 }),
-    ...clad({ model: "modular_urban_apartments_facade", part: "base_standard_01", pieceWidth: 3, pieceHeight: 0.75, x0: 9.7, width: 1.6, y0: 0, height: 1, z: -2 }),
-    ...clad({ model: "modular_factory_facade", part: "base_standard_standard_01", pieceWidth: 3, pieceHeight: 0.75, x0: DOCK_X - DOCK_WIDTH / 2, width: DOCK_WIDTH, y0: 0, height: DOCK_HEIGHT, z: -2 }),
+    // Guarita revestida com peças do kit. (Muro, doca e floreira ficam com a pedra/concreto do próprio bloco: as
+    // peças de embasamento do kit saíam pretas de frente para a câmera.)
     ...clad({ model: "modular_factory_facade", part: "wall_standard_standard_01", pieceWidth: 3, pieceHeight: 3, x0: GUARITA_X - GUARITA_WIDTH / 2, width: GUARITA_WIDTH, y0: 0, height: 2.6, z: COVER_Z - COVER_DEPTH / 2 - 0.01 }),
 
     // Postes (a lâmpada de cada poste fica na luz da fase).

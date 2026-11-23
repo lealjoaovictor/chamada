@@ -135,6 +135,11 @@ export interface AmbientZone {
   cor: [number, number, number];
   /** Cor da névoa no trecho (ex.: brilho alaranjado de cidade à noite). Fora das zonas, vale a do visual. */
   nevoa?: [number, number, number];
+  /**
+   * Luz de preenchimento sem direção (brilho da cidade rebatido), somada a tudo o que recebe luz.
+   * Tira do preto puro as faces viradas para a câmera, que os postes não alcançam. Não é uma luz de verdade.
+   */
+  preenchimento?: number;
 }
 
 export interface PlateData {

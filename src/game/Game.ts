@@ -77,6 +77,7 @@ const LIGHT_CULL_DISTANCE = 17;
 const CITY_GLOW = new Color3(0.2, 0.15, 0.14);
 const DEFAULT_FOG: [number, number, number] = [VISUAL.background.r, VISUAL.background.g, VISUAL.background.b];
 const MAX_LIGHTS_PER_MATERIAL = 8;
+const GUARD_RIM_BOOST = 1.7;
 // Blocos de uniforms que o material usa além das luzes (cena, malha, material e um de folga).
 const NON_LIGHT_UNIFORM_BLOCKS = 4;
 
@@ -431,6 +432,14 @@ export class Game {
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
+    // Preenchimento por trecho (scene.ambientColor): cada material soma a própria cor vezes esse valor. Começa em 0;
+    // o loop puxa para o valor do trecho. Materiais sem luz própria (horizonte, fios, luz pintada) não mudam.
+    for (const material of scene.materials) {
+      if (material instanceof StandardMaterial && !material.disableLighting) material.ambientColor = material.diffuseColor.clone();
+    }
+    const startX = level.checkpoints[0]?.x ?? level.bounds.minX;
+    const startFill = (level.ambiente ?? []).find((z) => startX >= z.minX && startX < z.maxX)?.preenchimento ?? 0;
+    scene.ambientColor = new Color3(startFill, startFill, startFill);
     if (VISUAL.rim > 0) {
       const rim = new FresnelParameters({
         leftColor: new Color3(0.62, 0.72, 0.9).scale(VISUAL.rim),
@@ -438,8 +447,15 @@ export class Game {
         power: 2.5,
         bias: 0.1,
       });
-      for (const mesh of [...this.player.meshes, ...this.vigias.flatMap((vigia) => vigia.meshes)]) {
+      for (const mesh of this.player.meshes) {
         if (mesh.material instanceof StandardMaterial) mesh.material.emissiveFresnelParameters = rim;
+      }
+      // O Vigia veste escuro e some contra o tijolo; um contorno mais forte deixa ler a ameaça sem depender do facho.
+      const guardRim = rim.clone();
+      guardRim.leftColor = new Color3(0.62, 0.72, 0.9).scale(VISUAL.rim * GUARD_RIM_BOOST);
+      guardRim.power = 2;
+      for (const mesh of this.vigias.flatMap((vigia) => vigia.meshes)) {
+        if (mesh.material instanceof StandardMaterial) mesh.material.emissiveFresnelParameters = guardRim;
       }
     }
 
@@ -575,6 +591,10 @@ export class Game {
         c.b += (zone.cor[2] - c.b) * k;
       }
       // Névoa por trecho: lá fora puxa para o brilho da cidade; nas outras áreas volta ao tom padrão.
+      const fill = zone?.preenchimento ?? 0;
+      const a = this.scene.ambientColor;
+      a.r += (fill - a.r) * k;
+      a.g = a.b = a.r;
       const fog = zone?.nevoa ?? DEFAULT_FOG;
       const f = this.scene.fogColor;
       f.r += (fog[0] - f.r) * k;

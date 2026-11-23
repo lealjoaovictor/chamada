@@ -102,7 +102,10 @@ export function createSkyline(scene: Scene, minX: number, maxX: number, sky: Col
   createGlow(scene, minX, maxX, glow);
   const rand = rng(seed);
   const red = CreateBox("cidade-antenas", { size: 1 }, scene);
-  red.material = flatMaterial(scene, "cidade-antenas-mat", ANTENNA);
+  const redMaterial = flatMaterial(scene, "cidade-antenas-mat", ANTENNA);
+  // Não fica congelado: a Vida pisca essas luzes junto com as antenas de perto.
+  redMaterial.unfreeze();
+  red.material = redMaterial;
   const reds: Matrix[] = [];
   LAYERS.forEach((layer, li) => {
     const body = CreateBox(`cidade-${li}`, { size: 1 }, scene);

@@ -64,7 +64,7 @@ export function createRails(scene: Scene, rails: RailData[]): void {
     for (const y of [rail.height - RAIL_TOP / 2, 0.12]) {
       matrices.push(Matrix.Scaling(length, RAIL_TOP, RAIL_TOP).multiply(Matrix.Translation(rail.x0 + length / 2, y, rail.z)));
     }
-    const count = Math.floor(length / RAIL_SPACING);
+    const count = Math.max(1, Math.floor(length / RAIL_SPACING));
     for (let i = 0; i <= count; i++) {
       const x = rail.x0 + (i * length) / count;
       matrices.push(Matrix.Scaling(RAIL_BAR, rail.height, RAIL_BAR).multiply(Matrix.Translation(x, rail.height / 2, rail.z)));

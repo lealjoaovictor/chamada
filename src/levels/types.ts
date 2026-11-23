@@ -418,7 +418,7 @@ export interface RailData {
 
 /** Adesivo plano encostado numa parede (virado para a câmera) ou deitado no chão. */
 export interface StickerData {
-  kind: "cartaz" | "pichacao" | "placa" | "mancha" | "umidade" | "folhas" | "rachadura";
+  kind: "cartaz" | "pichacao" | "placa" | "mancha" | "umidade" | "folhas" | "rachadura" | "sombra" | "pe-de-parede" | "luz";
   x: number;
   y: number;
   z: number;
@@ -435,4 +435,6 @@ export interface StickerData {
   chao?: boolean;
   /** Brilho próprio (0 a 1), para placas iluminadas. */
   glow?: number;
+  /** Força da sombra ou da poça de luz (0 a 1). */
+  strength?: number;
 }

@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData, PropData, WireData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, PropData, StickerData, WireData } from "./types";
 import { DRUMS_GRIP, DRUMS_VISUAL, TRASH_CAN_GRIP, TRASH_CAN_VISUAL, clad, facade, type BayKind } from "./kits.ts";
 
 const FACADE_FRONT = 4;
@@ -151,6 +151,50 @@ export const area1Level: LevelData = {
     { kind: "rachadura", x: 20, y: 0.012, z: -3, width: 3, height: 0.8, chao: true },
     { kind: "rachadura", x: 70, y: 0.012, z: -3.2, width: 2.5, height: 0.7, chao: true, rot: 0.2 },
     { kind: "rachadura", x: 40, y: 0.012, z: 0.6, width: 2.2, height: 0.7, chao: true, rot: -0.3 },
+
+    // Luz pintada (estilo Inside): sombra de contato sob o que fica no chão, faixa escura no pé das paredes e
+    // poças de luz quente sob os postes. Nada disso é luz de verdade, então não pesa no limite da GPU.
+    ...[
+      [0.6, 2.6, 1.9, 0.8],
+      [13, 2.4, 2.3, 0.8],
+      [7.5, -1.3, 0.7, 0.6],
+      [73, -3.3, 0.7, 0.6],
+      [26.5, 2.6, 1, 0.8],
+      [64.6, 2.5, 1.7, 1],
+      [49.75, 1.95, 2.1, 1.5],
+      [48.6, 2.4, 1, 0.9],
+      [55.2, 2.6, 0.9, 0.7],
+      [62.5, 2.6, 1.7, 1],
+      [44.5, -3.3, 1.7, 0.7],
+      [46.8, -3.3, 1.7, 0.7],
+      [4.5, 0, 0.8, 2.2],
+      [43, 1.8, 0.9, 0.9],
+      [46, 1.8, 0.9, 0.9],
+      [90.2, 1.8, 0.7, 0.7],
+      ...POLE_XS.map((x) => [x, POLE_Z, 0.9, 0.9]),
+      ...lamps.filter((lamp) => lamp.y < 4).map((lamp) => [lamp.x, LAMP_Z, 0.7, 0.7]),
+    ].map(([x, z, width, height]): StickerData => ({ kind: "sombra", x, y: 0.014, z, width, height, chao: true })),
+    { kind: "sombra", x: 36, y: 2.234, z: LAMP_Z, width: 0.7, height: 0.7, chao: true },
+    // O carro e o quadro de energia pesam mais: sombra mais forte.
+    { kind: "sombra", x: VAN_XS[0], y: 0.014, z: COVER_Z, width: 5, height: 2.2, chao: true, strength: 0.75 },
+    { kind: "sombra", x: CABINET_X, y: 0.014, z: COVER_Z, width: 2, height: 1.1, chao: true, strength: 0.7 },
+    ...[
+      [34.5, WALL_FACE - 0.35, 7.4],
+      [DOCK_X, WALL_FACE - 0.35, DOCK_WIDTH + 0.2],
+      [10.5, WALL_FACE - 0.35, 1.8],
+      [21, WALL_FACE - 0.35, 4.2],
+      [GUARITA_X, COVER_Z - COVER_DEPTH / 2 - 0.6, GUARITA_WIDTH + 0.6],
+      [21, MAIN_FACE - 0.4, 21],
+      [56.5, GARAGE_FACE - 0.4, 15],
+      [79, BACK_FACE - 0.4, 24],
+      [-1, 7.6, 18],
+    ].map(([x, z, width]): StickerData => ({ kind: "pe-de-parede", x, y: 0.016, z, width, height: 0.8, chao: true })),
+    // Poças de luz dos postes (menos o que pisca, para a poça não ficar acesa com a lâmpada apagada).
+    ...lamps
+      .filter((lamp) => !lamp.flicker && lamp.y < 4)
+      .map((lamp): StickerData => ({ kind: "luz", x: lamp.x, y: 0.018, z: LAMP_Z - 1, width: 5, height: 3.5, chao: true })),
+    { kind: "luz", x: 36, y: 2.238, z: 0, width: 4, height: 3.6, chao: true },
+    // Sem poça branca nos refletores: no chão ela se confunde com o facho da lanterna do Vigia.
   ],
   // Grade baixa na beira da calçada da frente, onde não há esconderijo.
   grades: [

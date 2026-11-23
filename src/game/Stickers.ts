@@ -1,4 +1,5 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Constants } from "@babylonjs/core/Engines/constants";
 import { Material } from "@babylonjs/core/Materials/material";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -313,83 +314,122 @@ const DEFAULT_GLOW: Partial<Record<StickerData["kind"], number>> = {
 
 const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade", "sombra", "pe-de-parede", "poca"]);
 
-// Manchas genéricas (sem desenho próprio): adesivos iguais no tamanho e na cor dividem a mesma textura e o mesmo
-// material, em vez de um de cada. Na área 1 eram ~60 cópias da mesma mancha ocupando memória de vídeo.
+// Manchas genéricas (sem desenho próprio): adesivos iguais no tamanho e na cor dividem a mesma textura, em vez de um
+// de cada. A mancha redonda é a mesma em qualquer tamanho (o plano estica a textura); as outras dependem da proporção.
 const SHARED_KINDS = new Set<StickerData["kind"]>(["sombra", "pe-de-parede", "luz", "reflexo"]);
+const STRETCH_KINDS = new Set<StickerData["kind"]>(["sombra", "luz"]);
+const STRETCH_SIZE = 128;
+// Sombras de contato e pé de parede nunca mudam: as iguais viram instâncias finas de uma malha só (uma chamada de
+// desenho por grupo, em vez de uma por mancha).
+const BATCH_KINDS = new Set<StickerData["kind"]>(["sombra", "pe-de-parede"]);
 
 function sharedKey(data: StickerData): string | null {
   if (!SHARED_KINDS.has(data.kind)) return null;
-  // A mancha redonda é a mesma em qualquer tamanho (o plano estica a textura); as outras dependem da proporção.
   const size = STRETCH_KINDS.has(data.kind) ? "" : `${data.width.toFixed(2)}x${data.height.toFixed(2)}`;
   return [data.kind, size, data.color ?? "", data.strength ?? "", data.glow ?? ""].join("|");
 }
 
-const STRETCH_KINDS = new Set<StickerData["kind"]>(["sombra", "luz"]);
-const STRETCH_SIZE = 128;
+/** Luz pintada no chão sob um poste: o jogo liga a opacidade dela ao poste da mesma posição x. */
+export interface PaintedGlow {
+  x: number;
+  material: StandardMaterial;
+}
 
-export function createStickers(scene: Scene, stickers: StickerData[]): void {
-  const shared = new Map<string, StandardMaterial>();
-  stickers.forEach((data, i) => {
-    const key = sharedKey(data);
-    const cached = key ? shared.get(key) : undefined;
-    if (cached) {
-      finishPlane(scene, data, i, cached);
-      return;
-    }
-    const scale = Math.min(PX_PER_M, MAX_SIDE / Math.max(data.width, data.height));
-    const stretch = STRETCH_KINDS.has(data.kind);
-    const w = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.width * scale));
-    const h = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.height * scale));
-    const texture = new DynamicTexture(`adesivo-${i}`, { width: w, height: h }, scene, true);
-    const ctx = texture.getContext() as unknown as Ctx;
-    ctx.clearRect(0, 0, w, h);
-    draw(ctx, w, h, data);
-    texture.hasAlpha = true;
-    texture.update(true);
+function paint(scene: Scene, data: StickerData, i: number): DynamicTexture {
+  const scale = Math.min(PX_PER_M, MAX_SIDE / Math.max(data.width, data.height));
+  const stretch = STRETCH_KINDS.has(data.kind);
+  const w = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.width * scale));
+  const h = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.height * scale));
+  const texture = new DynamicTexture(`adesivo-${i}`, { width: w, height: h }, scene, true);
+  const ctx = texture.getContext() as unknown as Ctx;
+  ctx.clearRect(0, 0, w, h);
+  draw(ctx, w, h, data);
+  texture.hasAlpha = true;
+  texture.update(true);
+  return texture;
+}
 
-    const material = new StandardMaterial(`adesivo-${i}-mat`, scene);
-    if (key) shared.set(key, material);
-    if (data.kind === "poca") {
-      // Água parada: escura e muito lisa. O brilho é especular de verdade, então os postes e a lanterna do Vigia
-      // acendem pontos de reflexo nela conforme a câmera anda (sem renderizar a cena duas vezes).
-      material.diffuseTexture = texture;
-      material.useAlphaFromDiffuseTexture = true;
-      material.specularColor = new Color3(0.9, 0.85, 0.75);
-      material.specularPower = 96;
-      material.zOffset = -2;
-      material.transparencyMode = Material.MATERIAL_ALPHABLEND;
-      finishPlane(scene, data, i, material);
-      return;
-    }
-    if (data.kind === "luz" || data.kind === "reflexo") {
-      // Poça de luz pintada: soma cor à cena (como luz), sem ser uma luz de verdade (não conta no limite da GPU).
-      material.disableLighting = true;
-      material.emissiveTexture = texture;
-      material.opacityTexture = texture;
-      material.alphaMode = Constants.ALPHA_ADD;
-      material.transparencyMode = Material.MATERIAL_ALPHABLEND;
-      material.zOffset = -2;
-      material.fogEnabled = true;
-      finishPlane(scene, data, i, material);
-      return;
-    }
+function makeMaterial(scene: Scene, data: StickerData, name: string, texture: DynamicTexture): StandardMaterial {
+  const material = new StandardMaterial(name, scene);
+  // Empurra o adesivo para a frente da superfície onde ele encosta, sem piscar (z-fighting).
+  material.zOffset = -2;
+  if (data.kind === "poca") {
+    // Água parada: escura e muito lisa. O brilho é especular de verdade, então os postes e a lanterna do Vigia
+    // acendem pontos de reflexo nela conforme a câmera anda (sem renderizar a cena duas vezes).
     material.diffuseTexture = texture;
     material.useAlphaFromDiffuseTexture = true;
-    material.specularColor = Color3.Black();
-    material.backFaceCulling = true;
-    // Empurra o adesivo para a frente da superfície onde ele encosta, sem piscar (z-fighting).
-    material.zOffset = -2;
-    material.transparencyMode = SOFT_KINDS.has(data.kind) || data.kind === "folhas" ? Material.MATERIAL_ALPHABLEND : Material.MATERIAL_ALPHATEST;
-    // Brilho próprio a partir da própria imagem: o muro e a doca ficam de costas para os postes e, sem isso,
-    // os cartazes somem no preto.
-    const glow = data.glow ?? DEFAULT_GLOW[data.kind] ?? 0;
-    if (glow > 0) {
-      material.emissiveTexture = texture;
-      material.emissiveTexture.level = glow;
-    }
+    material.specularColor = new Color3(0.9, 0.85, 0.75);
+    material.specularPower = 96;
+    material.transparencyMode = Material.MATERIAL_ALPHABLEND;
+    return material;
+  }
+  if (data.kind === "luz" || data.kind === "reflexo") {
+    // Poça de luz pintada: soma cor à cena (como luz), sem ser uma luz de verdade (não conta no limite da GPU).
+    material.disableLighting = true;
+    material.emissiveTexture = texture;
+    material.opacityTexture = texture;
+    material.alphaMode = Constants.ALPHA_ADD;
+    material.transparencyMode = Material.MATERIAL_ALPHABLEND;
+    material.fogEnabled = true;
+    return material;
+  }
+  material.diffuseTexture = texture;
+  material.useAlphaFromDiffuseTexture = true;
+  material.specularColor = Color3.Black();
+  material.backFaceCulling = true;
+  material.transparencyMode = SOFT_KINDS.has(data.kind) || data.kind === "folhas" ? Material.MATERIAL_ALPHABLEND : Material.MATERIAL_ALPHATEST;
+  // Brilho próprio a partir da própria imagem: o muro e a doca ficam de costas para os postes e, sem isso,
+  // os cartazes somem no preto.
+  const glow = data.glow ?? DEFAULT_GLOW[data.kind] ?? 0;
+  if (glow > 0) {
+    material.emissiveTexture = texture;
+    material.emissiveTexture.level = glow;
+  }
+  return material;
+}
 
+/** Posição, giro e tamanho de um adesivo (plano de 1 m virado para a câmera, que olha para +z). */
+function placement(data: StickerData): Matrix {
+  // No chão: deitado e virado para cima, girando em volta do eixo vertical. Na parede: em pé, girando no próprio plano.
+  const rotation = data.chao ? Quaternion.RotationYawPitchRoll(data.rot ?? 0, Math.PI / 2, 0) : Quaternion.RotationYawPitchRoll(0, 0, data.rot ?? 0);
+  return Matrix.Compose(new Vector3(data.width, data.height, 1), rotation, new Vector3(data.x, data.y, data.z));
+}
+
+export function createStickers(scene: Scene, stickers: StickerData[]): PaintedGlow[] {
+  const textures = new Map<string, DynamicTexture>();
+  const batches = new Map<string, { material: StandardMaterial; matrices: Matrix[] }>();
+  const glows: PaintedGlow[] = [];
+  stickers.forEach((data, i) => {
+    const key = sharedKey(data);
+    let texture = key ? textures.get(key) : undefined;
+    if (!texture) {
+      texture = paint(scene, data, i);
+      if (key) textures.set(key, texture);
+    }
+    if (key && BATCH_KINDS.has(data.kind)) {
+      let batch = batches.get(key);
+      if (!batch) {
+        batch = { material: makeMaterial(scene, data, `adesivos-${batches.size}-mat`, texture), matrices: [] };
+        batches.set(key, batch);
+      }
+      batch.matrices.push(placement(data));
+      return;
+    }
+    const material = makeMaterial(scene, data, `adesivo-${i}-mat`, texture);
     finishPlane(scene, data, i, material);
+    if (data.kind === "luz" || data.kind === "reflexo") glows.push({ x: data.x, material });
   });
+  let n = 0;
+  for (const { material, matrices } of batches.values()) {
+    const plane = CreatePlane(`adesivos-${n++}`, { size: 1 }, scene);
+    plane.material = material;
+    plane.thinInstanceAdd(matrices);
+    plane.thinInstanceRefreshBoundingInfo();
+    plane.receiveShadows = true;
+    plane.isPickable = false;
+    plane.freezeWorldMatrix();
+  }
+  return glows;
 }
 
 function finishPlane(scene: Scene, data: StickerData, i: number, material: StandardMaterial): void {

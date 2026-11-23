@@ -53,6 +53,9 @@ export class Lamp {
   private dead = false;
   private on = true;
   private timer = 0;
+  private level = 1;
+  /** Luz pintada no chão embaixo deste poste: acende e apaga junto com a lâmpada. */
+  private readonly glows: StandardMaterial[] = [];
 
   constructor(scene: Scene, data: LampData, intensity: number, name: string) {
     const moon = data.moonlight ?? false;
@@ -125,7 +128,15 @@ export class Lamp {
     this.setLevel(this.on ? 1 : OFF_LEVEL);
   }
 
+  /** Liga uma poça de luz pintada a esta lâmpada. */
+  addGlow(material: StandardMaterial): void {
+    this.glows.push(material);
+    material.alpha = this.level;
+  }
+
   private setLevel(level: number): void {
+    this.level = level;
+    for (const glow of this.glows) glow.alpha = level;
     this.light.intensity = this.intensity * level;
     this.bulbMaterial.emissiveColor = this.color.scale(level);
     if (this.coneMaterial) this.coneMaterial.emissiveColor = this.color.scale(level * (this.intensity / BASE_INTENSITY));

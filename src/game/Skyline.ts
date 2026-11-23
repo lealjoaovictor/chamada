@@ -17,6 +17,8 @@ interface Layer {
   z: number;
   /** Quanto a cor do prédio puxa para o brilho do horizonte (0 = céu alto, 1 = horizonte). */
   haze: number;
+  /** Quanto a cor do prédio puxa para a névoa do trecho: mais longe, mais névoa (nunca mais escuro que o perto). */
+  fog: number;
   minH: number;
   maxH: number;
   minW: number;
@@ -27,9 +29,9 @@ interface Layer {
 }
 
 const LAYERS: Layer[] = [
-  { z: 58, haze: 0.75, minH: 14, maxH: 40, minW: 6, maxW: 14, gap: 4, windowChance: 0.025, windowWarmth: 0.35 },
-  { z: 40, haze: 0.4, minH: 10, maxH: 26, minW: 7, maxW: 16, gap: 6, windowChance: 0.04, windowWarmth: 0.5 },
-  { z: 27, haze: 0.1, minH: 6, maxH: 16, minW: 8, maxW: 18, gap: 8, windowChance: 0.06, windowWarmth: 0.7 },
+  { z: 58, haze: 0.75, fog: 0.85, minH: 14, maxH: 40, minW: 6, maxW: 14, gap: 4, windowChance: 0.025, windowWarmth: 0.35 },
+  { z: 40, haze: 0.4, fog: 0.7, minH: 10, maxH: 26, minW: 7, maxW: 16, gap: 6, windowChance: 0.04, windowWarmth: 0.5 },
+  { z: 27, haze: 0.1, fog: 0.55, minH: 6, maxH: 16, minW: 8, maxW: 18, gap: 8, windowChance: 0.06, windowWarmth: 0.7 },
 ];
 const WARM = new Color3(0.95, 0.62, 0.3);
 const ANTENNA = new Color3(0.8, 0.08, 0.05);
@@ -97,8 +99,11 @@ function createGlow(scene: Scene, minX: number, maxX: number, glow: Color3): voi
   plane.freezeWorldMatrix();
 }
 
-/** Cria o horizonte de cidade entre minX e maxX. `sky` é a cor do céu alto e `glow` a do brilho no horizonte. */
-export function createSkyline(scene: Scene, minX: number, maxX: number, sky: Color3, glow: Color3, seed = 7): void {
+/**
+ * Cria o horizonte de cidade entre minX e maxX. `sky` é a cor do céu alto, `glow` a do brilho no horizonte e `fog` a
+ * névoa do trecho (os prédios do horizonte não usam névoa de verdade, então a cor dela entra pronta, por camada).
+ */
+export function createSkyline(scene: Scene, minX: number, maxX: number, sky: Color3, glow: Color3, fog: Color3, seed = 7): void {
   createGlow(scene, minX, maxX, glow);
   const rand = rng(seed);
   const red = CreateBox("cidade-antenas", { size: 1 }, scene);
@@ -109,7 +114,7 @@ export function createSkyline(scene: Scene, minX: number, maxX: number, sky: Col
   const reds: Matrix[] = [];
   LAYERS.forEach((layer, li) => {
     const body = CreateBox(`cidade-${li}`, { size: 1 }, scene);
-    body.material = flatMaterial(scene, `cidade-${li}-mat`, Color3.Lerp(sky, glow, layer.haze * 0.55));
+    body.material = flatMaterial(scene, `cidade-${li}-mat`, Color3.Lerp(Color3.Lerp(sky, glow, layer.haze * 0.55), fog, layer.fog));
     const win = CreatePlane(`cidade-janelas-${li}`, { size: 1 }, scene);
     win.material = flatMaterial(scene, `cidade-janelas-${li}-mat`, Color3.Lerp(glow, WARM, layer.windowWarmth));
     const bodies: Matrix[] = [];

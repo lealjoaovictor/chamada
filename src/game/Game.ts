@@ -426,10 +426,16 @@ export class Game {
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
-    for (const trecho of level.cidade ?? []) createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW);
+    for (const trecho of level.cidade ?? []) {
+      const fog = (level.ambiente ?? []).find((z) => trecho.minX < z.maxX && trecho.maxX > z.minX)?.nevoa ?? DEFAULT_FOG;
+      createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW, Color3.FromArray(fog));
+    }
     createWires(scene, level.fios ?? []);
     createRails(scene, level.grades ?? []);
-    createStickers(scene, level.adesivos ?? []);
+    // Cada poça de luz pintada segue o poste que fica sobre ela (pisca, apaga ou morre junto).
+    for (const glow of createStickers(scene, level.adesivos ?? [])) {
+      this.lamps.find((lamp) => Math.abs(lamp.positionX - glow.x) < 0.5)?.addGlow(glow.material);
+    }
     this.life = new Life(scene, level.vida ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);

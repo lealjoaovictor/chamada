@@ -90,6 +90,17 @@ function cobogo(x: number): DecorData[] {
   return decor;
 }
 
+/** Concreto embaixo da rampa da garagem, em fatias que ficam sob a laje (um bloco só atravessava a rampa e escondia o jogador). */
+function rampFill(): DecorData[] {
+  const slices = 12;
+  const step = (RAMP_END - START) / slices;
+  return Array.from({ length: slices }, (_, i): DecorData => {
+    const x1 = START + step * (i + 1);
+    const height = Math.max(GALLERY_Y * (RAMP_END - x1) / (RAMP_END - START) - 0.05, 0.05);
+    return { x: x1 - step / 2, y: height / 2, z: 0, width: step, height, depth: 4, material: "concreto" };
+  });
+}
+
 function stripes(x: number, y: number, height: number, width: number): DecorData[] {
   const count = Math.round(height / 0.3);
   return Array.from({ length: count }, (_, i): DecorData => ({
@@ -217,7 +228,7 @@ export const area4Level: LevelData = {
     ...[DEPOT_GATE_X, GATE2_X].map((x): DecorData => ({ x, y: CEILING / 2, z: BACK_Z - 0.1, width: 0.6, height: CEILING, depth: 0.2, material: "concreto" })),
     ...[164, 170, 175, 180, 185, 190, 195].flatMap(column),
     ...[172.5, 187.5].flatMap(cobogo),
-    { x: (START + RAMP_END) / 2, y: GALLERY_Y / 2 - 0.2, z: 0, width: RAMP_END - START, height: GALLERY_Y - 0.4, depth: 4, material: "concreto" },
+    ...rampFill(),
     { x: (RAMP_END + END) / 2, y: CEILING + 2.2, z: 0, width: END - RAMP_END, height: 3.6, depth: 4.6, material: "concreto" },
     { x: RAMP_END - 0.2, y: (CEILING + HALL_CEILING) / 2 + 0.2, z: 0, width: 0.4, height: HALL_CEILING - CEILING, depth: 4.6, material: "concreto" },
 

@@ -151,6 +151,7 @@ export const area2Level: LevelData = {
   checkpoints: [{ x: 71, y: 1.2 }, { x: 108.5, y: 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: END2 },
+  primeiroPlano: [{ x0: START, x1: END2, y0: 0 }],
   ambiente: [
     { minX: START, maxX: ROOM1_END, intensidade: 0.62, cor: [0.66, 0.72, 0.7] },
     { minX: ROOM1_END, maxX: END2, intensidade: 0.5, cor: [0.6, 0.66, 0.66] },

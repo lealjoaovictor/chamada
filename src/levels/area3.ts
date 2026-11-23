@@ -81,6 +81,14 @@ export const area3Level: LevelData = {
   checkpoints: [{ x: 110, y: GALLERY_Y + 1.2 }, { x: 141.4, y: GALLERY_Y + 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: ARCHIVE_END },
+  // Térreo, galeria e sala de leitura, acervo rebaixado e a escada de volta à galeria.
+  primeiroPlano: [
+    { x0: START, x1: SHAFT_X + SHAFT_WIDTH / 2, y0: 0 },
+    { x0: SHAFT_X + SHAFT_WIDTH / 2, x1: LANDING_END, y0: GALLERY_Y },
+    { x0: LANDING_END, x1: ARCHIVE_RAMP_X0, y0: SUNK_Y },
+    { x0: ARCHIVE_RAMP_X0, x1: ARCHIVE_RAMP_X1, y0: SUNK_Y, y1: GALLERY_Y },
+    { x0: ARCHIVE_RAMP_X1, x1: ARCHIVE_END, y0: GALLERY_Y },
+  ],
   ambiente: [
     { minX: START, maxX: READING_END, intensidade: 0.4, cor: [0.5, 0.56, 0.66] },
     { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.32, cor: [0.48, 0.54, 0.64] },

@@ -41,6 +41,7 @@ import { createBackdrop } from "./Backdrop";
 import { createSkyline } from "./Skyline";
 import { createRails, createWires } from "./Wiring";
 import { createStickers } from "./Stickers";
+import { createForeground } from "./PrimeiroPlano";
 import { Life } from "./Vida";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
@@ -437,6 +438,7 @@ export class Game {
     for (const glow of createStickers(scene, level.adesivos ?? [])) {
       this.lamps.find((lamp) => Math.abs(lamp.positionX - glow.x) < 0.5)?.addGlow(glow.material);
     }
+    createForeground(scene, this.materials, level.primeiroPlano ?? [], level.walls, level.depth);
     this.life = new Life(scene, level.vida ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);

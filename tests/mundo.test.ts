@@ -99,3 +99,19 @@ test("o deslocamento das áreas move também o cenário (horizonte, fios, grades
     assert.equal(after, before! + 100);
   }
 });
+
+test("o piso de primeiro plano acompanha as áreas deslocadas e cobre os interiores sem buracos", () => {
+  const aprons = level.primeiroPlano ?? [];
+  assert.ok(aprons.length > 0);
+  for (const a of aprons) {
+    assert.ok(a.x0 < a.x1, `trecho ${a.x0}..${a.x1}`);
+    assert.ok(a.x0 >= level.bounds.minX && a.x1 <= level.bounds.maxX);
+  }
+  // Do corredor da área 2 ao fim da área 5, o piso da frente é contínuo (as quinas se encostam).
+  const sorted = [...aprons].sort((a, b) => a.x0 - b.x0).filter((a) => a.x1 <= areas[5].inicioX);
+  assert.equal(sorted[0].x0, areas[1].inicioX);
+  for (let i = 1; i < sorted.length; i++) assert.ok(Math.abs(sorted[i].x0 - sorted[i - 1].x1) < 0.01, `vão em x ${sorted[i].x0}`);
+  // A área 4 começa com a rampa que desce da galeria: o trecho dela tem que estar nas coordenadas do mundo.
+  const ramp = aprons.find((a) => a.y1 !== undefined && a.y0 > a.y1);
+  assert.ok(ramp && Math.abs(ramp.x0 - areas[3].inicioX) < 0.01);
+});

@@ -72,6 +72,7 @@ function buildWorld(levels: LevelData[]): World {
     vida: shifted.flatMap((a) => a.vida ?? []),
     vultos: shifted.flatMap((a) => a.vultos ?? []),
     figurantes: shifted.flatMap((a) => a.figurantes ?? []),
+    primeiroPlano: shifted.flatMap((a) => a.primeiroPlano ?? []),
     finalDoor: shifted.find((a) => a.finalDoor)?.finalDoor,
     salaVazia: shifted.find((a) => a.salaVazia)?.salaVazia,
   };

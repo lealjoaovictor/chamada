@@ -126,6 +126,8 @@ const LANDING_NOISE_AIR = 0.28;
 const MUSIC_TENSION_RANGE = 14;
 const MUSIC_TENSION_NEAR = 0.55;
 const MUSIC_CHASE_RANGE = 12;
+/** Depois de ser pego, a trilha volta calma por uns segundos, mesmo com o checkpoint perto de um segurança. */
+const MUSIC_RESPAWN_CALM = 4;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -206,6 +208,8 @@ export class Game {
   private gym = false;
   private deathTimer = 0;
   private respawned = false;
+  /** Segundos depois de voltar ao checkpoint em que a proximidade do segurança não sobe a tensão da trilha. */
+  private musicCalm = 0;
   private readonly fade = new Fade();
   private readonly scene: Scene;
   private readonly input = new Input();
@@ -552,6 +556,7 @@ export class Game {
     this.updateGuardHabits(dt);
     this.announceChases();
     this.updateElevators(dt);
+    this.musicCalm = Math.max(0, this.musicCalm - realDt);
     this.music.update(realDt, this.musicState(area));
     if (this.state === "menu") {
       this.updateMenu(dt);
@@ -784,7 +789,8 @@ export class Game {
         continue;
       }
       if (vigia.chases) continue;
-      tension = Math.max(tension, MUSIC_TENSION_NEAR * Math.max(0, 1 - distance / MUSIC_TENSION_RANGE), vigia.alertLevel);
+      const near = this.musicCalm > 0 ? 0 : MUSIC_TENSION_NEAR * Math.max(0, 1 - distance / MUSIC_TENSION_RANGE);
+      tension = Math.max(tension, near, vigia.alertLevel);
       if (vigia.suspicious) suspicious = true;
     }
     const scenes: Record<GameState, MusicScene> = {
@@ -910,6 +916,8 @@ export class Game {
       for (const box of this.boxes) box.reset();
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
+      this.music.reset();
+      this.musicCalm = MUSIC_RESPAWN_CALM;
       this.chasesAnnounced.clear();
       this.airTime = 0;
       this.wasSliding = false;

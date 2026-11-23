@@ -161,6 +161,9 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
 };
 
 export const FOCOS_POR_AREA: Record<number, CameraBeatData[]> = {
+  // Primeiro encontro com um segurança (guarita): passado o portão da garagem, a câmera vai até ele
+  // para o jogador ver a lanterna e entender a mecânica antes de chegar perto.
+  1: [{ triggerX: 62, focusX: 79, seconds: 2.6, seguranca: true }],
   // Depois da porta do corredor, a câmera mostra o segurança apagando as luzes no recuo.
   2: [{ triggerX: 68.5, focusX: 82, seconds: 2.2, seguranca: true }],
   // Ao entrar na biblioteca, a câmera mostra o segurança da ronda (o primeiro aviso do perigo da área).

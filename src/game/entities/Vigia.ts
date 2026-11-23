@@ -787,11 +787,11 @@ export class Vigia {
 
   sees(points: readonly Vector3[]): boolean {
     if (!this.lit) {
-      // Sem lanterna (celular, TV, dormindo): só nota quem passa encostado (dormindo, nem isso: acorda).
+      // Sem lanterna (celular, TV, dormindo): no máximo nota quem passa encostado.
       // Vendo o jogo, atrás do balcão: só percebe barulho (ver `hear`), não quem passa quieto.
       if (this.data.habito?.tipo === "futebol") return false;
       const near = Math.abs(points[0].x - this.x) < UNLIT_NOTICE;
-      if (near && this.habitPhase === "dormindo") this.wake(points[0].x);
+      // Dormindo, não vê ninguém: só acorda com barulho (pulo, deslize, ver `hearPlayer`).
       return near && this.habitPhase !== "dormindo" && this.habitPhase !== "susto";
     }
     const engine = this.scene.getPhysicsEngine() as PhysicsEngine | null;

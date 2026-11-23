@@ -151,7 +151,7 @@ Atualize esta lista a cada tarefa concluída.
   - Vozes: provisórias geradas no Mac (`node ferramentas/vozes.ts --provisorias`). Para trocar pelo ElevenLabs: salvar `public/audio/vozes/<id>.mp3` com o id da 1ª coluna de `docs/roteiro-vozes.csv` e rodar `node ferramentas/vozes.ts` (atualiza o `manifest.json`). Fala sem arquivo cai na voz do navegador
   - Falta (se der tempo, nesta ordem): colegas sólidos saindo na direção contrária e conversa de fundo nas áreas 1 e 2 (os `vultos` antigos continuam no código); professor erguer os olhos no final; sensores de portão já feitos no cenário
 - [ ] **Fase mais longa, testada por bot, falta playtest humano.** O João (que conhece o caminho) terminou no Diego Moreira (3:11); escolheu 3A + 2A + 4A
-  - Área 2: recuo do corredor entre a porta e a zeladoria (`HALL_X0`–`HALL_X1` em `area2.ts`, +12 m; o resto da área foi deslocado), segurança de ronda, dois pilares de cobertura, metade das luzes apagada; checkpoint passou para x 71
+  - Área 2: recuo do corredor entre a porta e a zeladoria (`HALL_X0`–`HALL_X1` em `area2.ts`, +12 m; o resto da área foi deslocado), segurança de ronda, estante de aço com caixas e armário velho como cobertura (blocos invisíveis com os modelos por cima; a pilastra fica na parede do fundo), metade das luzes apagada; checkpoint passou para x 71
   - Área 3: acervo depois da sala de leitura (`area3.ts`, x 141–168): patamar com estante e carrinho de isca, piso rebaixado 1,2 m, três estantes, dois seguranças em rondas que se cruzam, escada de volta à galeria; checkpoint novo em 141,4; foco de câmera ao entrar
   - Área 4: depósito em dois passos: sensor perto da entrada, valeta de 1,2 m × 1 m no piso, tambores e carrinho de gás do outro lado (qualquer um que caia na valeta vira ponte); duas dicas
   - `reacao` opcional por segurança (`VigiaData`): 0,5 s no corredor e no acervo, para quem passa correndo na frente ser pego
@@ -291,6 +291,7 @@ Preencha ao baixar ou gerar qualquer item.
 | Modelo `portable_welding_cart` (glTF 1K) | https://polyhaven.com/a/portable_welding_cart, baixado | CC0 | Não | `public/models/kit/portable_welding_cart.glb` (área 4: carrinho de gás empurrável); convertido com `ferramentas/converter_kit.py` |
 | Modelo `cement_bag` (glTF 1K) | https://polyhaven.com/a/cement_bag, baixado | CC0 | Não | `public/models/kit/cement_bag.glb` (área 2: carga do carrinho do contrapeso); convertido com `ferramentas/converter_kit.py` |
 | Modelo `book_encyclopedia_set_01` (glTF 1K) | https://polyhaven.com/a/book_encyclopedia_set_01, baixado | CC0 | Não | `public/models/kit/book_encyclopedia_set_01.glb` (área 3: livros no carrinho da biblioteca); convertido com `ferramentas/converter_kit.py` |
+| Modelo `painted_wooden_cabinet_02` (glTF 1K) | https://polyhaven.com/a/painted_wooden_cabinet_02 | CC0 | Não | `public/models/kit/painted_wooden_cabinet_02.glb` (área 2: armário no recuo do corredor); convertido com `ferramentas/converter_kit.py` |
 
 Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 

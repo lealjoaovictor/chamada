@@ -3,15 +3,19 @@ import { CART_VISUAL, CRATE_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CAR
 
 const START = 48;
 const END = 88;
-// Trecho do segurança (entre a porta do corredor e a zeladoria): ele faz a ronda apagando as luzes, num recuo
-// do corredor com pilares. O jogador vai de pilar em pilar quando ele está de costas.
+// Trecho do segurança (entre a porta do corredor e a zeladoria): ele faz a ronda apagando as luzes num recuo
+// do corredor onde a limpeza da noite deixou coisas encostadas: uma estante de aço com caixas de arquivo e um
+// armário velho. O jogador se esconde atrás delas quando ele está de costas. A pilastra fica na parede.
 const HALL_X0 = 76;
 const HALL_X1 = 88;
 const HALL_BACK_Z = 3.4;
-const PILLAR_XS = [77.4, 85.6];
-const PILLAR_WIDTH = 1.1;
-const PILLAR_Z = 2.0;
-const PILLAR_DEPTH = 0.6;
+const HIDE_Z = 2.0;
+const HIDE_DEPTH = 0.6;
+const HIDE_HEIGHT = 2.2;
+const SHELF_HIDE_X = 77.4;
+const CABINET_HIDE_X = 85.6;
+const HIDE_WIDTH = 1.2;
+const HALL_PILLAR_X = 81.6;
 const CEILING = 3.2;
 const BACK_Z = 2.1;
 const RECESS_X = 63;
@@ -119,8 +123,9 @@ export const area2Level: LevelData = {
   platforms: [],
   obstacles: [
     { x: 55, y: (ARM_HEIGHT + CEILING) / 2, width: 0.12, height: CEILING - ARM_HEIGHT, material: "vidro" },
-    // Pilares do recuo: escondem quem está na frente e cortam a luz da lanterna.
-    ...PILLAR_XS.map((x): BlockData => ({ x, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" })),
+    // Esconderijos do recuo (estante com caixas e armário): escondem quem está na frente e cortam a
+    // luz da lanterna. O bloco é invisível; o visual vem dos modelos em `props`.
+    ...[SHELF_HIDE_X, CABINET_HIDE_X].map((x): BlockData => ({ x, y: HIDE_HEIGHT / 2, z: HIDE_Z, depth: HIDE_DEPTH, width: HIDE_WIDTH, height: HIDE_HEIGHT, material: "metal", hidden: true })),
     ...stage(),
     // Rodapé nas bordas do palco: segura a caixa de cima para ela não cair de nenhum lado.
     { x: STAGE_X0 + 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
@@ -149,7 +154,7 @@ export const area2Level: LevelData = {
       x0: 79.5,
       x1: 87,
       y: 0,
-      z: 2.9,
+      z: 2.8,
       speed: 1,
       pause: 1.5,
       pauseMax: 3,
@@ -167,6 +172,20 @@ export const area2Level: LevelData = {
     ...[58.5, 61, 70, 72.8, 114.8, 120, 125.5].flatMap((x) => moonWindow(x, 1.25, BACK_Z)),
     ...[94, 99.5].flatMap((x) => moonWindow(x, 2.25, BACK_Z)),
     ...lamps.map((l) => fluorescent(l.x, l.y + 0.12)),
+    // Recuo do segurança: estante de aço cheia de caixas de arquivo, armário velho com uma carteira encostada,
+    // o quadro de luz que ele vai desligando, balde e placa de piso molhado.
+    { model: "steel_frame_shelves_01", x: SHELF_HIDE_X, y: 0, z: HIDE_Z, rotY: 180, fitHeight: HIDE_HEIGHT },
+    ...[0.05, 0.95, 1.85].flatMap((y, i) => [-0.36, 0, 0.36].map((dx, j): PropData => ({
+      model: "cardboard_box_01", x: SHELF_HIDE_X + dx, y, z: HIDE_Z, rotY: 88 + ((i * 3 + j) % 4) * 2,
+    }))),
+    { model: "plastic_crate_01", x: SHELF_HIDE_X - 0.25, y: 0.35, z: HIDE_Z, rotY: 90 },
+    { model: "plastic_crate_01", x: SHELF_HIDE_X + 0.25, y: 1.3, z: HIDE_Z, rotY: 86 },
+    { model: "painted_wooden_cabinet_02", x: CABINET_HIDE_X, y: 0, z: HIDE_Z, rotY: 180, fitHeight: HIDE_HEIGHT, stretch: [1.25, 1, 1] },
+    { model: "SchoolDesk_01", x: CABINET_HIDE_X + 1.15, y: 0, z: HIDE_Z + 0.1, rotY: 172 },
+    { model: "SchoolChair_01", x: CABINET_HIDE_X - 1.0, y: 0, z: HIDE_Z - 0.1, rotY: 120 },
+    { model: "power_box_01", x: 80.3, y: 1.5, z: HALL_BACK_Z - 0.04, rotY: 180 },
+    { model: "WetFloorSign_01", x: 82.6, y: 0, z: 1.2, rotY: 200 },
+    { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 87.2, y: 0, z: 2.9, scale: 0.8 },
     // Corredor da catraca.
     { model: "SchoolChair_01", x: 48.9, y: 0, z: 1.55, rotY: 160 },
     { model: "SchoolChair_01", x: 49.6, y: 0, z: 1.6, rotY: 200 },
@@ -230,6 +249,8 @@ export const area2Level: LevelData = {
     // Recuo do corredor: paredes dos lados e o teto por cima.
     ...[HALL_X0, HALL_X1].map((x): DecorData => ({ x, y: CEILING / 2, z: (BACK_Z + HALL_BACK_Z) / 2, width: 0.2, height: CEILING, depth: HALL_BACK_Z - BACK_Z, material: "parede" })),
     { x: (HALL_X0 + HALL_X1) / 2, y: CEILING + 0.2, z: (BACK_Z + HALL_BACK_Z) / 2 + 0.2, width: HALL_X1 - HALL_X0, height: 0.4, depth: HALL_BACK_Z - BACK_Z + 0.6, material: "concreto" },
+    // A pilastra da estrutura, saindo da parede do fundo do recuo.
+    { x: HALL_PILLAR_X, y: CEILING / 2, z: HALL_BACK_Z - 0.2, width: 0.7, height: CEILING, depth: 0.4, material: "concreto" },
     // Um quadro de avisos e folhas caídas no recuo.
     { x: 83.9, y: 1.6, z: HALL_BACK_Z - 0.04, width: 1.4, height: 0.9, depth: 0.03, material: "madeira" },
     ...[[-0.4, 0.15], [-0.05, 0.08], [0.3, 0.18], [-0.25, -0.2]].map(([dx, dy]): DecorData => ({

@@ -142,7 +142,8 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
 };
 
 export const FOCOS_POR_AREA: Record<number, CameraBeatData[]> = {
-  3: [{ triggerX: 82, focusX: 101, seconds: 2.4 }],
+  // Ao entrar na biblioteca, a câmera mostra o segurança da ronda (o primeiro aviso do perigo da área).
+  3: [{ triggerX: 82, focusX: 93, seconds: 2.4, seguranca: true }],
 };
 
 export const CHACOALHAR_POR_AREA: Record<number, RattleData[]> = {

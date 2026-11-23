@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -8,6 +8,7 @@ import {
   PhysicsCharacterController,
 } from "@babylonjs/core/Physics/v2/characterController";
 import { PhysicsRaycastResult } from "@babylonjs/core/Physics/physicsRaycastResult";
+import { PhysicsMotionType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 import type { PhysicsEngine } from "@babylonjs/core/Physics/v2/physicsEngine";
 import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
@@ -15,7 +16,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
+import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
+import { HandIK, type HandTarget } from "./HandIK";
 
 const MOVE_SPEED = 4.5;
 const PUSH_SPEED = 1.2;
@@ -35,31 +38,17 @@ const SLIDE_MIN_SPEED = 2;
 const SLIDE_TIME = 0.55;
 const SLIDE_COOLDOWN = 0.25;
 const SLIDE_HEIGHT = 0.8;
-const CROUCH_SPEED = 2.4;
 const CROUCH_BLEND = 4;
-const CROUCH_DROP = 0.17;
-// Pose agachada montada por cima da animação de andar: ângulos (rad) somados em cada osso,
-// no eixo X local (flexão). Inspirada na furtividade de INSIDE: tronco curvado, joelhos dobrados.
-const CROUCH_POSE: [string, number][] = [
-  ["mixamorig:Hips", 0.12],
-  ["mixamorig:Spine", 0.15],
-  ["mixamorig:Spine1", 0.15],
-  ["mixamorig:Spine2", 0.1],
-  ["mixamorig:Neck", -0.2],
-  ["mixamorig:Head", -0.25],
-  ["mixamorig:LeftUpLeg", -0.6],
-  ["mixamorig:RightUpLeg", -0.6],
-  ["mixamorig:LeftLeg", 0.85],
-  ["mixamorig:RightLeg", 0.85],
-  ["mixamorig:LeftArm", 0.25],
-  ["mixamorig:RightArm", 0.25],
-];
+// Acima disso o personagem usa as animações agachadas do Mixamo (Crouch Idle e Crouched Walking).
+const CROUCH_ANIM_THRESHOLD = 0.5;
 
 const MODEL_URL = modelFile("personagem");
 const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
 const WALK_CLIP_SPEED = 5.3;
+// Velocidade (m/s) em que os pés do "Crouched Walking" não escorregam, medida pela passada do clipe.
+const CROUCH_WALK_CLIP_SPEED = 2.25;
 const JUMP_CLIP_DURATION = 2.2;
 const JUMP_AIR_START = 0.7;
 const JUMP_AIR_END = 1.3;
@@ -68,11 +57,34 @@ const SLIDE_CLIP_DURATION = 1.57;
 const SLIDE_CLIP_START = 0.15;
 const SLIDE_CLIP_LOW = 0.75;
 
+// Apoio na parede: ao andar contra uma parede, as mãos encostam nela e o corpo amortece o impacto.
+const BRACE_HAND_HEIGHT = 1.3;
+const BRACE_REACH = 0.42;
+const BRACE_LEAN = 0.09;
+const BRACE_IMPACT = 0.8;
+const LEAN_SPRING = 140;
+const LEAN_DAMPING = 15;
+// Empurrando uma pegada baixa, o corpo recua até o ombro ficar a PUSH_ARM do ponto (braço quase esticado).
+// Medidas no clipe "Pushing": ombro a ~1,12 m acima de `feetY` (que fica ~0,1 m acima do chão) e, sem recuo,
+// praticamente em cima da pegada.
+const PUSH_SHOULDER_HEIGHT = 1.12;
+const PUSH_SHOULDER_AHEAD = 0.02;
+const PUSH_ARM = 0.42;
+const PUSH_BACK_MAX = 0.42;
+const PUSH_BACK_SPEED = 1.5;
+
 const JUMP_SPEED = Math.sqrt(2 * -GRAVITY.y * JUMP_HEIGHT);
 const AIR_TIME = (2 * JUMP_SPEED) / -GRAVITY.y;
 const DOWN = new Vector3(0, -1, 0);
 
-type AnimName = "parado" | "andar" | "pular" | "empurrar" | "deslizar";
+type AnimName =
+  | "parado"
+  | "andar"
+  | "pular"
+  | "empurrar"
+  | "deslizar"
+  | "agachado"
+  | "agachado_andar";
 
 export class Player {
   readonly position = new Vector3();
@@ -100,7 +112,12 @@ export class Player {
   private readonly rayTo = new Vector3();
   private crouchWanted = false;
   private crouch = 0;
-  private crouchBones: { node: TransformNode; offset: Quaternion; full: Quaternion }[] = [];
+  private ik: HandIK | null = null;
+  private grip: HandTarget | null = null;
+  private brace: HandTarget | null = null;
+  private lean = 0;
+  private pushBack = 0;
+  private leanSpeed = 0;
 
   private constructor(
     scene: Scene,
@@ -122,7 +139,6 @@ export class Player {
       group.weight = name === this.current ? 1 : 0;
     }
     this.syncVisual(0);
-    scene.onAfterAnimationsObservable.add(() => this.applyCrouchPose());
   }
 
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
@@ -145,12 +161,7 @@ export class Player {
     }
     const player = new Player(scene, spawn, visual, anims);
     player.meshes = result.meshes;
-    player.crouchBones = CROUCH_POSE.flatMap(([name, angle]) => {
-      const node = result.transformNodes.find((n) => n.name === name);
-      if (!node) return [];
-      const full = Quaternion.RotationAxis(Vector3.Right(), angle);
-      return [{ node, offset: Quaternion.Identity(), full }];
-    });
+    player.ik = HandIK.create(result.transformNodes);
     return player;
   }
 
@@ -183,6 +194,16 @@ export class Player {
     return this.facing;
   }
 
+  /** Ponto de pegada do objeto que está sendo empurrado (mundo), ou nulo. */
+  setGrip(target: HandTarget | null): void {
+    this.grip = target;
+  }
+
+  /** Para testes: se as mãos estão presas a algo e o quanto erram o alvo. */
+  get handState(): { grip: boolean; brace: boolean; error: number } {
+    return { grip: this.grip !== null, brace: this.brace !== null, error: this.ik?.lastError ?? 0 };
+  }
+
   update(dt: number, input: Input, pushing: boolean): void {
     if (dt <= 0) return;
 
@@ -195,6 +216,8 @@ export class Player {
       : Math.max(0, this.jumpBufferTimer - dt);
 
     const current = this.controller.getVelocity();
+    // `current` é a referência interna do controlador (muda no integrate); guarda a velocidade de chegada.
+    const speedBefore = Math.abs(current.x);
     const axis = input.axisX();
     this.slideCooldown = Math.max(0, this.slideCooldown - dt);
     if (!input.isDown("slide")) this.slideArmed = true;
@@ -223,7 +246,7 @@ export class Player {
       if (axis !== 0) this.facing = axis;
       const crouchTarget = this.crouchWanted && this.grounded && !pushing ? 1 : 0;
       this.crouch = approach(this.crouch, crouchTarget, CROUCH_BLEND * dt);
-      const walkSpeed = MOVE_SPEED + (CROUCH_SPEED - MOVE_SPEED) * this.crouch;
+      const walkSpeed = MOVE_SPEED + (TUNING.agachadoVelocidade - MOVE_SPEED) * this.crouch;
       const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : walkSpeed);
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);
@@ -254,8 +277,49 @@ export class Player {
     }
     this.position.set(pos.x, pos.y, 0);
 
-    this.updateAnimation(dt, jumped, pushing && !this.sliding);
+    const pushingNow = pushing && !this.sliding;
+    this.updateBrace(dt, axis, pushingNow, speedBefore);
+    this.updateAnimation(dt, jumped, pushingNow);
+    // Pegada mais baixa que as mãos da animação: o corpo recua para os braços se esticarem até ela,
+    // em vez de dobrarem com as mãos embaixo do queixo.
+    let back = 0;
+    if (pushingNow && this.grip) {
+      const drop = this.feetY + PUSH_SHOULDER_HEIGHT - this.grip.y;
+      // Pegada na altura do ombro ou acima (carrinho de carga): sem recuo, o braço dobrado fica natural.
+      const lowness = Math.min(Math.max((drop - 0.05) / 0.15, 0), 1);
+      const reach = Math.sqrt(Math.max(PUSH_ARM * PUSH_ARM - drop * drop, 0));
+      back = Math.min(Math.max(reach - PUSH_SHOULDER_AHEAD, 0), PUSH_BACK_MAX) * lowness;
+    }
+    this.pushBack = approach(this.pushBack, back, PUSH_BACK_SPEED * dt);
     this.syncVisual(dt);
+    this.ik?.apply(dt, pushingNow && this.grip ? this.grip : this.brace);
+  }
+
+  /** Andando contra uma parede: mãos na parede e um leve balanço do corpo, mais forte quanto mais rápido. */
+  private updateBrace(dt: number, axis: number, pushing: boolean, speedBefore: number): void {
+    const wasBracing = this.brace !== null;
+    this.brace = null;
+    if (axis !== 0 && axis === this.facing && this.grounded && !this.sliding && !pushing && this.crouch < 0.3) {
+      const engine = this.scene.getPhysicsEngine() as PhysicsEngine | null;
+      if (engine) {
+        const y = this.feetY + BRACE_HAND_HEIGHT;
+        this.rayFrom.set(this.position.x, y, 0);
+        this.rayTo.set(this.position.x + this.facing * (CAPSULE_RADIUS + BRACE_REACH), y, 0);
+        engine.raycastToRef(this.rayFrom, this.rayTo, this.ray);
+        if (this.ray.hasHit && this.ray.body?.getMotionType() !== PhysicsMotionType.DYNAMIC) {
+          this.brace = { x: this.ray.hitPointWorld.x - this.facing * 0.03, y };
+        }
+      }
+    }
+    if (this.brace && !wasBracing) this.leanSpeed += speedBefore * BRACE_IMPACT;
+    const target = this.brace ? BRACE_LEAN : 0;
+    const accel = LEAN_SPRING * (target - this.lean) - LEAN_DAMPING * this.leanSpeed;
+    this.leanSpeed += accel * dt;
+    this.lean += this.leanSpeed * dt;
+    if (!this.brace && Math.abs(this.lean) < 1e-4 && Math.abs(this.leanSpeed) < 1e-3) {
+      this.lean = 0;
+      this.leanSpeed = 0;
+    }
   }
 
   /** Move o jogador em X mantendo velocidade e estado (corredor que se repete). */
@@ -282,6 +346,11 @@ export class Player {
     this.position.set(point.x, point.y, 0);
     this.facing = 1;
     this.crouch = 0;
+    this.grip = null;
+    this.brace = null;
+    this.lean = 0;
+    this.leanSpeed = 0;
+    this.pushBack = 0;
     this.current = "parado";
     for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
     this.syncVisual(0);
@@ -324,13 +393,15 @@ export class Player {
   }
 
   private updateAnimation(dt: number, jumped: boolean, pushing: boolean): void {
-    const speedX = Math.abs(this.velocity.x);
+    // Encostado na parede, o corpo para (sem correr no lugar).
+    const speedX = this.brace ? 0 : Math.abs(this.velocity.x);
+    const crouched = this.crouch > CROUCH_ANIM_THRESHOLD;
     let next: AnimName;
     if (this.sliding) next = "deslizar";
     else if (jumped || !this.grounded) next = "pular";
     else if (pushing) next = "empurrar";
-    else if (speedX > 0.2) next = "andar";
-    else next = "parado";
+    else if (speedX > 0.2) next = crouched ? "agachado_andar" : "andar";
+    else next = crouched ? "agachado" : "parado";
 
     if (next === "pular" && (jumped || this.current !== "pular")) {
       this.playJump(jumped);
@@ -338,7 +409,9 @@ export class Player {
     this.current = next;
 
     const walk = this.anims.get("andar");
-    if (walk) walk.speedRatio = Math.max(speedX / (WALK_CLIP_SPEED - 2.2 * this.crouch), 0.5);
+    if (walk) walk.speedRatio = Math.max(speedX / WALK_CLIP_SPEED, 0.5);
+    const crouchWalk = this.anims.get("agachado_andar");
+    if (crouchWalk) crouchWalk.speedRatio = Math.max(speedX / CROUCH_WALK_CLIP_SPEED, 0.5);
     const push = this.anims.get("empurrar");
     if (push) push.speedRatio = PUSH_ANIM_RATIO;
 
@@ -373,17 +446,8 @@ export class Player {
     const t = dt > 0 ? 1 - Math.exp(-TURN_SPEED * dt) : 1;
     this.yaw += (targetYaw - this.yaw) * t;
     this.visual.rotation.y = this.yaw;
-    this.visual.position.set(this.position.x, this.position.y - this.height / 2 - CROUCH_DROP * this.crouch, 0);
-  }
-
-  private applyCrouchPose(): void {
-    if (this.crouch <= 0) return;
-    for (const bone of this.crouchBones) {
-      const rotation = bone.node.rotationQuaternion;
-      if (!rotation) continue;
-      Quaternion.SlerpToRef(Quaternion.Identity(), bone.full, this.crouch, bone.offset);
-      rotation.multiplyInPlace(bone.offset);
-    }
+    this.visual.rotation.x = this.lean;
+    this.visual.position.set(this.position.x - this.facing * this.pushBack, this.position.y - this.height / 2, 0);
   }
 }
 

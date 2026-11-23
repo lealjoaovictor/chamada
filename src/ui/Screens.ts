@@ -56,3 +56,24 @@ export class LateScreen extends Screen {
     this.root.append(element("titulo", "chamada"), element("aperte", "pressione qualquer botão para recomeçar"));
   }
 }
+
+/** Legenda das falas ao vivo na sala do final (o professor chamando, o "presente"). */
+export class RoomCaption {
+  private readonly root = element("legenda-sala");
+  private timer = 0;
+
+  constructor() {
+    document.body.appendChild(this.root);
+  }
+
+  show(text: string, seconds: number): void {
+    this.root.textContent = text;
+    this.root.classList.add("visivel");
+    window.clearTimeout(this.timer);
+    this.timer = window.setTimeout(() => this.hide(), seconds * 1000);
+  }
+
+  hide(): void {
+    this.root.classList.remove("visivel");
+  }
+}

@@ -27,11 +27,16 @@ const PALETTE: Record<MaterialName, Color3> = {
   papel: new Color3(0.72, 0.7, 0.63),
   tecido: new Color3(0.1, 0.14, 0.24),
   tela: new Color3(0.05, 0.06, 0.08),
+  interior: new Color3(0.015, 0.016, 0.02),
+  "janela-acesa": new Color3(0.05, 0.04, 0.03),
+  saida: new Color3(0.02, 0.06, 0.03),
 };
 
 const EMISSIVE: Partial<Record<MaterialName, Color3>> = {
   luar: new Color3(0.16, 0.21, 0.3),
   tela: new Color3(0.45, 0.6, 0.85),
+  "janela-acesa": new Color3(0.42, 0.47, 0.45),
+  saida: new Color3(0.22, 0.62, 0.36),
 };
 
 const ALPHA: Partial<Record<MaterialName, number>> = {

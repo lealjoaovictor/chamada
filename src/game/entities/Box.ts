@@ -14,6 +14,8 @@ const IMPACT_SPEED = 3.5;
 export class Box {
   readonly mesh: Mesh;
   readonly halfSize: number;
+  /** Pegada das mãos: altura acima da base e recuo a partir da face encostada. */
+  readonly grip: { x: number; y: number };
   private readonly aggregate: PhysicsAggregate;
   private readonly velocity = new Vector3();
   private lastVy = 0;
@@ -23,6 +25,7 @@ export class Box {
 
   constructor(scene: Scene, data: BoxData, name: string, material: StandardMaterial) {
     this.halfSize = data.size / 2;
+    this.grip = { x: data.pegada?.x ?? 0, y: data.pegada?.y ?? data.size * 0.96 };
     this.start = new Vector3(data.x, data.y, 0);
     this.mesh = CreateBox(name, { size: data.size }, scene);
     this.mesh.position.set(data.x, data.y, 0);

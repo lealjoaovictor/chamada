@@ -23,19 +23,24 @@ import { Door } from "./entities/Door";
 import { Lamp } from "./entities/Lamp";
 import { PressurePlate } from "./entities/PressurePlate";
 import { Vigia } from "./entities/Vigia";
+import { Figurante } from "./entities/Figurante";
 import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
 import { Sfx } from "./Sfx";
+import { coverFromBlocks, solidsFromBlocks } from "./sightCover";
 import { createDust } from "./Dust";
 import { Vultos } from "./entities/Vultos";
 import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
+import { Kit } from "./Kit";
+import { createBackdrop } from "./Backdrop";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
-import { EndScreen, LateScreen, MenuScreen } from "../ui/Screens";
+import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
+import { CallScreen } from "../ui/CallScreen";
 import { CallClock } from "./CallClock";
 import { Telemetry } from "./Telemetry";
 import { CHAMADA } from "../levels/chamada";
@@ -43,8 +48,10 @@ import { AREAS, areaAt } from "../levels/areas";
 import { TouchControls, touchMode } from "../ui/TouchControls";
 import { GestureControls } from "../ui/GestureControls";
 import { MaterialLibrary } from "./MaterialLibrary";
-import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
+import type { BlockData, CameraBeatData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
+import { gymLevel } from "../levels/gym";
+import { TUNING } from "./Tuning";
 import { WORLD, worldLevel } from "../levels/world";
 
 const DARK_AMBIENT = 0.2;
@@ -58,8 +65,18 @@ const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
-const ROOM_HOLD = 3.5;
-const LATE_HOLD = 3;
+// Final bom: depois de o professor chamar, o jogador tem ~4 s para responder "presente" (contados do fim da fala).
+const ANSWER_WINDOW = 4;
+const ANSWER_EARLIEST = 0.5;
+const CUT_AFTER_ANSWER = 1.3;
+// Final ruim: o nome, o silêncio, "...ele chamou" e a caneta, depois escurece.
+const LATE_HOLD = 6;
+// Ser pego: a tela escurece devagar (dá tempo de ouvir o segurança) e o jogador volta ao checkpoint.
+const CAUGHT_FADE_OUT = 0.7;
+const CAUGHT_HOLD = 0.5;
+const CAUGHT_FADE_IN = 0.4;
+const SUSPICION_LINE_COOLDOWN = 6;
+const GUARD_VOICE_RANGE = 22;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -70,18 +87,23 @@ const RAMP_THICKNESS = 0.4;
 
 type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado";
 
+/** Camada que a câmera não desenha, mas o mapa de sombra da lanterna desenha. */
+const SHADOW_ONLY_LAYER = 0x10000000;
+
 export class Game {
   private readonly boxes: Box[] = [];
   private ambient: HemisphericLight | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
-  private loopsDone = 0;
   private vultos: Vultos | null = null;
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
   private readonly vigias: Vigia[] = [];
+  /** Só no modo dev: os Vigias não veem o jogador (para tirar fotos das fases). */
+  devInvisible = false;
   private readonly elevators: Elevator[] = [];
   private readonly obstacleMeshes: AbstractMesh[] = [];
+  private readonly propShadowCasters: AbstractMesh[] = [];
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
   private warming = false;
   private finalDoor: FinalDoor | null = null;
@@ -90,12 +112,25 @@ export class Game {
   private readonly endScreen = new EndScreen();
   private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
+  private readonly callScreen = new CallScreen("");
+  private readonly roomCaption = new RoomCaption();
+  private cutAt = -1;
+  private answerFrom = 0;
+  private answerUntil = 0;
+  private fadeOut = DEATH_FADE_OUT;
+  private fadeIn = DEATH_FADE_IN;
+  private hold = 0;
+  private readonly suspicionLineAt = new Map<Vigia, number>();
+  private readonly wasSuspicious = new Map<Vigia, boolean>();
+  /** Perseguições que já começaram (o segurança já gritou ao sair pela porta). */
+  private readonly chasesAnnounced = new Set<Vigia>();
   private clock!: CallClock;
   private telemetry!: Telemetry;
   private startArea = 1;
   private audioPrimed = false;
   private hints!: Hints;
   private props!: Props;
+  private kit!: Kit;
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
@@ -104,12 +139,15 @@ export class Game {
   private checkpoints!: Checkpoints;
   private killY = -Infinity;
   private state: GameState = "menu";
+  private level: LevelData = worldLevel;
+  private gym = false;
   private deathTimer = 0;
   private respawned = false;
   private readonly fade = new Fade();
   private readonly scene: Scene;
   private readonly input = new Input();
   private pushTimer = 0;
+  private pushGrip: Box | null = null;
   private pushDir = 0;
   private materials!: MaterialLibrary;
 
@@ -131,11 +169,15 @@ export class Game {
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
     const params = new URLSearchParams(location.search);
-    const debugLevel = params.get("fase") === "teste";
-    const level = debugLevel ? pipelineLevel : worldLevel;
+    const gym = params.has("gym");
+    const debugLevel = params.get("fase") === "teste" || gym;
+    const level = gym ? gymLevel : debugLevel ? pipelineLevel : worldLevel;
+    game.level = level;
+    game.gym = gym;
     const area = Number(params.get("area"));
     if (!debugLevel && Number.isInteger(area) && area >= 1 && area <= AREAS.length) game.startArea = area;
-    game.clock = new CallClock(CHAMADA, game.sfx);
+    game.callScreen.setContact(CHAMADA.colegaNome);
+    game.clock = new CallClock(CHAMADA, game.sfx, game.callScreen);
     const clockStart = Number(params.get("chamada"));
     if (clockStart > 0) game.clock.setTime(clockStart);
     game.telemetry = new Telemetry(game.startArea);
@@ -151,6 +193,25 @@ export class Game {
     }
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
+    if (gym && game.vigias[0]) {
+      const { GymPanel } = await import("../dev/GymPanel");
+      new GymPanel(game.vigias[0], game.clock, game.sfx);
+    }
+    if (import.meta.env.DEV) {
+      // Só em desenvolvimento: teletransporte para capturas automáticas.
+      (window as unknown as { chamadaTp: (x: number, y: number) => void }).chamadaTp = (x, y) => {
+        // Pula os focos de câmera que ficaram para trás, senão a câmera volta para mostrá-los.
+        while (game.hints.cameraBeat(x)) {
+          /* consome */
+        }
+        game.player.respawn({ x, y });
+        game.cameraRig.focus(x, 0);
+        game.cameraRig.snap(x, y);
+      };
+      (window as unknown as { chamadaScene: Scene }).chamadaScene = game.scene;
+      (window as unknown as { chamadaInvisivel: (on: boolean) => void }).chamadaInvisivel = (on) => (game.devInvisible = on);
+      (window as unknown as { chamadaGame: Game }).chamadaGame = game;
+    }
     return game;
   }
 
@@ -170,36 +231,61 @@ export class Game {
 
     this.materials = new MaterialLibrary(scene);
     this.props = new Props(scene);
-    await this.props.load(level.obstacles.flatMap((block) => (block.model ? [block.model] : [])));
+    await this.props.load([...level.obstacles, ...level.decor].flatMap((block) => (block.model ? [block.model] : [])));
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
       this.createStatic(block, level.depth, `solid-${i}`);
     }
     level.obstacles.forEach((block, i) => {
       const mesh = this.createStatic(block, level.depth, `obstacle-${i}`);
-      if (!block.model) {
-        this.obstacleMeshes.push(mesh);
-        return;
-      }
-      mesh.isVisible = false;
+      // Obstáculos sem visual próprio (modelo pronto por cima, ou só colisão): a caixa de colisão continua
+      // projetando sombra na lanterna, sem aparecer na câmera. Assim a estante bloqueia a luz inteira, como
+      // bloqueia a visão do segurança (os modelos instanciados e com vãos entre os livros deixavam a luz passar).
+      if (block.hidden || block.model) mesh.layerMask = SHADOW_ONLY_LAYER;
+      this.obstacleMeshes.push(mesh);
+      if (!block.model) return;
       const size = { width: block.width, height: block.height, depth: block.depth ?? level.depth };
-      this.obstacleMeshes.push(this.props.place(block, block.model, size));
+      this.props.place(block, block.model, size);
     });
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
-    level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
+    level.decor.forEach((decor, i) => {
+      // Decoração com modelo: só o visual, sem colisão (não bloqueia o jogador nem a visão dos Vigias).
+      if (decor.model) this.props.place(decor, decor.model, { width: decor.width, height: decor.height, depth: decor.depth });
+      else this.createDecor(decor, `decor-${i}`);
+    });
+    this.kit = new Kit(scene);
+    const kitModels = [
+      ...(level.props ?? []).map((prop) => prop.model),
+      ...level.boxes.flatMap((box) => (box.visual ?? []).map((prop) => prop.model)),
+    ];
+    await this.kit.load(kitModels);
+    (level.props ?? []).forEach((prop, i) => {
+      const root = this.kit.place(prop, `prop-${i}`);
+      if (prop.shadow) this.propShadowCasters.push(...root.getChildMeshes());
+    });
     level.doors.forEach((door, i) =>
       this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
     );
     level.plates.forEach((plate, i) =>
-      this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials.get("metal"), `plate-${i}`)),
+      this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials, `plate-${i}`)),
     );
     if (level.finalDoor) this.finalDoor = new FinalDoor(scene, level.finalDoor, this.materials.get("madeira"), "porta-final");
     level.elevators.forEach((elevator, i) =>
       this.elevators.push(new Elevator(scene, elevator, level.depth, this.materials.get("metal"), `elevator-${i}`)),
     );
 
-    level.boxes.forEach((data, i) =>
-      this.boxes.push(new Box(scene, data, `box-${i}`, this.materials.get(data.material ?? "caixa"))),
-    );
+    level.boxes.forEach((data, i) => {
+      const box = new Box(scene, data, `box-${i}`, this.materials.get(data.material ?? "caixa"));
+      if (data.visual) {
+        // O cubo continua sendo o corpo físico; os modelos prontos vão junto, como visual.
+        data.visual.forEach((prop, j) => {
+          const visual = this.kit.place({ ...prop, y: prop.y - data.size / 2 }, `box-${i}-visual-${j}`);
+          visual.parent = box.mesh;
+          for (const child of visual.getChildMeshes()) child.unfreezeWorldMatrix();
+        });
+        box.mesh.isVisible = false;
+      }
+      this.boxes.push(box);
+    });
 
     this.checkpoints = new Checkpoints(level.checkpoints);
     if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
@@ -208,13 +294,22 @@ export class Game {
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
+    await Promise.all((level.figurantes ?? []).map((data, i) => Figurante.create(scene, data, `figurante-${i}`)));
     for (const data of level.vigias) {
       const vigia = await Vigia.create(scene, data);
-      vigia.addShadowCasters([...this.obstacleMeshes, ...this.player.meshes, ...this.boxes.map((box) => box.mesh)]);
+      vigia.setCovers(
+        coverFromBlocks(level.obstacles, level.depth),
+        // Todos os obstáculos, o chão e as paredes cortam o facho (senão o cone atravessa barreiras e o piso).
+        solidsFromBlocks([...level.obstacles, ...level.ground, ...level.walls], level.depth, false),
+        // Portões sobem e descem: a caixa é lida a cada quadro, e o portão fechado barra a luz.
+        () => this.doors.map((door) => door.occluder),
+      );
+      vigia.addShadowCasters([...this.obstacleMeshes, ...this.doors.map((door) => door.mesh), ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
       this.vigias.push(vigia);
     }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+    createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
@@ -246,6 +341,7 @@ export class Game {
     const camera = this.cameraRig.camera;
     const startX = camera.position.x;
     await this.materials.whenTexturesReady();
+    await this.kit.whenReady();
     for (let x = minX; x <= maxX + WARMUP_STEP; x += WARMUP_STEP) {
       camera.position.x = x;
       this.player.placeVisual(x, camera.position.y - 2.5);
@@ -273,7 +369,7 @@ export class Game {
     this.input.update();
     const area = areaAt(this.player.position.x);
     const running = this.state === "jogando" || this.state === "morto";
-    this.clock.update(realDt, area, running);
+    this.clock.update(realDt, area, running, this.salaProximity(area));
     if (running) {
       this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total, this.player.position.x, this.player.feetY);
       if (this.clock.studentNameReached) this.late();
@@ -282,6 +378,7 @@ export class Game {
     this.finalDoor?.update(dt);
     this.updateDoors(dt);
     for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
+    this.announceChases();
     this.updateElevators(dt);
     if (this.state === "menu") {
       this.updateMenu(dt);
@@ -304,15 +401,17 @@ export class Game {
       return;
     }
     const dir = this.input.axisX();
-    if (this.isPushingBox()) {
+    const pushed = this.pushedBox();
+    if (pushed) {
       this.pushTimer = PUSH_GRACE;
       this.pushDir = dir;
+      this.pushGrip = pushed;
     } else {
       this.pushTimer = dir === this.pushDir ? Math.max(0, this.pushTimer - dt) : 0;
     }
     const beat = this.hints.cameraBeat(this.player.position.x);
     if (beat) {
-      this.cameraRig.focus(beat.focusX, beat.seconds);
+      this.cameraRig.focus(this.beatFocusX(beat), beat.seconds);
       this.focusLock = true;
       this.input.setAutopilot(0);
     } else if (this.focusLock && !this.cameraRig.focusing) {
@@ -322,12 +421,21 @@ export class Game {
     const px = this.player.position.x;
     if (this.ambient) {
       const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
-      const target = dark ? DARK_AMBIENT : 1;
-      this.ambient.intensity += (target - this.ambient.intensity) * Math.min(1, dt * 1.5);
+      // O prédio apaga aos poucos: cada trecho tem quanto sobra de luz geral e de que cor.
+      const zone = (this.level.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
+      const target = (zone?.intensidade ?? 1) * (dark ? DARK_AMBIENT : 1);
+      const k = Math.min(1, dt * 1.5);
+      this.ambient.intensity += (target - this.ambient.intensity) * k;
+      if (zone) {
+        const c = this.ambient.diffuse;
+        c.r += (zone.cor[0] - c.r) * k;
+        c.g += (zone.cor[1] - c.g) * k;
+        c.b += (zone.cor[2] - c.b) * k;
+      }
     }
-    this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
+    this.player.setCrouch((this.level.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
+    this.player.setGrip(this.pushTimer > 0 ? this.gripPoint() : null);
     this.player.update(dt, this.input, this.pushTimer > 0);
-    this.updateLoop(px);
     this.vultos?.update(dt, this.player.position.x);
     this.updateNoise();
     this.cameraRig.update(dt, {
@@ -370,9 +478,16 @@ export class Game {
   }
 
   private die(cause: "queda" | "luz" | "toque"): void {
+    // Seguranças não matam: ser pego é ser levado para fora (volta ao checkpoint).
+    const caught = cause !== "queda";
+    this.fadeOut = caught ? CAUGHT_FADE_OUT : DEATH_FADE_OUT;
+    this.fadeIn = caught ? CAUGHT_FADE_IN : DEATH_FADE_IN;
+    this.hold = caught ? CAUGHT_HOLD : 0;
+    if (caught) this.clock.guard("pego");
     this.hints.registerDeath(this.player.position.x);
     this.telemetry.death(areaAt(this.player.position.x), cause, this.player.position.x);
-    this.soundscape.death(cause);
+    if (cause === "queda") this.soundscape.death(cause);
+    else this.soundscape.caught(cause);
     this.soundscape.forget();
     this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
     this.state = "morto";
@@ -388,7 +503,7 @@ export class Game {
     this.sfx.unlock();
     this.clock.start();
     this.input.setAutopilot(null);
-    document.body.style.cursor = "none";
+    if (!this.gym) document.body.style.cursor = "none";
     this.state = "jogando";
   }
 
@@ -399,14 +514,15 @@ export class Game {
     this.endShownAt = -1;
     this.input.setAutopilot(0);
     this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.clock.badEnding();
     this.telemetry.finish("ruim");
   }
 
   private updateLate(dt: number): void {
     this.arrivalTimer += dt;
-    if (this.arrivalTimer > LATE_HOLD) this.clock.stopHiss();
+    if (this.arrivalTimer > LATE_HOLD + END_FADE) this.clock.silence();
     this.fade.set(Math.min(Math.max((this.arrivalTimer - LATE_HOLD) / END_FADE, 0), 1));
-    this.updateEndScreen(this.lateScreen, LATE_HOLD);
+    this.updateEndScreen(this.lateScreen, LATE_HOLD + END_FADE + END_SCREEN_DELAY);
     this.player.update(dt, this.input, false);
     this.cullLights();
   }
@@ -451,15 +567,34 @@ export class Game {
       const walking = this.arrivalTimer > ARRIVAL_PAUSE && this.player.position.x < target;
       this.input.setAutopilot(walking ? 1 : 0);
       if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) {
+        // O professor ergue os olhos e chama o nome fora da ordem.
         this.state = "fim";
         this.arrivalTimer = 0;
-        this.clock.callStudentNow();
+        this.cutAt = -1;
+        this.endShownAt = -1;
+        const duration = this.clock.goodEnding();
+        this.answerFrom = Math.min(ANSWER_EARLIEST, duration);
+        this.answerUntil = duration + ANSWER_WINDOW;
+        this.roomCaption.show(CHAMADA.falas.salaChama.texto, duration + 1);
+        this.input.consumeAnyPress();
         this.telemetry.finish("bom");
       }
-    } else {
-      if (this.arrivalTimer > ROOM_HOLD) this.clock.stopHiss();
-      this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
-      this.updateEndScreen(this.endScreen, ROOM_HOLD);
+    } else if (this.cutAt < 0) {
+      // Qualquer botão: "presente". Sem resposta em ~4 s, corta em silêncio.
+      const pressed = this.input.consumeAnyPress();
+      if (this.arrivalTimer >= this.answerFrom && pressed) {
+        this.clock.answer();
+        this.roomCaption.show(CHAMADA.falas.zacariasPresente.texto, CUT_AFTER_ANSWER);
+        this.cutAt = this.arrivalTimer + CUT_AFTER_ANSWER;
+      } else if (this.arrivalTimer > this.answerUntil) {
+        this.cutAt = this.arrivalTimer;
+      }
+    } else if (this.arrivalTimer >= this.cutAt) {
+      // Corte seco para preto.
+      this.fade.set(1);
+      this.roomCaption.hide();
+      this.clock.silence();
+      this.updateEndScreen(this.endScreen, this.cutAt + END_FADE);
     }
     this.player.update(dt, this.input, false);
     this.cameraRig.update(dt, {
@@ -471,9 +606,9 @@ export class Game {
     this.cullLights();
   }
 
-  private updateEndScreen(screen: EndScreen | LateScreen, hold: number): void {
+  private updateEndScreen(screen: EndScreen | LateScreen, showAt: number): void {
     if (this.endShownAt < 0) {
-      if (this.arrivalTimer < hold + END_FADE + END_SCREEN_DELAY) return;
+      if (this.arrivalTimer < showAt) return;
       this.endShownAt = this.arrivalTimer;
       this.input.consumeAnyPress();
       document.body.style.cursor = "";
@@ -489,8 +624,8 @@ export class Game {
 
   private updateDeath(dt: number): void {
     this.deathTimer += dt;
-    if (this.deathTimer < DEATH_FADE_OUT) {
-      this.fade.set(this.deathTimer / DEATH_FADE_OUT);
+    if (this.deathTimer < this.fadeOut) {
+      this.fade.set(this.deathTimer / this.fadeOut);
       return;
     }
     if (!this.respawned) {
@@ -500,16 +635,52 @@ export class Game {
       for (const box of this.boxes) box.reset();
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
+      this.chasesAnnounced.clear();
       for (const elevator of this.elevators) elevator.reset();
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
-    const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;
-    this.fade.set(1 - t);
+    const t = Math.max(0, this.deathTimer - this.fadeOut - this.hold) / this.fadeIn;
+    this.fade.set(1 - Math.min(t, 1));
     if (t >= 1) {
       this.state = "jogando";
       this.fade.setColor(DEFAULT_FADE_COLOR);
     }
+  }
+
+  /** Onde a câmera para num foco: um ponto fixo ou o segurança de ronda mais perto dele, onde ele estiver. */
+  private beatFocusX(beat: CameraBeatData): number {
+    if (!beat.seguranca) return beat.focusX;
+    let best: Vigia | null = null;
+    for (const vigia of this.vigias) {
+      if (vigia.chases) continue;
+      if (!best || Math.abs(vigia.positionX - beat.focusX) < Math.abs(best.positionX - beat.focusX)) best = vigia;
+    }
+    return best?.positionX ?? beat.focusX;
+  }
+
+  /** Na área 5, de 0 (começo do corredor) a 1 (porta da sala): a voz real do professor vai ficando mais alta. */
+  private salaProximity(area: number): number {
+    const door = this.finalDoor?.data.triggerX;
+    const start = AREAS.find((a) => a.numero === area)?.inicioX;
+    if (area !== AREAS[AREAS.length - 1].numero || door === undefined || start === undefined) return 0;
+    return Math.min(Math.max((this.player.position.x - start) / (door - start), 0), 1);
+  }
+
+  /** Fala de um segurança, mais baixa quanto mais longe ele está. */
+  /** Quando um segurança de perseguição aparece, ele grita antes de sair correndo. */
+  private announceChases(): void {
+    for (const vigia of this.vigias) {
+      if (!vigia.chases || !vigia.shown || this.chasesAnnounced.has(vigia)) continue;
+      this.chasesAnnounced.add(vigia);
+      if (!this.warming) this.clock.guard("persegue", 1, true);
+    }
+  }
+
+    private guardSays(vigia: Vigia, kind: "desconfia" | "barulho"): void {
+    const distance = Math.abs(vigia.positionX - this.player.position.x);
+    if (distance > GUARD_VOICE_RANGE) return;
+    this.clock.guard(kind, 1 - 0.6 * (distance / GUARD_VOICE_RANGE));
   }
 
   // Caixa que cai com força faz barulho: os Vigias de patrulha por perto vão investigar.
@@ -519,22 +690,14 @@ export class Game {
       if (impact <= 0) continue;
       const p = box.mesh.position;
       this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
-      for (const vigia of this.vigias) vigia.hear(p.x, p.y);
+      let heard = false;
+      for (const vigia of this.vigias) {
+        if (vigia.hear(p.x, p.y) && !heard) {
+          heard = true;
+          this.guardSays(vigia, "barulho");
+        }
+      }
     }
-  }
-
-  // Corredor que se repete (área 5): ao cruzar o gatilho, jogador e câmera recuam juntos.
-  private updateLoop(previousX: number): void {
-    const loop = worldLevel.laco;
-    if (!loop || this.loopsDone >= loop.apagar.length) return;
-    const x = this.player.position.x;
-    if (previousX >= loop.gatilhoX || x < loop.gatilhoX) return;
-    this.player.shiftX(-loop.recuo);
-    this.cameraRig.shift(-loop.recuo);
-    for (const lamp of this.lamps) {
-      if (loop.apagar[this.loopsDone].some((lx) => Math.abs(lamp.positionX - lx) < 0.01)) lamp.makeDark();
-    }
-    this.loopsDone += 1;
   }
 
   private updateDoors(dt: number): void {
@@ -567,10 +730,10 @@ export class Game {
   }
 
   private isSeen(dt: number): "luz" | "toque" | null {
-    if (this.vigias.length === 0) return null;
+    if (this.vigias.length === 0 || this.devInvisible) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
-    const height = (p.y - feetY) * 2 * (1 - 0.25 * this.player.crouchAmount);
+    const height = (p.y - feetY) * 2 * (1 - TUNING.agachadoAltura * this.player.crouchAmount);
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
@@ -580,20 +743,38 @@ export class Game {
     for (const vigia of this.vigias) {
       if (vigia.chases) continue;
       if (vigia.updateAlert(dt, vigia.sees(this.sightPoints))) caught = true;
+      // Começou a desconfiar: "Ei? Tem alguém aí?"
+      const now = performance.now() / 1000;
+      if (vigia.suspicious && !this.wasSuspicious.get(vigia) && now - (this.suspicionLineAt.get(vigia) ?? -99) > SUSPICION_LINE_COOLDOWN && !caught) {
+        this.suspicionLineAt.set(vigia, now);
+        this.guardSays(vigia, "desconfia");
+      }
+      this.wasSuspicious.set(vigia, vigia.suspicious);
     }
     return caught ? "luz" : null;
   }
 
-  private isPushingBox(): boolean {
+  /** Ponto onde as mãos seguram a caixa empurrada (face voltada para o jogador). */
+  private gripPoint(): { x: number; y: number } | null {
+    const box = this.pushGrip;
+    if (!box) return null;
+    const p = box.mesh.position;
+    // Caiu da doca ou do palco: as mãos soltam, em vez de irem atrás dela.
+    if (p.y - box.halfSize < this.player.feetY - 0.2) return null;
+    const side = Math.sign(p.x - this.player.position.x) || 1;
+    return { x: p.x - side * (box.halfSize - box.grip.x), y: p.y - box.halfSize + box.grip.y };
+  }
+
+  private pushedBox(): Box | null {
     const dir = this.input.axisX();
-    if (dir === 0 || !this.player.isGrounded) return false;
+    if (dir === 0 || !this.player.isGrounded) return null;
     const p = this.player.position;
-    return this.boxes.some((box) => {
+    return this.boxes.find((box) => {
       const ahead = (box.mesh.position.x - p.x) * dir;
       const feet = p.y - CAPSULE_HEIGHT / 2;
       const overlapY = box.mesh.position.y + box.halfSize > feet + 0.1 && box.mesh.position.y - box.halfSize < feet + CAPSULE_HEIGHT;
       return ahead > 0 && ahead < CAPSULE_RADIUS + box.halfSize + PUSH_REACH && overlapY;
-    });
+    }) ?? null;
   }
 
   private createStatic(block: BlockData, depth: number, name: string): Mesh {

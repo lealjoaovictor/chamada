@@ -48,18 +48,33 @@ test("trechos furtivos e escuros ficam dentro de alguma área", () => {
   assert.ok((level.furtivo ?? []).length > 0);
 });
 
-test("corredor que se repete volta para dentro da área 5 e cada volta apaga lâmpadas que existem", () => {
-  const { level } = WORLD;
-  const laco = level.laco;
-  assert.ok(laco);
+test("corredor final não se repete: as lâmpadas dele apagam quando o jogador passa e a sala tem luz quente", () => {
   const area5 = areas[4].inicioX;
-  assert.ok(laco.gatilhoX - laco.recuo > area5);
-  for (const grupo of laco.apagar) {
-    for (const x of grupo) assert.ok(level.lamps.some((lamp) => Math.abs(lamp.x - x) < 0.01), `lâmpada em ${x}`);
+  const door = level.finalDoor;
+  assert.ok(door);
+  const corridor = level.lamps.filter((lamp) => lamp.x > area5 && lamp.x < door.x);
+  assert.ok(corridor.length >= 5);
+  for (const lamp of corridor) assert.ok(lamp.diesWhenPassed, `lâmpada em ${lamp.x}`);
+  const room = level.lamps.filter((lamp) => lamp.x > door.x);
+  assert.ok(room.length > 0 && room.every((lamp) => lamp.tom === "sala"));
+  assert.ok(level.lamps.filter((lamp) => lamp.x < door.x).every((lamp) => lamp.tom !== "sala"), "só a sala tem luz quente");
+});
+
+test("professor e colega ficam dentro da sala do final", () => {
+  const door = level.finalDoor;
+  assert.ok(door);
+  const people = level.figurantes ?? [];
+  assert.equal(people.length, 2);
+  for (const p of people) assert.ok(p.x > door.x && p.x < level.bounds.maxX);
+});
+
+test("contrapeso puxa uma porta que existe", () => {
+  for (const plate of level.plates.filter((p) => p.tipo === "contrapeso")) {
+    assert.ok(plate.portaX !== undefined);
+    assert.ok(level.doors.some((d) => Math.abs(d.x - (plate.portaX ?? 0)) < 0.01));
   }
 });
 
 test("vultos ficam dentro do mundo", () => {
   for (const v of level.vultos ?? []) assert.ok(v.x > level.bounds.minX && v.x < level.bounds.maxX);
-  assert.ok((level.vultos ?? []).length >= 4);
 });

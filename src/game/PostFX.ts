@@ -22,12 +22,12 @@ export interface VisualPreset {
 }
 
 export const VISUAL: VisualPreset = {
-  background: new Color3(0.06, 0.075, 0.1),
+  background: new Color3(0.071, 0.075, 0.09),
   fogDensity: 0.045,
   ambientIntensity: 0.6,
   ambientColor: new Color3(0.62, 0.7, 0.86),
   lampIntensity: 3.6,
-  saturation: -50,
+  saturation: -22,
   contrast: 1.2,
   exposure: 1.4,
   grain: 10,

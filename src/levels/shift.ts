@@ -19,7 +19,7 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
     ramps: level.ramps.map((r) => ({ ...r, x0: r.x0 + dx, x1: r.x1 + dx })),
     boxes: sx(level.boxes, dx),
     lamps: sx(level.lamps, dx),
-    plates: sx(level.plates, dx),
+    plates: level.plates.map((p) => ({ ...p, x: p.x + dx, portaX: p.portaX === undefined ? undefined : p.portaX + dx })),
     doors: level.doors.map((d) => ({
       ...d,
       x: d.x + dx,
@@ -39,10 +39,12 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
       walkToX: level.finalDoor.walkToX + dx,
     },
     decor: sx(level.decor, dx),
+    props: level.props && sx(level.props, dx),
     furtivo: level.furtivo?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
     escuro: level.escuro?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
+    ambiente: level.ambiente?.map((z) => ({ ...z, minX: z.minX + dx, maxX: z.maxX + dx })),
     vultos: level.vultos && sx(level.vultos, dx),
-    laco: level.laco && { ...level.laco, gatilhoX: level.laco.gatilhoX + dx, apagar: level.laco.apagar.map((g) => g.map((x) => x + dx)) },
+    figurantes: level.figurantes && sx(level.figurantes, dx),
   };
 }
 

@@ -420,7 +420,7 @@ export interface RailData {
 
 /** Adesivo plano encostado numa parede (virado para a câmera) ou deitado no chão. */
 export interface StickerData {
-  kind: "cartaz" | "pichacao" | "placa" | "mancha" | "umidade" | "folhas" | "rachadura" | "sombra" | "pe-de-parede" | "luz";
+  kind: "cartaz" | "pichacao" | "placa" | "mancha" | "umidade" | "folhas" | "rachadura" | "sombra" | "pe-de-parede" | "luz" | "poca" | "reflexo";
   x: number;
   y: number;
   z: number;

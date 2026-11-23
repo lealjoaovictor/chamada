@@ -224,6 +224,10 @@ export const area3Level: LevelData = {
   props: [
     // Janelas altas prontas, com o luar atrás.
     ...HALL_WINDOWS.flatMap((x) => moonWindow(x, 1.12, BACK_Z, true)),
+    // Alto da biblioteca: dutos de ar correndo sob o teto, como no corredor (o alto da tela era parede lisa).
+    ...Array.from({ length: 11 }, (_, i) => 86 + i * 1.8).map((x): PropData => ({
+      model: "modular_airduct_rectangular_01", part: "modular_airduct_rectangular_01_tripple_01", x, y: HALL_CEILING - 1.2, z: 1.9, rotY: 90, origin: false,
+    })),
     ...READING_WINDOWS.flatMap((x) => moonWindow(x, 1.12 + GALLERY_Y - 0.6, BACK_Z, true)),
     ...ARCHIVE_WINDOWS.flatMap((x) => moonWindow(x, 1.12 + GALLERY_Y - 0.6, BACK_Z, true)),
     // Acervo: caixas de arquivo pelo chão, escada e a placa de piso molhado do fim do expediente.

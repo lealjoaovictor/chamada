@@ -1,6 +1,6 @@
 # Chamada: GDD enxuto
 
-Versão 3 · Nov 22, 2026 (história reescrita e validada: faculdade noturna realista, chamada ouvida por uma ligação do colega, seguranças no lugar do Vigia; corredor em laço e vultos removidos)
+Versão 3.1 · Nov 23, 2026 (v3 de 22/11: faculdade noturna realista, chamada ouvida por uma ligação do colega, seguranças no lugar do Vigia; corredor em laço e vultos removidos. v3.1: uma ordem de corte só, congelamento em 24/11, vozes no ElevenLabs, legenda do nome lido, modelos do final e plano B da apresentação)
 
 ## Visão geral
 
@@ -14,7 +14,7 @@ Chamada é um jogo de plataforma e puzzle 2.5D de no máximo 8 minutos em que um
 Pilares:
 
 1. **A pressão é sonora.** O relógio é a chamada, ouvida por uma ligação aberta no celular, sem barra de tempo na tela.
-2. **Mundo quase sem palavras.** Sem diálogo nem texto de interface. As únicas palavras são as falas curtas do colega na ligação (com legenda curta na tela da ligação), os nomes lidos pelo professor, frases curtas dos seguranças e conversa de fundo dos alunos saindo.
+2. **Sem texto de interface; as palavras vêm só do som.** Nada de diálogo escrito, HUD ou tutorial em texto. As palavras são as falas curtas do colega na ligação (com legenda curta na tela da ligação), os nomes lidos pelo professor, frases curtas dos seguranças e conversa de fundo dos alunos saindo.
 3. **Morte barata.** Reinício imediato no último checkpoint.
 4. **Realismo antes de sobrenatural.** Uma faculdade noturna brasileira de verdade. Nada no jogo é irreal; a tensão vem do horário, do prédio fechando e dos seguranças.
 
@@ -61,15 +61,16 @@ O relógio do jogo dura 7min50 e tem duas partes. O tempo de jogo é o cronômet
 - **Sem barra de tempo.** O jogador sabe quanto falta pela letra em que a chamada está.
 - **Como se ouve:** pela ligação aberta do colega. A voz do professor chega ao fundo, abafada pelo celular, com os "presente" dos alunos (ou silêncio, quando alguém faltou: faltas comuns, espalhadas pela lista, sem a regra de "quase ninguém responde no fim").
 - **Falas do colega:** 13 falas sussurradas, em instantes fixos do relógio, que dizem em que ponto a aula e a chamada estão, comentam as interrupções e ficam mais nervosas ("Ele tá passando o trabalho, ainda dá", "Começou a chamada!", "Tá no M, mano", "Tá no S! Corre!", "Ele tá no V..."). Cada fala tem legenda curta na tela da ligação, para quem joga sem som.
+- **Legenda do nome lido (acessibilidade):** a tela da ligação mostra, em letra pequena, o nome que o professor está lendo (e "presente" ou "Falta."). Assim quem joga sem som também sabe em que letra está a chamada. Não é barra de tempo: só repete o que se ouve (equivalente visual para som importante, como pedem as diretrizes de acessibilidade).
 - **Sinal por área:** limpo nas áreas 1 a 3; no subsolo (área 4) a ligação picota e quase some, e o jogador perde o relógio na perseguição; na área 5 o sinal volta e entra a voz real do professor, sem filtro, vindo do fim do corredor, enquanto a do celular baixa.
 - **Morrer ou ser pego não reinicia o relógio.** O reinício é instantâneo no último checkpoint (início de cada área), e cada falha custa só alguns segundos.
-- **Calibragem:** a fase leva de 5 a 6 minutos numa primeira partida, e quem joga bem chega com cerca de 2 minutos de folga. Se o playtest mostrar primeira partida acima de 6 minutos, corta-se nesta ordem: (1) a segunda perseguição da área 4 e o depósito entre as perseguições; (2) a sala escura da área 2; (3) a garagem da área 1.
+- **Calibragem:** a fase leva de 5 a 6 minutos numa primeira partida, e quem joga bem chega com cerca de 2 minutos de folga. Esta é a única ordem de corte do jogo. Se a primeira partida passar de 6 minutos nos dois primeiros playtests, corta-se nesta ordem: (1) a segunda perseguição da área 4 e o depósito entre as perseguições; (2) a sala escura da área 2; (3) a garagem da área 1.
 
 Finais:
 
 | Condição | O que acontece |
 | --- | --- |
-| Chega à porta da sala antes do último nome | Final bom: a sala está vazia, menos o professor e o colega, que ficou esperando com o celular na mão. O professor ergue os olhos, vê alguém na porta e chama "Zacarias Vieira" fora da ordem (a lista não precisa chegar ao Z). O jogador aperta qualquer botão e Zacarias responde "presente". Corte para preto. Se ele não apertar em cerca de 4 s, corta em silêncio. |
+| Chega à porta da sala antes do último nome | Final bom: a sala está vazia, menos o professor e o colega, que ficou esperando com o celular na mão. O professor ergue os olhos, vê alguém na porta e chama "Zacarias Vieira" fora da ordem (a lista não precisa chegar ao Z). O jogador aperta qualquer botão e Zacarias responde "presente". Corte para preto. Se ele não apertar em cerca de 4 s, corta em silêncio. Modelos: os mesmos bonecos do Mixamo já usados (Y Bot e X Bot), sem rosto e num tom diferente do Zacarias e dos seguranças; o professor fica em pé na mesa, numa animação parada segurando a lista, e o colega fica sentado numa carteira com o celular na mão. Nenhum processo novo de modelagem. |
 | O nome é chamado antes da chegada | Final ruim: pela ligação, o nome, um silêncio, o colega dizendo baixinho "...ele chamou" e o som da caneta marcando a falta. A tela escurece e o jogo oferece reiniciar. |
 
 ## Os seguranças
@@ -112,22 +113,22 @@ A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e desliza
 O visual vem da atmosfera, não da quantidade de detalhe: formas simples, escuridão, névoa e poucas luzes unificam assets de origens diferentes.
 
 - **Câmera:** lateral, seguindo o jogador de forma suave no eixo horizontal. O mundo é 3D, mas o jogador fica travado num plano 2D.
-- **Cenário:** pacotes low-poly 3D gratuitos de interiores e móveis (Kenney, Quaternius, Poly Pizza). A licença de cada item é anotada ao baixar.
+- **Cenário:** modelos e texturas CC0 do Poly Haven, mais as estantes modeladas no Blender pelo projeto. A licença de cada item é anotada ao baixar.
 - **Personagem:** boneco neutro do Mixamo, escurecido e sem rosto.
 - **Modelos gerados por IA:** só para props estáticos pequenos; não para personagem.
 - **Coesão:** materiais escuros e simples, névoa, grão, vinheta e cores dessaturadas. Paleta de faculdade noturna real: amarelo de sódio nos postes, fluorescente frio nos corredores, e o prédio apagando área por área. O último lugar quente é a sala de aula. A lanterna dos seguranças é branca e fria, para não competir com a sala.
 
 ## Direção de áudio
 
-O som carrega metade do clima, e o ElevenLabs gera quase tudo.
+O som carrega metade do clima. **Decisão (2026-11-23): todas as vozes são geradas no ElevenLabs** (professor, colega, seguranças, alunos e o "presente" do Zacarias), porque dá para regravar uma fala em minutos se o tempo da chamada mudar e as vozes ficam consistentes.
 
 - **Voz da chamada:** text-to-speech gravado limpo. O jogo aplica o filtro de telefone (faixa de 300 a 3.400 Hz, compressão e leve distorção). Dentro da ligação há dois planos: o colega perto do microfone, sussurrado e seco, e o professor ao fundo, mais baixo, com eco de sala. No subsolo, picotes e chiado; na área 5, a voz real do professor sem filtro. É a faixa que serve de relógio.
-- **Falas do colega:** 13 falas sussurradas (ElevenLabs v3 com marcação de sussurro, ou gravação real no celular), mais "...ele chamou" do final ruim e o "presente" do Zacarias no final bom.
+- **Falas do colega:** 13 falas sussurradas (ElevenLabs v3 com marcação de sussurro), mais "...ele chamou" do final ruim e o "presente" do Zacarias no final bom.
 - **Seguranças e alunos:** cerca de 10 falas curtas dos seguranças e 4 ou 5 fragmentos de conversa de alunos (ver "Os seguranças" e "História"). A conversa dos alunos e as falas dos seguranças baixam o volume (ducking) quando o colega fala.
 - **Efeitos:** passos em corredor vazio, caixa arrastada, porta metálica, catraca, lâmpada falhando, estática, ventilação, passos pesados dos seguranças, vibração do celular, caneta riscando a lista.
 - **Ambiente e música:** um drone sombrio contínuo e a tensão crescendo na perseguição. O silêncio é um recurso, principalmente na área 5.
 - **Formato:** OGG ou MP3 comprimido, com nomes padronizados (`sfx_porta_metal.ogg`, `voz_chamada_01.ogg`).
-- **Licenças:** registrar o plano do ElevenLabs usado e seus termos de uso na tabela de licenças.
+- **Licenças:** conferir se o plano do ElevenLabs usado exige crédito e permite este uso, e registrar o plano, a data de geração e os termos na tabela de licenças (e nos créditos, se exigir).
 
 ## Escopo, cronograma e ordem de corte
 
@@ -135,17 +136,15 @@ Sete dias, uma pessoa com IA, e a semana termina com uma fase curta e polida em 
 
 &#91;embedded content: cronograma · 7 dias, 3 marcos\]
 
-O protótipo precisa estar pronto ao fim do dia 1, as features congeladas ao fim do dia 5, e o dia 7 só corrige e entrega.
+**Congelamento (decisão de 2026-11-23):** features congeladas na noite de 24/11; o dia 25/11 é só para corrigir bugs e entregar.
+
+**Mínimo da v3 (entra de qualquer jeito):** relógio novo pela ligação do colega, seguranças no lugar do Vigia e os dois finais. A conversa de fundo dos alunos e o sinal picotando no subsolo são os primeiros a sair se faltar tempo.
 
 **Dentro do escopo:** 5 áreas, 4 ações do jogador, 1 perigo humano (os seguranças), relógio sonoro pela ligação do colega, 2 finais, menu, tela de morte e tela final.
 
 **Fora do escopo:** mundo maior, mais inimigos, narrativa em texto além das falas curtas do colega, geração procedural, escalada e gancho.
 
-Se o tempo apertar, corta-se nesta ordem:
-
-1. Plataforma móvel da área 3, que vira só puzzle de caixa.
-2. Ronda dos seguranças na área 3, que vira puzzle puro.
-3. Final ruim separado, que vira só um reinício.
+Se o tempo de jogo apertar, vale a ordem de corte única da seção "A chamada" (calibragem): segunda perseguição e depósito da área 4, sala escura da área 2, garagem da área 1.
 
 Nunca se cortam: a perseguição, os puzzles de caixa, a atmosfera visual e o relógio sonoro.
 
@@ -153,14 +152,15 @@ Nunca se cortam: a perseguição, os puzzles de caixa, a atmosfera visual e o re
 
 O jogo está pronto quando uma pessoa de fora consegue jogá-lo do menu ao final, sem ajuda e sem travar.
 
-- [ ] Todos os controles funcionam no teclado e no controle.
+- [ ] Todos os controles funcionam no teclado e num controle real (até agora só testado com controle simulado).
 - [ ] Toda morte reinicia no checkpoint em menos de 1 segundo.
 - [ ] Cada área foi completada 3 vezes seguidas sem bug.
 - [ ] A primeira partida leva de 5 a 6 minutos, e a folga até o fim da chamada (7min50) é suficiente.
 - [ ] Os finais bom e ruim funcionam, e o jogo reinicia depois de ambos.
 - [ ] A voz da chamada acompanha o tempo real e o nome final chega na hora certa.
-- [ ] Roda a pelo menos 30 quadros por segundo no computador da apresentação.
+- [ ] Roda a 60 quadros por segundo estáveis no Mac da apresentação.
+- [ ] Plano B: vídeo de uma partida completa gravado na véspera da apresentação (23 ou 24/11).
 - [ ] Pelo menos duas pessoas de fora jogaram uma vez, sem ajuda, a partir do dia 6, com anotações de onde morreram demais ou se perderam.
 - [ ] A tabela de licenças cobre todos os assets e áudios.
 
-Marcos de controle: **protótipo pronto** ao fim do dia 1, **congelamento de features** ao fim do dia 5 e **versão final** ao fim do dia 7.
+Marcos de controle: **protótipo pronto** (feito em 21/11), **congelamento de features** na noite de 24/11 e **versão final** em 25/11.

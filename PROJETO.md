@@ -13,7 +13,7 @@ O design completo está no **GDD** ("Chamada: GDD enxuto"). Em caso de dúvida d
 ## 2. Regras de ouro para a IA
 
 1. **Uma tarefa por vez.** Não implemente nada fora do que foi pedido.
-2. **Escopo fechado.** Quatro ações do jogador (andar, pular, deslizar, empurrar caixa), um inimigo (o Vigia), cinco áreas. Não adicione mecânicas, menus extras nem sistemas novos sem pedido.
+2. **Escopo fechado.** Quatro ações do jogador (andar, pular, deslizar, empurrar caixa), um perigo humano (os seguranças; no código ainda se chama `Vigia`), cinco áreas. Não adicione mecânicas, menus extras nem sistemas novos sem pedido.
 3. **Use só a API da versão fixada** na seção 3. Em caso de dúvida, consulte a documentação oficial (doc.babylonjs.com) e o Playground da mesma versão antes de escrever. Não misture API antiga com nova. Não invente métodos.
 4. **Não reescreva arquivos inteiros** para mudar pouco. Altere o mínimo e diga o que mudou.
 5. **Dados separados do código.** Posições, textos e parâmetros de fase ficam em arquivos de dados (`src/levels/`), não espalhados na lógica.
@@ -143,6 +143,14 @@ chamada/
 Atualize esta lista a cada tarefa concluída.
 
 - [ ] **História nova (GDD v3, validada em 2026-11-22), falta implementar:** ligação do colega como fonte da chamada (filtro de telefone, falas do colega com legenda, sinal picotando no subsolo, voz real do professor na área 5); seguranças no lugar do Vigia (ser pego = levado para fora); vultos viram colegas sólidos saindo na direção contrária; remover o corredor em laço da área 5; final bom com o professor chamando fora da ordem e o jogador respondendo "presente"; final ruim com "...ele chamou" e caneta; tirar a regra de "quase ninguém responde no fim"; sensores de portão no lugar das placas (zeladoria: caixa trava a porta); falas dos seguranças (desconfiança, barulho, pego; 3 variações sorteadas) e conversa de fundo dos alunos nas áreas 1 e 2, com ducking quando o colega fala; relógio em duas partes (no máximo 8 minutos de jogo: fim da aula até 1:45 com falas do professor, depois chamada até 7:50 de 48 colegas + Zacarias com 3 interrupções e faltas com "Falta."), refazendo `chamada.ts` e `CallSchedule.ts` pela tabela do roteiro da voz
+- [ ] **Decisões de 2026-11-23 (GDD v3.1), falta implementar:**
+  - Mínimo da v3 até o congelamento (noite de 24/11): relógio novo pela ligação, seguranças e os dois finais. Conversa dos alunos e sinal picotando saem primeiro se faltar tempo
+  - Ordem de corte única (GDD, "A chamada"): segunda perseguição e depósito da área 4, sala escura da área 2, garagem da área 1; gatilho = primeira partida acima de 6 min nos dois primeiros playtests
+  - Vozes: todas no ElevenLabs; conferir crédito e uso permitido do plano e registrar na seção 9
+  - Legenda do nome lido na tela da ligação (acessibilidade para quem joga sem som)
+  - Final bom: professor em pé na mesa segurando a lista e colega sentado com o celular, reaproveitando Y Bot e X Bot do Mixamo com outro tom
+  - Testar com um controle real
+  - Plano B: gravar vídeo de uma partida completa na véspera da apresentação
 - [x] Projeto base (Vite + TypeScript + Babylon + Havok)
 - [ ] **Prova de pipeline** (seção 8)
   - [x] 1. Projeto criado com versões fixadas
@@ -271,5 +279,5 @@ Cole o papel no início da sessão, junto com este arquivo e o GDD.
 | Marco | Fim do dia |
 | --- | --- |
 | Protótipo pronto (prova de pipeline aprovada) | 1 |
-| Features congeladas (nada novo entra) | adiado para perto da entrega (decisão de 2026-11-22, para caber a meta de 8 a 10 minutos) |
-| Versão final (build testada em outro computador) | 7 |
+| Features congeladas (nada novo entra) | noite de 24/11 (decisão de 2026-11-23) |
+| Versão final (build testada em outro computador) | 25/11 (só correção de bugs) |

@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData, ModelName, PropData } from "./types";
+import type { StickerData, BlockData, DecorData, LampData, LevelData, ModelName, PropData } from "./types";
 import { CRATE_VISUAL, LIBRARY_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 80;
@@ -82,6 +82,21 @@ export const area3Level: LevelData = {
   checkpoints: [{ x: 110, y: GALLERY_Y + 1.2 }, { x: 141.4, y: GALLERY_Y + 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: ARCHIVE_END },
+  // Identidade: placas de seção sobre as estantes, aviso de silêncio, sala de leitura e acervo.
+  adesivos: [
+    { kind: "placa", x: 81.6, y: 2.75, z: 2.03, width: 1.2, height: 0.32, color: "#262626", ink: "#d9d2bf", glow: 0.24, text: ["BIBLIOTECA"] },
+    ...[["FILOSOFIA", 86.5], ["HISTÓRIA", 89.5], ["DIREITO", 92.5], ["CÁLCULO", 95.5], ["FÍSICA", 98.5], ["QUÍMICA", 101.5]].map(
+      ([text, x]): StickerData => ({ kind: "placa", x: x as number, y: 3.1, z: BACK_Z - 0.07, width: 1.1, height: 0.26, color: "#2c2418", ink: "#e2d6b8", glow: 0.24, text: [text as string] }),
+    ),
+    { kind: "placa", x: 94, y: 4.75, z: BACK_Z - 0.07, width: 1.4, height: 0.4, color: "#e8e2d0", ink: "#6a1c16", glow: 0.24, text: ["SILÊNCIO"] },
+    { kind: "mancha", x: 91, y: 0.02, z: -0.4, width: 2.6, height: 1.5, chao: true },
+    { kind: "placa", x: 119.6, y: GALLERY_Y + 2.9, z: BACK_Z - 0.07, width: 1.9, height: 0.38, color: "#262626", ink: "#d9d2bf", glow: 0.24, text: ["SALA DE LEITURA"] },
+    { kind: "cartaz", x: 126.1, y: GALLERY_Y + 1.95, z: BACK_Z - 0.06, width: 0.55, height: 0.75, rot: -0.03, color: "#f7f7f2", ink: "#1e3c8a", glow: 0.45, text: ["DEVOLUÇÃO", "ATÉ 20H", "MULTA", "R$ 1/DIA"] },
+    { kind: "mancha", x: 133, y: GALLERY_Y + 0.02, z: 0.5, width: 2.2, height: 1.3, chao: true },
+    { kind: "placa", x: 146.6, y: SUNK_Y + 2.7, z: BACK_Z - 0.07, width: 2.2, height: 0.38, color: "#2a2a2a", ink: "#cfc8b4", glow: 0.14, text: ["ACERVO • ACESSO RESTRITO"] },
+    { kind: "umidade", x: 152, y: SUNK_Y + 0.6, z: BACK_Z - 0.06, width: 6, height: 1.2 },
+    { kind: "rachadura", x: 158.4, y: SUNK_Y + 2.9, z: BACK_Z - 0.06, width: 1.6, height: 0.5 },
+  ],
   // Térreo, galeria e sala de leitura, acervo rebaixado e a escada de volta à galeria.
   primeiroPlano: [
     { x0: START, x1: SHAFT_X + SHAFT_WIDTH / 2, y0: 0 },

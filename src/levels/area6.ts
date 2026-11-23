@@ -179,6 +179,13 @@ export const area6Level: LevelData = {
   checkpoints: [{ x: 241, y: FLOOR + 1.2 }, { x: 296.5, y: FLOOR2 + 1.2 }],
   killY: -6,
   bounds: { minX: START, maxX: END },
+  // Bloco C: aviso na portaria, cartaz, umidade e marcas no piso.
+  adesivos: [
+    { kind: "cartaz", x: DESK_X - 2.6, y: FLOOR + 1.9, z: BACK_Z - 0.06, width: 0.55, height: 0.75, rot: 0.03, color: "#f7f7f2", ink: "#222222", glow: 0.45, text: ["PORTARIA", "FECHA", "ÀS 22H30"] },
+    { kind: "umidade", x: 285, y: FLOOR + 0.55, z: BACK_Z - 0.06, width: 5, height: 1.1 },
+    { kind: "rachadura", x: 288.5, y: FLOOR + 2.3, z: BACK_Z - 0.06, width: 1.5, height: 0.5 },
+    { kind: "mancha", x: 284, y: FLOOR + 0.02, z: -0.2, width: 2.2, height: 1.3, chao: true },
+  ],
   // Só o bloco C: a passarela é suspensa, e embaixo dela fica o pátio.
   primeiroPlano: [
     { x0: ENTRY_X, x1: STAIR_X0, y0: FLOOR },

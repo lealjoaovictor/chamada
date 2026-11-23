@@ -244,7 +244,8 @@ export const area1Level: LevelData = {
     { x: CABINET_X, y: CABINET_HEIGHT / 2, z: COVER_Z, depth: CABINET_DEPTH, width: CABINET_WIDTH, height: CABINET_HEIGHT, material: "metal", hidden: true },
   ],
   ramps: [
-    { x0: 15, y0: 0, x1: 19, y1: 1.5, hidden: true },
+    // Escadaria da entrada: oito degraus de 18,75 cm.
+    { x0: 15, y0: 0, x1: 19, y1: 1.5, steps: 8, stepZ: 0.6, stepDepth: 5.2 },
     { x0: 38, y0: 2.2, x1: 42, y1: 0, material: "metal" },
   ],
   boxes: [
@@ -289,21 +290,12 @@ export const area1Level: LevelData = {
   elevators: [],
   decor: [
     // Narrativa: folhas espalhadas pela escadaria e um celular com a tela acesa na garagem.
-    { x: 16.8, y: 0.01, z: -0.9, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
-    { x: 17.6, y: 0.01, z: -0.4, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 16.8, y: 0.76, z: -0.9, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 17.6, y: 1.135, z: -0.4, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 24.5, y: 1.505, z: -0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 25.3, y: 1.505, z: -1.2, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 26.9, y: 1.505, z: -0.3, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 62.6, y: 0.012, z: -0.7, width: 0.09, height: 0.012, depth: 0.17, material: "tela" },
-    ...[0, 1, 2, 3, 4, 5].map((i): DecorData => ({
-      x: 15 + 0.333 + i * 0.667,
-      y: (i + 1) * 0.125,
-      width: 0.667,
-      height: (i + 1) * 0.25,
-      z: 0.6,
-      depth: 5.2,
-      material: "pedra",
-    })),
     // Patamar entre a escadaria e a porta, encostado no embasamento do prédio.
     { x: 21, y: 0.75, z: 3, width: 4, height: 1.5, depth: 2, material: "pedra" },
     // Faixa de pedestre.

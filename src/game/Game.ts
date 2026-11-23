@@ -58,6 +58,7 @@ import { TouchControls, touchMode } from "../ui/TouchControls";
 import { GestureControls } from "../ui/GestureControls";
 import { MaterialLibrary } from "./MaterialLibrary";
 import type { BlockData, CameraBeatData, DecorData, LevelData, RampData } from "../levels/types";
+import { isStair, stairSteps } from "../levels/stairs";
 import { pipelineLevel } from "../levels/pipeline";
 import { gymLevel } from "../levels/gym";
 import { TUNING } from "./Tuning";
@@ -353,6 +354,10 @@ export class Game {
       this.props.place(block, block.model, size);
     });
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
+    // Escadas: a rampa fica escondida (colisão) e os degraus aparecem por cima.
+    level.ramps.filter(isStair).forEach((stair, i) =>
+      stairSteps(stair, level.depth).forEach((step, j) => this.createDecor(step, `degrau-${i}-${j}`)),
+    );
     level.decor.forEach((decor, i) => {
       // Decoração com modelo: só o visual, sem colisão (não bloqueia o jogador nem a visão dos Vigias).
       if (decor.model) this.props.place(decor, decor.model, { width: decor.width, height: decor.height, depth: decor.depth });
@@ -401,6 +406,7 @@ export class Game {
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
+    this.player.setStairs(level.ramps.filter(isStair));
     await Promise.all((level.figurantes ?? []).map((data, i) => Figurante.create(scene, data, `figurante-${i}`)));
     for (const data of level.vigias) {
       const vigia = await Vigia.create(scene, data);
@@ -1106,7 +1112,7 @@ export class Game {
       0,
     );
     mesh.material = this.materials.get(ramp.material ?? "concreto");
-    mesh.isVisible = !ramp.hidden;
+    mesh.isVisible = !ramp.hidden && !isStair(ramp);
     new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0, friction: 0.8 }, this.scene);
     mesh.freezeWorldMatrix();
   }

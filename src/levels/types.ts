@@ -82,6 +82,14 @@ export interface RampData {
   y1: number;
   material?: MaterialName;
   hidden?: boolean;
+  /**
+   * Escada: a colisão continua sendo esta rampa (escondida, passando pelas quinas de trás dos degraus) e o jogo
+   * desenha `steps` degraus iguais por cima. Os pés do personagem pisam em cada degrau (ver FootIK).
+   */
+  steps?: number;
+  /** Profundidade (Z) e centro em Z dos degraus visíveis. Padrão: a profundidade da fase, centrada em 0. */
+  stepDepth?: number;
+  stepZ?: number;
 }
 
 export interface BoxData {

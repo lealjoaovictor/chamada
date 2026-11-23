@@ -469,6 +469,11 @@ export interface StickerData {
   glow?: number;
   /** Força da sombra ou da poça de luz (0 a 1). */
   strength?: number;
+  /**
+   * Sombra: até que fração do raio ela fica quase cheia antes de sumir (padrão 0,45). Mais alto = borda mais
+   * marcada, para a sombra aparecer em volta do móvel e não só embaixo dele.
+   */
+  nucleo?: number;
 }
 
 export interface LifeData {

@@ -6,6 +6,7 @@ import { area4Level } from "./area4.ts";
 import { area5Level } from "./area5.ts";
 import { area6Level } from "./area6.ts";
 import { CHACOALHAR_POR_AREA, DICAS_POR_AREA, FOCOS_POR_AREA } from "./dicas.ts";
+import { dressInteriors } from "./decals.ts";
 import { shiftBeat, shiftHint, shiftLevel, shiftRattle } from "./shift.ts";
 
 const AREA_LEVELS = [area1Level, area2Level, area3Level, area4Level, area5Level, area6Level];
@@ -76,6 +77,8 @@ function buildWorld(levels: LevelData[]): World {
     finalDoor: shifted.find((a) => a.finalDoor)?.finalDoor,
     salaVazia: shifted.find((a) => a.salaVazia)?.salaVazia,
   };
+  // Sombras de contato, pé de parede e poças de luz dos interiores saem do próprio mundo montado.
+  level.adesivos = [...(level.adesivos ?? []), ...dressInteriors(level)];
   return { level, areas, hints, beats, rattles };
 }
 

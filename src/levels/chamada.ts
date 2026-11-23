@@ -205,6 +205,10 @@ export const CHAMADA: CallData = {
       // Segurança cochilando no corredor do segundo andar.
       acorda: [seguranca("seg_acorda_1", "Hã?! Quem tá aí?"), seguranca("seg_acorda_2", "Hein?! Que barulho foi esse?")],
       voltaDormir: [seguranca("seg_volta_1", "Hm... devia ser o vento."), seguranca("seg_volta_2", "Tô ficando doido...")],
+      // Perseguição do subsolo: a portaria chama pelo rádio (atrás da porta), ele responde e, no fim, grita na grade.
+      radio: [seguranca("seg_radio_1", "Subsolo, na escuta? Tem um aluno aí embaixo. Desceu pela garagem.")],
+      responde: [seguranca("seg_responde_1", "Tô vendo ele na câmera. Deixa comigo.")],
+      grade: [seguranca("seg_grade_1", "Corre, corre! Lá em cima eles te pegam!"), seguranca("seg_grade_2", "Isso não vai ficar assim, rapaz!")],
     },
   },
 

@@ -37,6 +37,9 @@ const DARK_OFF_TIME = [0.9, 2.2];
 const DARK_OFF_LEVEL = 0;
 const HUM_DISTANCE = 6;
 const HUM_LEVEL = 0.6;
+/** Luz de emergência (apagão do subsolo): vermelha e fraca, no lugar do tubo que apagou. */
+const EMERGENCY_COLOR = new Color3(1, 0.08, 0.04);
+const EMERGENCY_LEVEL = 0.45;
 
 function between(range: number[]): number {
   return range[0] + Math.random() * (range[1] - range[0]);
@@ -45,7 +48,11 @@ function between(range: number[]): number {
 export class Lamp {
   private readonly light: PointLight;
   private readonly bulbMaterial: StandardMaterial;
-  private readonly color: Color3;
+  private color: Color3;
+  private readonly baseColor: Color3;
+  private readonly startsDead: boolean;
+  private readonly startsFlicker: boolean;
+  private readonly startsDark: boolean;
   private coneMaterial: StandardMaterial | null = null;
   private readonly intensity: number;
   private flicker: boolean;
@@ -65,8 +72,12 @@ export class Lamp {
     const moon = data.moonlight ?? false;
     this.intensity = (moon ? MOON_INTENSITY : intensity) * (data.forca ?? 1);
     this.color = TONE_COLORS[data.tom ?? "fluorescente"];
+    this.baseColor = this.color;
     this.flicker = (data.flicker ?? false) !== false;
     this.dark = data.flicker === "escuro";
+    this.startsFlicker = this.flicker;
+    this.startsDark = this.dark;
+    this.startsDead = data.desligada ?? false;
     this.x = data.x;
     this.diesWhenPassed = data.diesWhenPassed ?? false;
     this.y = data.y;
@@ -111,6 +122,37 @@ export class Lamp {
     this.on = false;
     this.timer = 0.3;
     this.setLevel(0);
+  }
+
+  /** Apagão: a lâmpada morre de vez (o som de lâmpada queimando sai do `Soundscape`). */
+  cut(): void {
+    this.dead = true;
+    this.setLevel(0);
+  }
+
+  /** Depois do apagão: acende a luz de emergência, vermelha e fraca. */
+  emergency(): void {
+    this.dead = true;
+    this.color = EMERGENCY_COLOR;
+    this.light.diffuse = EMERGENCY_COLOR.clone();
+    this.setLevel(EMERGENCY_LEVEL);
+    // A lâmpada em si brilha forte (é ela que o jogador vê no escuro); a poça pintada no chão era do tubo.
+    this.bulbMaterial.emissiveColor = EMERGENCY_COLOR.clone();
+    for (const glow of this.glows) glow.alpha = 0;
+    // O cone de poeira é do tubo fluorescente: some com ele.
+    if (this.coneMaterial) this.coneMaterial.emissiveColor = Color3.Black();
+  }
+
+  /** Volta ao estado do começo (o jogador foi pego e o apagão vai acontecer de novo). */
+  restore(): void {
+    this.color = this.baseColor;
+    this.light.diffuse = this.baseColor;
+    this.flicker = this.startsFlicker;
+    this.dark = this.startsDark;
+    this.dead = this.startsDead;
+    this.on = true;
+    this.timer = between(ON_TIME);
+    this.setLevel(this.dead ? 0 : 1);
   }
 
   get isDead(): boolean {

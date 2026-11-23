@@ -66,6 +66,8 @@ import { gymLevel } from "../levels/gym";
 import { TUNING } from "./Tuning";
 import { WORLD, worldLevel } from "../levels/world";
 import { GuardSounds } from "./GuardSounds";
+import { ChaseDirector, type ChaseStage } from "./ChaseDirector";
+import { ChaseSounds } from "./ChaseSounds";
 
 const DARK_AMBIENT = 0.2;
 const MAX_DT = 1 / 30;
@@ -127,6 +129,11 @@ const LANDING_NOISE_AIR = 0.28;
 const MUSIC_TENSION_RANGE = 14;
 const MUSIC_TENSION_NEAR = 0.55;
 const MUSIC_CHASE_RANGE = 12;
+/** Cena antes da perseguição: a camada de tensão da música sobe enquanto se ouve o rádio atrás da porta. */
+const MUSIC_SCENE_TENSION = 0.7;
+// Perseguição: a câmera treme quando o segurança chega a menos de `CHASE_SHAKE_FROM` m (forte a `CHASE_SHAKE_TO`).
+const CHASE_SHAKE_FROM = 3.2;
+const CHASE_SHAKE_TO = 1;
 /** Depois de ser pego, a trilha volta calma por uns segundos, mesmo com o checkpoint perto de um segurança. */
 const MUSIC_RESPAWN_CALM = 4;
 const MAX_CLOCK_STEP = 0.25;
@@ -198,6 +205,18 @@ export class Game {
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
   private readonly guardSounds = new GuardSounds(this.sfx);
+  private readonly chaseSounds = new ChaseSounds(this.sfx);
+  /** Aberturas das perseguições do subsolo (cena na porta, apagão). */
+  private chaseDirector: ChaseDirector | null = null;
+  private readonly chaseStage: ChaseStage = {
+    autopilot: (axis) => this.input.setAutopilot(axis),
+    focus: (x, seconds) => this.cameraRig.focus(x, seconds),
+    punch: (strength) => this.cameraRig.punch(strength),
+    face: (dir) => this.player.face(dir),
+    behindDoor: (kind) => this.clock.behindDoor(kind),
+    doorSlam: () => this.chaseSounds.doorSlam(),
+    emergencyOn: () => this.chaseSounds.emergencyOn(),
+  };
   private airTime = 0;
   private wasSliding = false;
   private readonly music = new Music(this.sfx);
@@ -434,6 +453,7 @@ export class Game {
       vigia.addShadowCasters([...this.obstacleMeshes, ...this.doors.map((door) => door.mesh), ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
       this.vigias.push(vigia);
     }
+    this.chaseDirector = new ChaseDirector(this.vigias, this.lamps);
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
@@ -609,10 +629,14 @@ export class Game {
       this.input.setAutopilot(null);
     }
     const px = this.player.position.x;
+    this.chaseDirector?.update(dt, px, this.chaseStage);
     if (this.ambient) {
       const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
       // O prédio apaga aos poucos: cada trecho tem quanto sobra de luz geral e de que cor.
-      const zone = (this.level.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
+      const area = (this.level.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
+      // No apagão do subsolo, o trecho fica só com a luz de emergência.
+      const blackout = this.chaseDirector?.ambientAt(px);
+      const zone = area && blackout ? { ...area, ...blackout } : area;
       const target = (zone?.intensidade ?? 1) * (dark ? DARK_AMBIENT : 1);
       const k = Math.min(1, dt * 1.5);
       this.ambient.intensity += (target - this.ambient.intensity) * k;
@@ -640,6 +664,7 @@ export class Game {
     this.life?.update(dt);
     this.updateNoise();
     this.updatePlayerNoise(dt);
+    this.updateChaseCamera();
     this.cameraRig.update(dt, {
       x: this.player.position.x,
       feetY: this.player.feetY,
@@ -844,6 +869,7 @@ export class Game {
       tension = Math.max(tension, near, vigia.alertLevel);
       if (vigia.suspicious) suspicious = true;
     }
+    if (this.chaseDirector?.inScene) tension = Math.max(tension, MUSIC_SCENE_TENSION);
     const scenes: Record<GameState, MusicScene> = {
       menu: "menu",
       intro: "jogo",
@@ -972,6 +998,7 @@ export class Game {
       for (const box of this.boxes) box.reset();
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
+      this.chaseDirector?.reset();
       this.music.reset();
       this.musicCalm = MUSIC_RESPAWN_CALM;
       this.chasesAnnounced.clear();
@@ -987,6 +1014,20 @@ export class Game {
       this.state = "jogando";
       this.fade.setColor(DEFAULT_FADE_COLOR);
     }
+  }
+
+  /** Perseguição: câmera mais aberta e tremendo quando o segurança encosta. */
+  private updateChaseCamera(): void {
+    const px = this.player.position.x;
+    let on = false;
+    let near = 0;
+    for (const vigia of this.vigias) {
+      if (!vigia.chasing) continue;
+      on = true;
+      const gap = px - vigia.positionX;
+      near = Math.max(near, (CHASE_SHAKE_FROM - gap) / (CHASE_SHAKE_FROM - CHASE_SHAKE_TO));
+    }
+    this.cameraRig.setChase(on, near);
   }
 
   /** Onde a câmera para num foco: um ponto fixo ou o segurança de ronda mais perto dele, onde ele estiver. */
@@ -1072,6 +1113,15 @@ export class Game {
           case "volta-a-dormir":
             this.habitLine(vigia, "voltaDormir");
             break;
+          case "grade": {
+            // Perseguição: o jogador passou por baixo da grade; o segurança bate nela e grita.
+            const distance = Math.abs(vigia.positionX - px);
+            if (distance > GUARD_VOICE_RANGE) break;
+            this.chaseSounds.gateBang(Math.max(0.3, near));
+            this.cameraRig.punch(0.35 * near);
+            this.clock.guard("grade", 1 - 0.5 * (distance / GUARD_VOICE_RANGE), true);
+            break;
+          }
         }
       }
     }

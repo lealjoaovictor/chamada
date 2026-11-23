@@ -1,4 +1,4 @@
-import type { CameraBeatData, HintData, LevelData, RattleData } from "./types";
+import type { CenaPerseguicao, CameraBeatData, HintData, LevelData, RattleData } from "./types";
 
 // Cada área é desenhada nas próprias coordenadas; o mundo contínuo desloca as áreas seguintes
 // quando uma área cresce. Estas funções somam `dx` a tudo o que é posição X.
@@ -30,6 +30,7 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
       x0: v.x0 + dx,
       x1: v.x1 + dx,
       triggerX: v.triggerX === undefined ? undefined : v.triggerX + dx,
+      cena: shiftCena(v.cena, dx),
     })),
     elevators: level.elevators.map((e) => ({ ...e, x: e.x + dx, buttonX: e.buttonX + dx })),
     finalDoor: level.finalDoor && {
@@ -110,3 +111,9 @@ export const shiftRattle = (rattle: RattleData, dx: number): RattleData => ({
   minX: rattle.minX + dx,
   maxX: rattle.maxX + dx,
 });
+
+function shiftCena(cena: CenaPerseguicao | undefined, dx: number): CenaPerseguicao | undefined {
+  if (!cena) return undefined;
+  if (cena.tipo === "porta") return { ...cena, triggerX: cena.triggerX + dx, focusX: cena.focusX + dx };
+  return { ...cena, de: cena.de + dx, ate: cena.ate + dx };
+}

@@ -38,7 +38,14 @@ const GATE2_X = 193;
 const GATE_STOP = 1.2;
 // Portas de serviço na parede do fundo: é por elas que os seguranças entram na perseguição.
 const DOOR1_X = 123.3;
-const DOOR2_X = 165;
+// Segunda perseguição: sem porta. No apagão, a lanterna dele acende no escuro, logo depois do portão do depósito.
+const CHASE2_START_X = 166.2;
+// Primeira perseguição: ao pé da rampa, o Zacarias para e a câmera mostra a porta (a cena só toca uma vez).
+const SCENE1_TRIGGER = 126.6;
+const SCENE1_FOCUS = 125.2;
+// Apagão da segunda perseguição: as lâmpadas deste trecho apagam e voltam vermelhas (emergência).
+const BLACKOUT_FROM = 154;
+const BLACKOUT_TO = 197;
 
 const ELASTICO = { distancia: 5, ganho: 0.12, min: 0.8, max: 1.4 };
 
@@ -206,6 +213,7 @@ export const area4Level: LevelData = {
       triggerX: 128,
       x0: DOOR1_X,
       porta: { z: BACK_Z },
+      cena: { tipo: "porta", triggerX: SCENE1_TRIGGER, focusX: SCENE1_FOCUS },
       x1: GATE_X - GATE_STOP,
       y: 0,
       z: 1.4,
@@ -220,8 +228,8 @@ export const area4Level: LevelData = {
     {
       mode: "perseguicao",
       triggerX: CHASE2_TRIGGER,
-      x0: DOOR2_X,
-      porta: { z: BACK_Z },
+      x0: CHASE2_START_X,
+      cena: { tipo: "apagao", de: BLACKOUT_FROM, ate: BLACKOUT_TO, ambiente: { intensidade: 0.12, cor: [0.7, 0.3, 0.27] } },
       x1: GATE2_X - GATE_STOP,
       y: 0,
       z: 1.4,

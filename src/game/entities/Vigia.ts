@@ -60,6 +60,20 @@ const STEP_OUT_X = 0.6;
 const DOORWAY_INSET = 0.3;
 const DOOR_COLOR = new Color3(0.2, 0.21, 0.22);
 const DOORWAY_COLOR = new Color3(0.16, 0.17, 0.19);
+// Cena antes da perseguição: a porta abre de supetão (mais rápido, passa do ponto e volta).
+const SLAM_OPEN_TIME = 0.16;
+const SLAM_OVERSHOOT = 0.12;
+const SLAM_SETTLE = 0.35;
+/** Luz da sala de segurança vazando por baixo da porta (amarelada, de lâmpada velha). */
+const DOOR_LEAK_COLOR = new Color3(1, 0.72, 0.38);
+const DOOR_LEAK_POOL = 1.8;
+/** A mancha no chão soma luz (aditiva): mais forte que a cor da fresta para aparecer no piso iluminado. */
+const DOOR_LEAK_POOL_GAIN = 1.8;
+// Perseguição: o facho mira o chão um pouco à frente do jogador (a sombra dele corre na frente).
+const CHASE_AIM_AHEAD = 1.6;
+const CHASE_AIM_SHARPNESS = 6;
+/** Na grade: o tempo do gesto de raiva antes de ele ficar parado olhando. */
+const GATE_ANGER_TIME = 2.6;
 
 type Phase = "andando" | "parado" | "escondido" | "entrando";
 
@@ -108,7 +122,8 @@ export type VigiaEvento =
   | "ronco"
   | "susto"
   | "volta-a-dormir"
-  | "remexe";
+  | "remexe"
+  | "grade";
 
 type FaseHabito =
   | "celular" // andando ou parado mexendo no celular
@@ -175,6 +190,13 @@ export class Vigia {
   /** Profundidade atual (muda só enquanto o segurança sai pela porta). */
   private zNow = 0;
   private door: TransformNode | null = null;
+  private doorLeak: StandardMaterial[] = [];
+  /** A perseguição espera a deixa do jogo (a cena na porta ou o apagão) em vez do `triggerX`. */
+  held = false;
+  private slam = false;
+  private chaseTargetX: number | null = null;
+  private aimX = 0;
+  private gateTimer = -1;
   private timer = 0;
   private pause = 0;
 
@@ -213,6 +235,7 @@ export class Vigia {
     this.badge = new HabitBadge(scene, "vigia", head, () => new Vector3(this.x, this.data.y + 1.7, this.zNow));
     this.lanterna = lanterna;
     if (data.porta) this.door = this.createDoor(scene, data);
+    if (data.porta && data.cena?.tipo === "porta") this.createDoorLeak(scene, data);
     this.lanterna.setCone(data.range, data.coneAngle);
     // Depois da animação e da lógica do quadro, antes das sombras: mão, lanterna, luz e facho no lugar.
     scene.onBeforeActiveMeshesEvaluationObservable.add(() => this.aimFlashlight());
@@ -266,6 +289,79 @@ export class Vigia {
     leaf.receiveShadows = true;
     leaf.isPickable = false;
     return hinge;
+  }
+
+  /** Fresta de luz por baixo da porta e a mancha que ela faz no chão. */
+  private createDoorLeak(scene: Scene, data: VigiaData): void {
+    const porta = data.porta!;
+    const width = porta.largura ?? DOOR_WIDTH;
+    const strip = CreateBox("vigia-fresta", { width: width - 0.1, height: 0.06, depth: 0.02 }, scene);
+    strip.position.set(data.x0, data.y + 0.03, porta.z - 0.1 - DOOR_THICKNESS);
+    const stripMat = new StandardMaterial("vigia-fresta-mat", scene);
+    stripMat.disableLighting = true;
+    stripMat.emissiveColor = DOOR_LEAK_COLOR.clone();
+    strip.material = stripMat;
+    strip.isPickable = false;
+    const pool = CreatePlane("vigia-fresta-chao", { width: width + 0.8, height: DOOR_LEAK_POOL }, scene);
+    pool.rotation.x = Math.PI / 2;
+    pool.position.set(data.x0, data.y + 0.03, porta.z - 0.12 - DOOR_LEAK_POOL / 2);
+    const tex = new DynamicTexture("vigia-fresta-tex", { width: 128, height: 128 }, scene, true);
+    const ctx = tex.getContext() as CanvasRenderingContext2D;
+    // Mais forte junto da porta (alto da textura) e sumindo para o lado da câmera, mais estreita nas pontas.
+    const fall = ctx.createLinearGradient(0, 0, 0, 128);
+    fall.addColorStop(0, "rgba(255,255,255,1)");
+    fall.addColorStop(0.3, "rgba(255,255,255,0.4)");
+    fall.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = fall;
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.globalCompositeOperation = "destination-in";
+    const sides = ctx.createLinearGradient(0, 0, 128, 0);
+    sides.addColorStop(0, "rgba(0,0,0,0)");
+    sides.addColorStop(0.25, "rgba(0,0,0,1)");
+    sides.addColorStop(0.75, "rgba(0,0,0,1)");
+    sides.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = sides;
+    ctx.fillRect(0, 0, 128, 128);
+    tex.hasAlpha = true;
+    tex.update();
+    const poolMat = new StandardMaterial("vigia-fresta-chao-mat", scene);
+    poolMat.disableLighting = true;
+    poolMat.emissiveColor = DOOR_LEAK_COLOR.scale(DOOR_LEAK_POOL_GAIN);
+    poolMat.opacityTexture = tex;
+    poolMat.alphaMode = Constants.ALPHA_ADD;
+    poolMat.disableDepthWrite = true;
+    poolMat.backFaceCulling = false;
+    pool.material = poolMat;
+    pool.isPickable = false;
+    this.doorLeak = [stripMat, poolMat];
+  }
+
+  /** Brilho da fresta (0 apagada, 1 normal): a cena faz a sombra dos pés passar por ela. */
+  setDoorLight(level: number): void {
+    const [strip, pool] = this.doorLeak;
+    if (!strip || !pool) return;
+    strip.emissiveColor.copyFrom(DOOR_LEAK_COLOR).scaleInPlace(level);
+    pool.emissiveColor.copyFrom(DOOR_LEAK_COLOR).scaleInPlace(DOOR_LEAK_POOL_GAIN * level);
+  }
+
+  /** A perseguição começa agora (a deixa da cena): a porta abre de supetão, ou a lanterna acende no escuro. */
+  burst(): void {
+    if (this.phase !== "escondido") return;
+    this.held = false;
+    this.slam = true;
+    this.startChase();
+  }
+
+  private startChase(): void {
+    if (this.data.porta) {
+      this.phase = "entrando";
+      this.timer = 0;
+      this.currentSpeed = 0;
+    } else {
+      this.phase = "andando";
+      this.setShown(true);
+      this.events.push("lanterna-liga");
+    }
   }
 
   private setDoorOpen(amount: number): void {
@@ -352,6 +448,11 @@ export class Vigia {
     this.timer = 0;
     this.zNow = this.data.z;
     this.setDoorOpen(0);
+    // Depois da primeira vez, a porta da cena continua abrindo de supetão (sem a cena antes).
+    this.slam = this.data.cena?.tipo === "porta";
+    this.chaseTargetX = null;
+    this.gateTimer = -1;
+    this.setDoorLight(1);
     this.events.length = 0;
     this.resetHabit();
     const first = this.chases ? "correr" : this.habitClip() ?? "andar";
@@ -792,41 +893,64 @@ export class Vigia {
 
   private updateChase(dt: number, playerX: number): void {
     if (this.phase === "escondido") {
-      if (playerX < (this.data.triggerX ?? this.data.x0)) return;
-      if (this.data.porta) {
-        this.phase = "entrando";
-        this.timer = 0;
-        this.currentSpeed = 0;
-      } else {
-        this.phase = "andando";
-        this.setShown(true);
-      }
+      if (this.held || playerX < (this.data.triggerX ?? this.data.x0)) return;
+      // Voltou num checkpoint depois desta perseguição: ela não recomeça lá atrás.
+      if (playerX > this.data.x1 + 2) return;
+      this.startChase();
     }
     if (this.phase === "entrando") this.updateEntrance(dt);
     else if (this.phase === "andando") {
       this.currentSpeed = this.chaseSpeed(playerX);
       this.x = Math.min(this.x + this.currentSpeed * dt, this.data.x1);
-      if (this.x >= this.data.x1) this.phase = "parado";
+      if (this.x >= this.data.x1) {
+        // Chegou à grade que o jogador passou por baixo: bate nela e grita.
+        this.phase = "parado";
+        this.currentSpeed = 0;
+        this.gateTimer = 0;
+        this.restart("reclamar");
+        this.events.push("grade");
+      }
     }
+    // O facho corre no chão um pouco à frente do jogador.
+    const target = playerX + CHASE_AIM_AHEAD;
+    if (this.chaseTargetX === null) this.aimX = target;
+    else this.aimX += (target - this.aimX) * Math.min(1, CHASE_AIM_SHARPNESS * dt);
+    this.chaseTargetX = this.phase === "andando" ? this.aimX : null;
     const running = this.phase === "andando" || this.phase === "entrando";
-    this.blend(running ? "correr" : "parado", dt);
+    let clip = running ? "correr" : "parado";
+    if (this.gateTimer >= 0) {
+      this.gateTimer += dt;
+      if (this.gateTimer < GATE_ANGER_TIME) clip = "reclamar";
+    }
+    this.blend(clip, dt);
     this.setSpeed("correr", this.currentSpeed / RUN_CLIP_SPEED);
     this.syncVisual();
+  }
+
+  /** Abertura da porta: normal ou de supetão (passa do ponto e volta um pouco). */
+  private doorAmount(): number {
+    if (!this.slam) return smooth(Math.min(this.timer / DOOR_OPEN_TIME, 1));
+    if (this.timer < SLAM_OPEN_TIME) {
+      const k = this.timer / SLAM_OPEN_TIME;
+      return (1 + SLAM_OVERSHOOT) * k * k;
+    }
+    const k = Math.min((this.timer - SLAM_OPEN_TIME) / SLAM_SETTLE, 1);
+    return 1 + SLAM_OVERSHOOT * Math.cos(k * Math.PI * 1.5) * (1 - k);
   }
 
   /** A porta abre; o segurança sai do vão encarando a câmera, vira para a direita e começa a correr. */
   private updateEntrance(dt: number): void {
     const porta = this.data.porta!;
     this.timer += dt;
-    this.setDoorOpen(smooth(Math.min(this.timer / DOOR_OPEN_TIME, 1)));
-    if (this.timer < SHOW_AT) {
+    this.setDoorOpen(this.doorAmount());
+    if (this.timer < (this.slam ? SLAM_OPEN_TIME * 0.5 : SHOW_AT)) {
       this.visual.setEnabled(false);
       this.lanterna.setEnabled(false);
       this.light.intensity = 0;
       return;
     }
     if (!this.visual.isEnabled()) this.setShown(true);
-    const k = Math.min((this.timer - SHOW_AT) / STEP_OUT_TIME, 1);
+    const k = Math.min((this.timer - (this.slam ? SLAM_OPEN_TIME * 0.5 : SHOW_AT)) / STEP_OUT_TIME, 1);
     const eased = smooth(k);
     this.zNow = porta.z - DOORWAY_INSET + (this.data.z - (porta.z - DOORWAY_INSET)) * eased;
     this.x = this.data.x0 + STEP_OUT_X * eased * eased;
@@ -929,7 +1053,10 @@ export class Vigia {
 
     // A mira parte de um ponto estável na altura da mão (sem o balanço do passo), para o facho não tremer.
     this.handGuess.set(this.x + this.facing * HAND_FORWARD, this.data.y + HAND_HEIGHT, this.zNow - side * HAND_FORWARD);
-    this.dir.set(this.facing * this.data.aimAhead, this.data.aimY - this.handGuess.y, -this.zNow);
+    if (this.chaseTargetX !== null) {
+      // Perseguição: mira o chão à frente do jogador (no plano do jogo, z = 0).
+      this.dir.set(Math.max(0.5, this.chaseTargetX - this.handGuess.x), -this.handGuess.y, -this.handGuess.z);
+    } else this.dir.set(this.facing * this.data.aimAhead, this.data.aimY - this.handGuess.y, -this.zNow);
     this.dir.normalize();
     if (!this.lensReady) this.lamp.copyFrom(this.handGuess);
     this.light.position.copyFrom(this.lamp);

@@ -42,7 +42,16 @@ const GUARD_SILENT_CHANCE: Record<GuardLine, number> = {
   reclama: 0.1,
   acorda: 0,
   voltaDormir: 0.2,
+  radio: 0,
+  responde: 0,
+  grade: 0,
 };
+// Fala atrás da porta (rádio e resposta do segurança antes da perseguição).
+const DOOR_VOICE_VOLUME = 1.3;
+const DOOR_LOWPASS = 750;
+const RADIO_LOW = 450;
+const RADIO_HIGH = 2600;
+const RADIO_DRIVE = 4;
 // Final ruim: depois do nome, um silêncio, "...ele chamou" e a caneta.
 const BAD_ELE_CHAMOU = 2.6;
 const BAD_PEN = 4.2;
@@ -73,6 +82,9 @@ export class CallClock {
   private salaIn: GainNode | null = null;
   private liveIn: GainNode | null = null;
   private guardIn: GainNode | null = null;
+  /** Atrás da porta: a voz abafada (só graves) e, antes dela, o rádio (alto-falante pequeno, saturado). */
+  private doorIn: GainNode | null = null;
+  private radioIn: GainNode | null = null;
   private hissGain: GainNode | null = null;
   private hiss: AudioBufferSourceNode | null = null;
   private colegaUntil = 0;
@@ -213,6 +225,26 @@ export class CallClock {
     this.guardIn.connect(this.liveIn);
     this.guardIn.connect(guardRoom).connect(guardWet).connect(this.liveIn);
 
+    // Atrás da porta de metal: passa-baixa forte e um pouco de sala.
+    this.doorIn = context.createGain();
+    this.doorIn.gain.value = DOOR_VOICE_VOLUME;
+    const doorLow = context.createBiquadFilter();
+    doorLow.type = "lowpass";
+    doorLow.frequency.value = DOOR_LOWPASS;
+    doorLow.Q.value = 0.9;
+    this.doorIn.connect(doorLow).connect(this.guardIn);
+    // Rádio de mão: só a faixa do alto-falante, saturado, e depois a mesma porta.
+    this.radioIn = context.createGain();
+    const radioHigh = context.createBiquadFilter();
+    radioHigh.type = "highpass";
+    radioHigh.frequency.value = RADIO_LOW;
+    const radioLow = context.createBiquadFilter();
+    radioLow.type = "lowpass";
+    radioLow.frequency.value = RADIO_HIGH;
+    const radioDrive = context.createWaveShaper();
+    radioDrive.curve = softClip(RADIO_DRIVE);
+    this.radioIn.connect(radioHigh).connect(radioLow).connect(radioDrive).connect(this.doorIn);
+
     this.hiss = context.createBufferSource();
     this.hiss.buffer = noiseBuffer(context);
     this.hiss.loop = true;
@@ -330,6 +362,38 @@ export class CallClock {
     this.lastGuard.set(kind, pick);
     this.playFala(options[pick], "ao-vivo", 0, volume, this.guardIn);
     return true;
+  }
+
+  /**
+   * Fala do segurança que ainda está atrás da porta (a cena antes da perseguição): abafada pela porta e,
+   * no rádio, também com o chiado e o bipe do rádio. Devolve a duração (0 se a ligação ainda não começou).
+   */
+  behindDoor(kind: "radio" | "responde"): number {
+    if (!this.started) return 0;
+    const fala = this.data.falas.seguranca[kind][0];
+    if (!fala) return 0;
+    if (kind === "radio") this.radioSquelch(0, 0.04);
+    const duration = this.playFala(fala, "ao-vivo", kind === "radio" ? 0.12 : 0, 1, kind === "radio" ? this.radioIn : this.doorIn);
+    if (kind === "radio") this.radioSquelch(duration + 0.14, 0.12);
+    return duration + (kind === "radio" ? 0.3 : 0);
+  }
+
+  /** Chiado curto do rádio (abre e fecha o canal). */
+  private radioSquelch(delay: number, length: number): void {
+    const input = this.radioIn;
+    if (!input) return;
+    const context = this.sfx.audio;
+    const source = context.createBufferSource();
+    source.buffer = noiseBuffer(context);
+    const gain = context.createGain();
+    const t0 = context.currentTime + delay;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.35, t0 + 0.01);
+    gain.gain.setValueAtTime(0.35, t0 + length);
+    gain.gain.linearRampToValueAtTime(0, t0 + length + 0.03);
+    source.connect(gain).connect(input);
+    source.start(t0, Math.random());
+    source.stop(t0 + length + 0.05);
   }
 
   /** Uma fala fora da linha do tempo: o Zacarias ao vivo ou o Davi no celular (com legenda). Devolve a duração. */
@@ -547,3 +611,4 @@ function noiseBuffer(context: BaseAudioContext): AudioBuffer {
   for (let i = 0; i < channel.length; i++) channel[i] = Math.random() * 2 - 1;
   return buffer;
 }
+

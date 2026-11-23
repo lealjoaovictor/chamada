@@ -5,6 +5,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { SpotLight } from "@babylonjs/core/Lights/spotLight";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { Material } from "@babylonjs/core/Materials/material";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
@@ -63,6 +64,16 @@ const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
 const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
+// Blocos de uniforms que o material usa além das luzes (cena, malha, material e um de folga).
+const NON_LIGHT_UNIFORM_BLOCKS = 4;
+
+/** Quantas luzes cabem num material nesta placa de vídeo, pelo limite de blocos de uniforms do vertex shader. */
+function lightBudget(engine: AbstractEngine): number {
+  const gl = (engine as AbstractEngine & { _gl?: WebGL2RenderingContext })._gl;
+  const blocks = gl && "MAX_VERTEX_UNIFORM_BLOCKS" in gl ? Number(gl.getParameter(gl.MAX_VERTEX_UNIFORM_BLOCKS)) : 0;
+  if (!blocks) return MAX_LIGHTS_PER_MATERIAL;
+  return Math.max(1, blocks - NON_LIGHT_UNIFORM_BLOCKS);
+}
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
 // Final bom: depois de o professor chamar, o jogador tem ~4 s para responder "presente" (contados do fim da fala).
@@ -325,9 +336,18 @@ export class Game {
       }
     }
 
-    for (const material of scene.materials) {
-      if (material instanceof StandardMaterial) material.maxSimultaneousLights = MAX_LIGHTS_PER_MATERIAL;
-    }
+    // Cada luz ocupa um bloco de uniforms no shader. Placas que aceitam menos blocos (comum no Windows, onde o
+    // navegador traduz o WebGL para DirectX) não compilam o material com luzes demais, e o carregamento travava
+    // esperando um shader que nunca fica pronto. Por isso o limite de luzes por material segue o limite da placa.
+    const lightCap = lightBudget(scene.getEngine());
+    const capLights = (material: Material): void => {
+      const lit = material as Material & { maxSimultaneousLights?: number };
+      if (typeof lit.maxSimultaneousLights !== "number") return;
+      if (material instanceof StandardMaterial) lit.maxSimultaneousLights = Math.min(MAX_LIGHTS_PER_MATERIAL, lightCap);
+      else if (lit.maxSimultaneousLights > lightCap) lit.maxSimultaneousLights = lightCap;
+    };
+    scene.materials.forEach(capLights);
+    scene.onNewMaterialAddedObservable.add(capLights);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {

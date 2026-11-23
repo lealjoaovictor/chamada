@@ -3,15 +3,31 @@ import { CART_VISUAL, CRATE_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CAR
 
 const START = 48;
 const END = 88;
-// Trecho do segurança (entre a porta do corredor e a zeladoria): ele faz a ronda apagando as luzes, num recuo
-// do corredor com pilares. O jogador vai de pilar em pilar quando ele está de costas.
+// Trecho do segurança (entre a porta do corredor e a zeladoria): o hall dos armários, um recuo do corredor.
+// Ele faz a ronda entre o bebedouro e o quadro de luz. O jogador espera na frente dos armários, anda atrás dele
+// quando ele vai embora e espera de novo na frente da estante; o pilar do meio é o refúgio de quem hesita.
 const HALL_X0 = 76;
 const HALL_X1 = 88;
 const HALL_BACK_Z = 3.4;
-const PILLAR_XS = [77.4, 85.6];
-const PILLAR_WIDTH = 1.1;
+const PILLAR_X = 82;
+const PILLAR_WIDTH = 1;
 const PILLAR_Z = 2.0;
 const PILLAR_DEPTH = 0.6;
+const COVER_Z = 1.95;
+const COVER_DEPTH = 0.5;
+// Armários de aço dos alunos (6 portas), na entrada do recuo.
+const LOCKERS_X = 77.5;
+const LOCKER_DOORS = 6;
+const LOCKER_DOOR_WIDTH = 0.4;
+const LOCKERS_WIDTH = LOCKER_DOORS * LOCKER_DOOR_WIDTH;
+const LOCKERS_HEIGHT = 1.9;
+// Estante de aço com caixas (sobra da zeladoria ao lado), na saída.
+const HALL_SHELF_X = 85.6;
+const HALL_SHELF_WIDTH = 1.6;
+const HALL_SHELF_HEIGHT = 2.2;
+// Pontas da ronda: ele para à vista, na frente do bebedouro e do quadro de luz.
+const FOUNTAIN_X = 80.6;
+const SWITCHBOARD_X = 87.2;
 const CEILING = 3.2;
 const BACK_Z = 2.1;
 const RECESS_X = 63;
@@ -46,6 +62,44 @@ const END2 = 130;
 /** Luar atrás do vidro da janela pronta (a moldura vem de `moonWindow`). */
 function archWindow(x: number): DecorData[] {
   return [{ x, y: 2.05, z: BACK_Z - 0.04, width: 0.9, height: 1.6, depth: 0.02, material: "luar" }];
+}
+
+/** Portas, venezianas e puxadores dos armários (o corpo é o obstáculo). */
+function lockerDetails(): DecorData[] {
+  const left = LOCKERS_X - LOCKERS_WIDTH / 2;
+  const front = COVER_Z - COVER_DEPTH / 2;
+  const details: DecorData[] = [
+    // Rodapé recuado e uma caixa esquecida em cima.
+    { x: LOCKERS_X, y: 0.04, z: front - 0.005, width: LOCKERS_WIDTH, height: 0.08, depth: 0.02, material: "interior" },
+    { x: LOCKERS_X + 0.45, y: LOCKERS_HEIGHT + 0.14, z: COVER_Z, width: 0.5, height: 0.28, depth: 0.36, material: "caixa" },
+  ];
+  for (let i = 0; i <= LOCKER_DOORS; i++) {
+    details.push({ x: left + i * LOCKER_DOOR_WIDTH, y: LOCKERS_HEIGHT / 2, z: front - 0.005, width: 0.02, height: LOCKERS_HEIGHT, depth: 0.02, material: "interior" });
+  }
+  for (let i = 0; i < LOCKER_DOORS; i++) {
+    const x = left + (i + 0.5) * LOCKER_DOOR_WIDTH;
+    // Divisão entre a porta de cima e a de baixo.
+    details.push({ x, y: LOCKERS_HEIGHT / 2 + 0.04, z: front - 0.005, width: LOCKER_DOOR_WIDTH, height: 0.02, depth: 0.02, material: "interior" });
+    for (const top of [LOCKERS_HEIGHT - 0.12, LOCKERS_HEIGHT / 2 - 0.08]) {
+      for (const dy of [0, 0.05, 0.1]) {
+        details.push({ x, y: top - dy, z: front - 0.005, width: 0.22, height: 0.018, depth: 0.02, material: "interior" });
+      }
+      details.push({ x: x + 0.13, y: top - 0.42, z: front - 0.015, width: 0.03, height: 0.1, depth: 0.03, material: "moldura" });
+    }
+  }
+  return details;
+}
+
+/** Bebedouro de aço encostado na parede do fundo, com a garrafa térmica do segurança em cima. */
+function fountain(): DecorData[] {
+  const z = HALL_BACK_Z - 0.22;
+  return [
+    { x: FOUNTAIN_X, y: 0.5, z, width: 0.42, height: 1, depth: 0.36, material: "moldura" },
+    { x: FOUNTAIN_X, y: 1.02, z, width: 0.46, height: 0.05, depth: 0.4, material: "metal" },
+    { x: FOUNTAIN_X - 0.12, y: 1.11, z: z + 0.08, width: 0.03, height: 0.12, depth: 0.03, shape: "cylinder", material: "moldura" },
+    { x: FOUNTAIN_X, y: 0.3, z: z - 0.185, width: 0.3, height: 0.36, depth: 0.01, material: "interior" },
+    { x: FOUNTAIN_X + 0.13, y: 1.17, z, width: 0.09, height: 0.25, depth: 0.09, shape: "cylinder", material: "carrinho" },
+  ];
 }
 
 function hangingLamp(lamp: LampData): DecorData {
@@ -119,8 +173,10 @@ export const area2Level: LevelData = {
   platforms: [],
   obstacles: [
     { x: 55, y: (ARM_HEIGHT + CEILING) / 2, width: 0.12, height: CEILING - ARM_HEIGHT, material: "vidro" },
-    // Pilares do recuo: escondem quem está na frente e cortam a luz da lanterna.
-    ...PILLAR_XS.map((x): BlockData => ({ x, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" })),
+    // Coberturas do hall (escondem quem está na frente e cortam a luz da lanterna): armários, pilar e estante.
+    { x: LOCKERS_X, y: LOCKERS_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: LOCKERS_WIDTH, height: LOCKERS_HEIGHT, material: "carrinho" },
+    { x: PILLAR_X, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" },
+    { x: HALL_SHELF_X, y: HALL_SHELF_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: HALL_SHELF_WIDTH, height: HALL_SHELF_HEIGHT, hidden: true },
     ...stage(),
     // Rodapé nas bordas do palco: segura a caixa de cima para ela não cair de nenhum lado.
     { x: STAGE_X0 + 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
@@ -146,8 +202,8 @@ export const area2Level: LevelData = {
   ],
   vigias: [
     {
-      x0: 79.5,
-      x1: 87,
+      x0: FOUNTAIN_X,
+      x1: SWITCHBOARD_X,
       y: 0,
       z: 2.9,
       speed: 1,
@@ -176,6 +232,13 @@ export const area2Level: LevelData = {
     { model: "WetFloorSign_01", x: 61.6, y: 0, z: -1.3, rotY: 20 },
     { model: "security_camera_01", x: 56, y: 2.75, z: 1.85, rotY: 220 },
     { model: "power_box_01", x: 67.8, y: 1.6, z: BACK_Z - 0.02, rotY: 180 },
+    // Hall dos armários: estante de aço com caixas (a prateleira de cima fica vazia) e o quadro de luz.
+    { model: "steel_frame_shelves_01", x: HALL_SHELF_X, y: 0, z: COVER_Z, rotY: 180, fitHeight: HALL_SHELF_HEIGHT },
+    { model: "cardboard_box_01", x: HALL_SHELF_X - 0.35, y: 0.95, z: COVER_Z, rotY: 92 },
+    { model: "plastic_crate_01", x: HALL_SHELF_X + 0.35, y: 0.95, z: COVER_Z, rotY: 88 },
+    { model: "plastic_crate_01", x: HALL_SHELF_X - 0.3, y: 0.05, z: COVER_Z, rotY: 94 },
+    { model: "cardboard_box_01", x: HALL_SHELF_X + 0.35, y: 0.05, z: COVER_Z, rotY: 86 },
+    { model: "power_box_01", x: SWITCHBOARD_X, y: 1.6, z: HALL_BACK_Z - 0.02, rotY: 180 },
     // Zeladoria: estantes de aço, tambores, caixas e dutos.
     { model: "steel_frame_shelves_01", x: 93.6, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
     { model: "steel_frame_shelves_01", x: 104.1, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
@@ -230,6 +293,8 @@ export const area2Level: LevelData = {
     // Recuo do corredor: paredes dos lados e o teto por cima.
     ...[HALL_X0, HALL_X1].map((x): DecorData => ({ x, y: CEILING / 2, z: (BACK_Z + HALL_BACK_Z) / 2, width: 0.2, height: CEILING, depth: HALL_BACK_Z - BACK_Z, material: "parede" })),
     { x: (HALL_X0 + HALL_X1) / 2, y: CEILING + 0.2, z: (BACK_Z + HALL_BACK_Z) / 2 + 0.2, width: HALL_X1 - HALL_X0, height: 0.4, depth: HALL_BACK_Z - BACK_Z + 0.6, material: "concreto" },
+    ...lockerDetails(),
+    ...fountain(),
     // Um quadro de avisos e folhas caídas no recuo.
     { x: 83.9, y: 1.6, z: HALL_BACK_Z - 0.04, width: 1.4, height: 0.9, depth: 0.03, material: "madeira" },
     ...[[-0.4, 0.15], [-0.05, 0.08], [0.3, 0.18], [-0.25, -0.2]].map(([dx, dy]): DecorData => ({

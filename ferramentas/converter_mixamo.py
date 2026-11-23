@@ -21,6 +21,9 @@ PERFIS = {
             ("deslizar", "Running Slide.fbx", True),
             ("agachado", "Crouch Idle.fbx", False),
             ("agachado_andar", "Crouched Walking.fbx", True),
+            # Introdução: ele chega pela calçada lendo as mensagens do Davi.
+            ("celular_andar", "Walking While Texting.fbx", True),
+            ("celular_parado", "Texting While Standing.fbx", False),
         ],
         ["mochila"],
     ),

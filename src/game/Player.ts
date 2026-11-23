@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
@@ -13,6 +13,9 @@ import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
+import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
 import { TUNING } from "./Tuning";
@@ -48,6 +51,11 @@ const CROUCH_ANIM_THRESHOLD = 0.5;
 const MODEL_URL = modelFile("personagem");
 /** Escurece a textura do Bryce (Zacarias) para ele não brilhar mais que o cenário. */
 const MODEL_TINT = new Color3(0.62, 0.62, 0.66);
+// Introdução: andando devagar lendo o celular (Walking While Texting anda a ~1,3 m/s no clipe).
+const PHONE_WALK_SPEED = 1.25;
+const PHONE_WALK_CLIP_SPEED = 1.3;
+// O celular fica na palma: entre o pulso e a base do dedo médio, um pouco para dentro da mão.
+const PHONE_ALONG = 0.75;
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
 const WALK_CLIP_SPEED = 5.3;
@@ -116,7 +124,9 @@ type AnimName =
   | "empurrar"
   | "deslizar"
   | "agachado"
-  | "agachado_andar";
+  | "agachado_andar"
+  | "celular_andar"
+  | "celular_parado";
 
 export class Player {
   readonly position = new Vector3();
@@ -162,6 +172,8 @@ export class Player {
   private lean = 0;
   private pushBack = 0;
   private leanSpeed = 0;
+  private phone = false;
+  private phoneMesh: Mesh | null = null;
 
   private constructor(
     scene: Scene,
@@ -199,6 +211,8 @@ export class Player {
     player.meshes = result.meshes;
     player.ik = HandIK.create(result.transformNodes);
     player.feet = FootIK.create(visual, result.transformNodes);
+    const node = (name: string) => result.transformNodes.find((n) => n.name === `mixamorig:${name}`) ?? null;
+    player.phoneMesh = createPhone(scene, node("RightHand"), node("RightHandMiddle1"));
     return player;
   }
 
@@ -222,6 +236,11 @@ export class Player {
   /** 0 = em pé, 1 = totalmente agachado. */
   get crouchAmount(): number {
     return this.crouch;
+  }
+
+  /** Introdução: anda devagar com o celular na mão, lendo as mensagens. */
+  setPhone(on: boolean): void {
+    this.phone = on;
   }
 
   setCrouch(on: boolean): void {
@@ -343,7 +362,7 @@ export class Player {
       if (axis !== 0) this.facing = axis;
       const crouchTarget = this.crouchWanted && this.grounded && !pushing ? 1 : 0;
       this.crouch = approach(this.crouch, crouchTarget, CROUCH_BLEND * dt);
-      const walkSpeed = MOVE_SPEED + (TUNING.agachadoVelocidade - MOVE_SPEED) * this.crouch;
+      const walkSpeed = this.phone ? PHONE_WALK_SPEED : MOVE_SPEED + (TUNING.agachadoVelocidade - MOVE_SPEED) * this.crouch;
       const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : walkSpeed);
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);
@@ -466,6 +485,7 @@ export class Player {
     this.rampTilt = 0;
     this.feet?.reset();
     this.stairLean = 0;
+    this.phone = false;
     this.current = "parado";
     for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
     this.syncVisual(0);
@@ -611,6 +631,7 @@ export class Player {
     if (this.sliding || this.ramp !== "nao") next = "deslizar";
     else if (jumped || !this.grounded) next = "pular";
     else if (pushing) next = "empurrar";
+    else if (this.phone) next = speedX > 0.2 ? "celular_andar" : "celular_parado";
     else if (speedX > 0.2) next = crouched ? "agachado_andar" : "andar";
     else next = crouched ? "agachado" : "parado";
 
@@ -625,7 +646,13 @@ export class Player {
     if (crouchWalk) crouchWalk.speedRatio = Math.max(speedX / CROUCH_WALK_CLIP_SPEED, 0.5);
     const push = this.anims.get("empurrar");
     if (push) push.speedRatio = PUSH_ANIM_RATIO;
+    const phoneWalk = this.anims.get("celular_andar");
+    if (phoneWalk) phoneWalk.speedRatio = Math.max(speedX / PHONE_WALK_CLIP_SPEED, 0.5);
 
+    if (this.phoneMesh) {
+      const held = (this.anims.get("celular_andar")?.weight ?? 0) + (this.anims.get("celular_parado")?.weight ?? 0);
+      this.phoneMesh.isVisible = held > 0.5;
+    }
     this.holdClipEnds();
     const step = dt / BLEND_TIME;
     for (const [name, group] of this.anims) {
@@ -702,4 +729,32 @@ export class Player {
 function approach(value: number, target: number, maxDelta: number): number {
   if (value < target) return Math.min(value + maxDelta, target);
   return Math.max(value - maxDelta, target);
+}
+
+/** Celular na mão direita (só na introdução): um retângulo escuro com a tela acesa, que brilha no escuro. */
+function createPhone(scene: Scene, hand: TransformNode | null, finger: TransformNode | null): Mesh | null {
+  if (!hand || !finger) return null;
+  const phone = CreateBox("celular", { width: 0.075, height: 0.15, depth: 0.012 }, scene);
+  const material = new StandardMaterial("celular-tela", scene);
+  material.diffuseColor = new Color3(0, 0, 0);
+  material.specularColor = new Color3(0, 0, 0);
+  material.emissiveColor = new Color3(0.55, 0.7, 0.95);
+  material.disableLighting = true;
+  material.fogEnabled = false;
+  phone.material = material;
+  hand.computeWorldMatrix(true);
+  phone.parent = hand;
+  const s = hand.absoluteScaling;
+  phone.scaling.set(1 / s.x, 1 / s.y, 1 / s.z);
+  // No espaço da mão, a posição do dedo médio aponta do pulso para os dedos: o comprimento do celular segue essa linha.
+  const along = finger.position.clone();
+  phone.position.copyFrom(along.scale(PHONE_ALONG));
+  const dir = along.normalize();
+  const up = new Vector3(0, 1, 0);
+  const axis = Vector3.Cross(up, dir);
+  const angle = Math.acos(Math.min(Math.max(Vector3.Dot(up, dir), -1), 1));
+  if (axis.lengthSquared() > 1e-8) phone.rotationQuaternion = Quaternion.RotationAxis(axis.normalize(), angle);
+  phone.isPickable = false;
+  phone.isVisible = false;
+  return phone;
 }

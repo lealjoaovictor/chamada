@@ -120,6 +120,8 @@ export interface AmbientZone {
   maxX: number;
   intensidade: number;
   cor: [number, number, number];
+  /** Cor da névoa no trecho (ex.: brilho alaranjado de cidade à noite). Fora das zonas, vale a do visual. */
+  nevoa?: [number, number, number];
 }
 
 export interface PlateData {
@@ -213,6 +215,8 @@ export interface LevelData {
   escuro?: { minX: number; maxX: number }[];
   /** Luz ambiente por trecho (o prédio apagando aos poucos). Fora de todas, vale o padrão do visual. */
   ambiente?: AmbientZone[];
+  /** Trechos ao ar livre com silhueta de cidade no horizonte. */
+  cidade?: { minX: number; maxX: number }[];
   figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];

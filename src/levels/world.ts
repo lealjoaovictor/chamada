@@ -64,6 +64,7 @@ function buildWorld(levels: LevelData[]): World {
     furtivo: shifted.flatMap((a) => a.furtivo ?? []),
     escuro: shifted.flatMap((a) => a.escuro ?? []),
     ambiente: shifted.flatMap((a) => a.ambiente ?? []),
+    cidade: shifted.flatMap((a) => a.cidade ?? []),
     vultos: shifted.flatMap((a) => a.vultos ?? []),
     figurantes: shifted.flatMap((a) => a.figurantes ?? []),
     finalDoor: shifted.find((a) => a.finalDoor)?.finalDoor,

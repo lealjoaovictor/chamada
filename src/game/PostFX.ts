@@ -42,7 +42,8 @@ export class PostFX {
     scene.clearColor = Color4.FromColor3(preset.background, 1);
     scene.fogMode = Scene.FOGMODE_EXP2;
     scene.fogDensity = preset.fogDensity;
-    scene.fogColor = preset.background;
+    // Cópia: a névoa muda de cor por trecho e não pode alterar a cor de fundo do visual.
+    scene.fogColor = preset.background.clone();
 
     ambient.intensity = preset.ambientIntensity;
     ambient.diffuse = preset.ambientColor;

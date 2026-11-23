@@ -36,6 +36,8 @@ const CABINET_DEPTH = 0.6;
 const FURTIVO_MIN_X = GUARITA_X - GUARITA_WIDTH / 2 - 1;
 const FURTIVO_MAX_X = 87;
 const END = 92;
+// A calçada da frente começa antes da parede da esquerda, para não aparecer a ponta na câmera.
+const FRONT_MIN_X = -12;
 
 // Postes de rua: vapor de sódio (laranja), que tira a cor de tudo e deixa as pessoas em silhueta.
 const lamps: LampData[] = ([
@@ -62,7 +64,9 @@ export const area1Level: LevelData = {
   killY: -5,
   bounds: { minX: -5, maxX: END },
   furtivo: [{ minX: FURTIVO_MIN_X, maxX: FURTIVO_MAX_X }],
-  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7] }],
+  // Lá fora a névoa puxa para o brilho alaranjado da cidade, e o horizonte ganha silhuetas de prédios.
+  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.14, 0.12, 0.125] }],
+  cidade: [{ minX: -10, maxX: END }],
   vultos: [{ x: 21, y: 1.5, z: 1.5, facing: 1 }, { x: 60.5, y: 0, z: 0.8, facing: 1, anda: true }],
   depth: 4,
   ground: [
@@ -167,9 +171,9 @@ export const area1Level: LevelData = {
     { x: 56.5, y: 3.6, z: 8.1, width: 14.6, height: 7.2, depth: 6.6, material: "interior" },
     { x: 79, y: 3.6, z: 8.1, width: 23.6, height: 7.2, depth: 7.2, material: "interior" },
     // Interiores dos prédios distantes (atrás das janelas).
-    { x: -2, y: 8, z: 20.1, width: 23.6, height: 16, depth: 5.6, material: "interior" },
-    { x: 46.5, y: 9.5, z: 21.1, width: 26.6, height: 19, depth: 5.6, material: "interior" },
-    { x: 77.5, y: 6.5, z: 19.1, width: 26.6, height: 13, depth: 5.6, material: "interior" },
+    { x: -2, y: 5, z: 20.1, width: 23.6, height: 10, depth: 5.6, material: "interior" },
+    { x: 46.5, y: 6.5, z: 21.1, width: 26.6, height: 13, depth: 5.6, material: "interior" },
+    { x: 77.5, y: 5, z: 19.1, width: 26.6, height: 10, depth: 5.6, material: "interior" },
     // Algumas janelas acesas (alguém ainda está lá dentro).
     ...[
       [15, 6, 4.28],
@@ -179,9 +183,9 @@ export const area1Level: LevelData = {
       [80.5, 4.5, 4.45],
       [86.5, 1.5, 4.45],
       [-6.5, 7.5, 17.28],
-      [3.5, 13.5, 17.28],
-      [40.5, 10.5, 18.28],
-      [49.5, 16.5, 18.28],
+      [3.5, 1.5, 17.28],
+      [40.5, 7.5, 18.28],
+      [49.5, 10.5, 18.28],
       [52.5, 4.5, 18.28],
       [71.5, 7.5, 16.28],
       [83.5, 4.5, 16.28],
@@ -201,6 +205,20 @@ export const area1Level: LevelData = {
     { x: GATE_X, y: GATE_HEIGHT / 2, z: -2.1, width: 0.6, height: GATE_HEIGHT, depth: 0.3, material: "asfalto" },
     { x: DOCK_X, y: DOCK_HEIGHT + 0.02, z: -0.3, width: DOCK_WIDTH, height: 0.04, depth: 2.6, material: "listrado" },
     { x: GUARITA_X, y: 2.68, z: COVER_Z, width: GUARITA_WIDTH + 0.4, height: 0.16, depth: COVER_DEPTH + 0.4, material: "concreto" },
+
+    // Primeiro plano: calçada, meio-fio e a rua entre a câmera e o jogo (antes era uma faixa preta).
+    { x: (FRONT_MIN_X + END) / 2, y: -0.06, z: -3.1, width: END - FRONT_MIN_X, height: 0.12, depth: 2.2, material: "concreto" },
+    { x: (FRONT_MIN_X + END) / 2, y: -0.08, z: -4.25, width: END - FRONT_MIN_X, height: 0.2, depth: 0.2, material: "moldura" },
+    { x: (FRONT_MIN_X + END) / 2, y: -0.3, z: -7, width: END - FRONT_MIN_X, height: 0.1, depth: 5.4, material: "asfalto" },
+    // Vãos preenchidos: interior dos prédios novos (entre a escadaria e a garagem, e à esquerda da rua).
+    { x: 40.5, y: 4.5, z: 12.5, width: 15, height: 9, depth: 5, material: "interior" },
+    { x: -1, y: 6, z: 10.5, width: 18, height: 12, depth: 5, material: "interior" },
+    ...[
+      [36, 4.5, 10.28],
+      [42, 7.5, 10.28],
+      [-6, 4.5, 8.28],
+      [3, 7.5, 8.28],
+    ].map(([x, y, z]): DecorData => ({ x, y, z, width: 2.4, height: 2.6, depth: 0.02, material: "janela-acesa" })),
   ],
   props: [
     // Tampa da lixeira empurrável, caída onde a lixeira estava.
@@ -241,13 +259,13 @@ export const area1Level: LevelData = {
         ["janela", "janela", "janela", "janela", "janela", "janela", "janela", "janela"],
       ],
     }),
-    // Prédios distantes, que a névoa transforma em silhueta.
+    // Prédios distantes, que a névoa transforma em silhueta. Baixos o bastante para o céu e a cidade aparecerem atrás.
     ...facade({
       model: "modular_urban_apartments_facade",
       x0: -14,
       z: 17,
       y0: 0,
-      floors: Array.from({ length: 5 }, () => Array<BayKind>(8).fill("janela")),
+      floors: Array.from({ length: 3 }, () => Array<BayKind>(8).fill("janela")),
     }),
     ...facade({
       model: "modular_factory_facade",
@@ -255,14 +273,14 @@ export const area1Level: LevelData = {
       z: 18,
       y0: 0,
       plinth: 0,
-      floors: Array.from({ length: 6 }, () => Array<BayKind>(9).fill("janela")),
+      floors: Array.from({ length: 3 }, () => Array<BayKind>(9).fill("janela")),
     }),
     ...facade({
       model: "modular_urban_apartments_facade",
       x0: 64,
       z: 16,
       y0: 0,
-      floors: Array.from({ length: 4 }, () => Array<BayKind>(9).fill("janela")),
+      floors: Array.from({ length: 3 }, () => Array<BayKind>(9).fill("janela")),
     }),
 
     // Muro, doca, floreira e guarita revestidos com peças dos kits.
@@ -319,5 +337,16 @@ export const area1Level: LevelData = {
     { model: "power_box_01", x: 84.3, y: 1.5, z: 4.15, rotY: 180 },
     { model: "exterior_aircon_unit", part: "exterior_aircon_unit", x: 88.5, y: 3.6, z: 4.05, rotY: 180 },
     { model: "WetFloorSign_01", x: 90.2, y: 0, z: 1.8, rotY: 30 },
+
+    // Vãos preenchidos: prédio baixo entre a escadaria e a garagem, e um prédio à esquerda da rua.
+    ...facade({ model: "modular_factory_facade", x0: 33, z: 10, y0: 0, plinth: 0, floors: Array.from({ length: 3 }, () => Array<BayKind>(5).fill("janela")) }),
+    ...facade({ model: "modular_urban_apartments_facade", x0: -10, z: 8, y0: 0, floors: Array.from({ length: 4 }, () => Array<BayKind>(6).fill("janela")) }),
+    // Primeiro plano baixo, na calçada da frente: nada alto, para não tapar o jogo nem os esconderijos.
+    { model: "shrub_02", part: "shrub_02_a", x: 3, y: 0, z: -3.4, scale: 0.9 },
+    { model: "shrub_02", part: "shrub_02_c", x: 24, y: 0, z: -3.5, scale: 0.8 },
+    { model: "concrete_road_barrier", x: 44.5, y: 0, z: -3.3, fitHeight: 0.8 },
+    { model: "concrete_road_barrier", x: 46.8, y: 0, z: -3.3, rotY: 8, fitHeight: 0.8 },
+    { model: "shrub_02", part: "shrub_02_b", x: 60, y: 0, z: -3.5 },
+    { model: "fire_hydrant", part: "fire_hydrant_aged|fire_hydrant_cap_0\\d_aged|fire_hydrant_chain_aged", x: 73, y: 0, z: -3.3, rotY: 160 },
   ],
 };

@@ -49,15 +49,17 @@ test("trechos furtivos e escuros ficam dentro de alguma área", () => {
 });
 
 test("corredor final não se repete: as lâmpadas dele apagam quando o jogador passa e a sala tem luz quente", () => {
-  const area5 = areas[4].inicioX;
+  // O corredor do bloco C começa depois da portaria (43 m dentro da área 6).
+  const corridorStart = areas[5].inicioX + 43;
   const door = level.finalDoor;
   assert.ok(door);
-  const corridor = level.lamps.filter((lamp) => lamp.x > area5 && lamp.x < door.x);
-  assert.ok(corridor.length >= 5);
+  const corridor = level.lamps.filter((lamp) => lamp.x > corridorStart && lamp.x < door.x);
+  assert.ok(corridor.length >= 2);
   for (const lamp of corridor) assert.ok(lamp.diesWhenPassed, `lâmpada em ${lamp.x}`);
   const room = level.lamps.filter((lamp) => lamp.x > door.x);
   assert.ok(room.length > 0 && room.every((lamp) => lamp.tom === "sala"));
-  assert.ok(level.lamps.filter((lamp) => lamp.x < door.x).every((lamp) => lamp.tom !== "sala"), "só a sala tem luz quente");
+  const acesas = level.lamps.filter((lamp) => lamp.x < door.x && !lamp.desligada);
+  assert.ok(acesas.every((lamp) => lamp.tom !== "sala"), "só a sala tem luz quente");
 });
 
 test("professor e colega ficam dentro da sala do final", () => {

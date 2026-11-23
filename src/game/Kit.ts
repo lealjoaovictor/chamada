@@ -67,6 +67,8 @@ export class Kit {
     const stretch = prop.stretch ?? [1, 1, 1];
     root.scaling.set(scale * stretch[0], scale * stretch[1], scale * stretch[2]);
     root.rotation.y = ((prop.rotY ?? 0) * Math.PI) / 180;
+    // De cabeça para baixo (cadeira em cima da carteira no fim da aula): a base fica em cima, em `y`.
+    if (prop.virada) root.rotation.z = Math.PI;
     // A origem do objeto colocado é o centro da base: (x, y, z) da fase = onde ele encosta no chão.
     // Peças de kits modulares mantêm a origem própria do kit, para encaixarem umas nas outras.
     const center = (prop.origin ?? source.modular)

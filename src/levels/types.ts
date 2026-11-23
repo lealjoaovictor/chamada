@@ -41,6 +41,8 @@ export interface BlockData {
 
 export interface DecorData extends BlockData {
   id?: string;
+  /** Texto escrito a giz na face da frente (quadro-negro), em linhas separadas por "\n". */
+  giz?: string;
   z: number;
   depth: number;
   shape?: "box" | "sphere" | "cylinder" | "disc";
@@ -68,6 +70,8 @@ export interface PropData {
   stretch?: [number, number, number];
   /** Projeta sombra na lanterna do Vigia. */
   shadow?: boolean;
+  /** De cabeça para baixo: a base do modelo fica em cima, na altura `y`. */
+  virada?: boolean;
 }
 
 export interface RampData {
@@ -144,7 +148,16 @@ export interface DoorData {
   closeAfterX?: number;
 }
 
+/**
+ * O hábito do segurança (cada um tem o seu jeito de fazer a ronda):
+ * - celular: na ronda, um trecho mexendo no celular (lanterna guardada) e o outro atento;
+ * - futebol: sentado no posto, alterna entre vigiar a entrada e assistir ao jogo na TV (lado `tvLado`);
+ * - cochilo: sentado, cochilando; barulho perto (pulo, deslize, caixa) ou encostar nele acorda.
+ */
+export type HabitoVigia = { tipo: "celular" } | { tipo: "futebol"; tvLado: 1 | -1 } | { tipo: "cochilo" };
+
 export interface VigiaData {
+  habito?: HabitoVigia;
   mode?: "patrulha" | "perseguicao";
   triggerX?: number;
   x0: number;
@@ -187,7 +200,18 @@ export interface FinalDoorData {
   walkToX: number;
 }
 
+/**
+ * A sala de sempre, vazia: a aula mudou de lugar. Ao chegar na porta, o Zacarias entra, vê o quadro,
+ * fala com o Davi pelo celular e segue para a sala nova (pela janela do fundo da sala).
+ */
+export interface SalaVaziaData {
+  porta: FinalDoorData;
+  /** Onde a câmera para para mostrar o quadro com o recado. */
+  quadroX: number;
+}
+
 export interface LevelData {
+  salaVazia?: SalaVaziaData;
   checkpoints: PointData[];
   killY: number;
   bounds: { minX: number; maxX: number };
@@ -323,6 +347,13 @@ export interface CallData {
   colega: { quando: AncoraColega; fala: Fala }[];
   /** Quanto depois do nome âncora (ou da interrupção) o colega fala. */
   atrasoComentario: number;
+  /**
+   * Sala 204 vazia: a conversa do Zacarias (ao vivo) com o Davi (no celular), uma fala depois da outra.
+   * A chamada fica parada enquanto ela dura.
+   */
+  salaVazia: Fala[];
+  /** O Davi enrolando o professor: a chamada para por `duracao` segundos enquanto essas falas tocam. */
+  enrola: { duracao: number; falas: { em: number; fala: Fala }[] };
   falas: {
     nome: (indice: number, nome: string) => Fala;
     nomeAluno: Fala;
@@ -331,7 +362,20 @@ export interface CallData {
     eleChamou: Fala;
     salaChama: Fala;
     zacariasPresente: Fala;
-    seguranca: { desconfia: Fala[]; barulho: Fala[]; pego: Fala[]; persegue: Fala[] };
+    seguranca: {
+      desconfia: Fala[];
+      barulho: Fala[];
+      pego: Fala[];
+      persegue: Fala[];
+      /** Futebol na TV: lance perigoso, gol, chance perdida e reclamação com o juiz. */
+      lance: Fala[];
+      gol: Fala[];
+      perdeu: Fala[];
+      reclama: Fala[];
+      /** Cochilo: acorda assustado; não vê ninguém e volta a sentar. */
+      acorda: Fala[];
+      voltaDormir: Fala[];
+    };
   };
   /** Força do sinal da ligação por área (1 a 5); no subsolo ela picota. */
   sinalPorArea: number[];

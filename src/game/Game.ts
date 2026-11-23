@@ -8,6 +8,8 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
+import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
@@ -53,6 +55,7 @@ import { pipelineLevel } from "../levels/pipeline";
 import { gymLevel } from "../levels/gym";
 import { TUNING } from "./Tuning";
 import { WORLD, worldLevel } from "../levels/world";
+import { GuardSounds } from "./GuardSounds";
 
 const DARK_AMBIENT = 0.2;
 const MAX_DT = 1 / 30;
@@ -65,6 +68,20 @@ const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
+// Letra de giz dos quadros e placas (Caveat, licença OFL, em `public/fonts`).
+const CHALK_FONT = "Caveat";
+
+async function loadChalkFont(): Promise<void> {
+  try {
+    const face = new FontFace(CHALK_FONT, "url(fonts/caveat-600.woff2)", { weight: "600" });
+    document.fonts.add(await face.load());
+  } catch {
+    console.warn("fonte do giz não carregou");
+  }
+}
+// Sala 204 vazia: pausa entre as falas e quanto a câmera fica no quadro.
+const EMPTY_ROOM_GAP = 0.35;
+const EMPTY_ROOM_BOARD_FROM = 1;
 // Final bom: depois de o professor chamar, o jogador pode responder "presente" com qualquer botão;
 // se não apertar em ~2 s (contados do fim da fala), o Zacarias responde sozinho.
 const ANSWER_WINDOW = 2;
@@ -78,6 +95,10 @@ const CAUGHT_HOLD = 0.5;
 const CAUGHT_FADE_IN = 0.4;
 const SUSPICION_LINE_COOLDOWN = 6;
 const GUARD_VOICE_RANGE = 22;
+/** Até onde se ouvem a TV do segurança do futebol e o ronco do que cochila (m). */
+const HABIT_SOUND_RANGE = 16;
+/** Pulo que cai depois de tanto tempo no ar faz barulho (o segurança do cochilo ouve). */
+const LANDING_NOISE_AIR = 0.28;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -86,7 +107,7 @@ const LIGHT_DEATH_COLOR = "#3a2306";
 const DEFAULT_FADE_COLOR = "#000";
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado";
+type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado" | "sala-vazia";
 
 /** Camada que a câmera não desenha, mas o mapa de sombra da lanterna desenha. */
 const SHADOW_ONLY_LAYER = 0x10000000;
@@ -108,6 +129,11 @@ export class Game {
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
   private warming = false;
   private finalDoor: FinalDoor | null = null;
+  /** Porta da 204 (a sala de sempre, vazia hoje) e o andamento da conversa com o Davi. */
+  private emptyRoomDoor: FinalDoor | null = null;
+  private emptyRoomDone = false;
+  private emptyRoomLine = 0;
+  private emptyRoomNextAt = -1;
   private arrivalTimer = 0;
   private readonly menu = new MenuScreen();
   private readonly endScreen = new EndScreen();
@@ -135,6 +161,9 @@ export class Game {
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
+  private readonly guardSounds = new GuardSounds(this.sfx);
+  private airTime = 0;
+  private wasSliding = false;
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -231,6 +260,7 @@ export class Game {
     level.lamps.forEach((lamp, i) => this.lamps.push(new Lamp(scene, lamp, VISUAL.lampIntensity, `lamp-${i}`)));
 
     this.materials = new MaterialLibrary(scene);
+    await loadChalkFont();
     this.props = new Props(scene);
     await this.props.load([...level.obstacles, ...level.decor].flatMap((block) => (block.model ? [block.model] : [])));
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
@@ -270,6 +300,7 @@ export class Game {
       this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials, `plate-${i}`)),
     );
     if (level.finalDoor) this.finalDoor = new FinalDoor(scene, level.finalDoor, this.materials.get("madeira"), "porta-final");
+    if (level.salaVazia) this.emptyRoomDoor = new FinalDoor(scene, level.salaVazia.porta, this.materials.get("madeira"), "porta-204");
     level.elevators.forEach((elevator, i) =>
       this.elevators.push(new Elevator(scene, elevator, this.materials, `elevator-${i}`)),
     );
@@ -377,8 +408,10 @@ export class Game {
     }
     for (const lamp of this.lamps) lamp.update(dt, this.player.position.x);
     this.finalDoor?.update(dt);
+    this.emptyRoomDoor?.update(dt);
     this.updateDoors(dt);
     for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
+    this.updateGuardHabits(dt);
     this.announceChases();
     this.updateElevators(dt);
     if (this.state === "menu") {
@@ -388,6 +421,11 @@ export class Game {
     }
     if (this.state === "atrasado") {
       this.updateLate(dt);
+      this.input.endFrame();
+      return;
+    }
+    if (this.state === "sala-vazia") {
+      this.updateEmptyRoom(dt);
       this.input.endFrame();
       return;
     }
@@ -439,6 +477,7 @@ export class Game {
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.vultos?.update(dt, this.player.position.x);
     this.updateNoise();
+    this.updatePlayerNoise(dt);
     this.cameraRig.update(dt, {
       x: this.player.position.x,
       feetY: this.player.feetY,
@@ -452,6 +491,7 @@ export class Game {
     const cause = this.player.position.y < this.killY ? "queda" : this.isSeen(dt);
     if (cause) this.die(cause);
     else if (this.finalDoor && this.player.position.x >= this.finalDoor.data.triggerX) this.arrive();
+    else if (this.emptyRoomDoor && !this.emptyRoomDone && this.player.position.x >= this.emptyRoomDoor.data.triggerX) this.enterEmptyRoom();
     this.input.endFrame();
   }
 
@@ -533,6 +573,52 @@ export class Game {
     this.arrivalTimer = 0;
     this.input.setAutopilot(0);
     this.finalDoor?.open();
+  }
+
+  // A 204 vazia: a porta abre, ele entra, lê o quadro e liga para o Davi. A chamada fica parada.
+  private enterEmptyRoom(): void {
+    this.state = "sala-vazia";
+    this.emptyRoomDone = true;
+    this.arrivalTimer = 0;
+    this.emptyRoomLine = 0;
+    this.emptyRoomNextAt = -1;
+    this.input.setAutopilot(0);
+    this.emptyRoomDoor?.open();
+  }
+
+  private updateEmptyRoom(dt: number): void {
+    this.arrivalTimer += dt;
+    this.soundscape.update(dt, this.soundState());
+    const door = this.emptyRoomDoor?.data;
+    const lines = CHAMADA.salaVazia;
+    const walking = door !== undefined && this.arrivalTimer > ARRIVAL_PAUSE && this.player.position.x < door.walkToX;
+    if (this.emptyRoomNextAt < 0) {
+      this.input.setAutopilot(walking ? 1 : 0);
+      if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) this.emptyRoomNextAt = this.arrivalTimer;
+    } else if (this.arrivalTimer >= this.emptyRoomNextAt) {
+      if (this.emptyRoomLine < lines.length) {
+        const fala = lines[this.emptyRoomLine++];
+        const duration = Math.max(this.clock.talk(fala), fala.texto.length * 0.06);
+        if (fala.voz !== "colega") this.roomCaption.show(fala.legenda ?? fala.texto, duration + 0.4);
+        // Depois do "cadê todo mundo?", a câmera vai até o quadro e fica lá até o fim da conversa.
+        if (this.emptyRoomLine === EMPTY_ROOM_BOARD_FROM && this.level.salaVazia) this.cameraRig.focus(this.level.salaVazia.quadroX, 60);
+        this.emptyRoomNextAt = this.arrivalTimer + duration + EMPTY_ROOM_GAP;
+      } else {
+        this.cameraRig.focus(this.player.position.x, 0);
+        this.roomCaption.hide();
+        this.clock.stall();
+        this.input.setAutopilot(null);
+        this.state = "jogando";
+      }
+    }
+    this.player.update(dt, this.input, false);
+    this.cameraRig.update(dt, {
+      x: this.player.position.x,
+      feetY: this.player.feetY,
+      grounded: this.player.isGrounded,
+      facing: this.player.facingDirection,
+    });
+    this.cullLights();
   }
 
   private soundState() {
@@ -685,6 +771,75 @@ export class Game {
     this.clock.guard(kind, 1 - 0.6 * (distance / GUARD_VOICE_RANGE));
   }
 
+  /** Sons e falas dos hábitos: TV, ronco, lanterna, celular e as reações de cada segurança. */
+  private updateGuardHabits(dt: number): void {
+    const px = this.player.position.x;
+    let tv = 0;
+    for (const vigia of this.vigias) {
+      const near = Math.max(0, 1 - Math.abs(vigia.positionX - px) / HABIT_SOUND_RANGE);
+      if (vigia.settings.habito?.tipo === "futebol") tv = Math.max(tv, near);
+      const playing = this.state === "jogando" || this.state === "morto";
+      for (const event of vigia.events.splice(0)) {
+        if (this.warming || !playing) continue;
+        switch (event) {
+          case "lanterna-liga":
+          case "lanterna-desliga":
+            this.guardSounds.click(near);
+            break;
+          case "notificacao":
+            this.guardSounds.notification(near);
+            break;
+          case "ronco":
+            this.guardSounds.snore(near);
+            break;
+          case "lance":
+            this.guardSounds.swell();
+            this.habitLine(vigia, "lance");
+            break;
+          case "gol":
+            this.guardSounds.roar();
+            this.habitLine(vigia, "gol");
+            break;
+          case "perdeu":
+            this.guardSounds.groan();
+            this.habitLine(vigia, "perdeu");
+            break;
+          case "reclama":
+            this.habitLine(vigia, "reclama");
+            break;
+          case "susto":
+            this.habitLine(vigia, "acorda");
+            break;
+          case "volta-a-dormir":
+            this.habitLine(vigia, "voltaDormir");
+            break;
+        }
+      }
+    }
+    this.guardSounds.updateTv(dt, this.state === "menu" ? 0 : tv);
+  }
+
+  private habitLine(vigia: Vigia, kind: "lance" | "gol" | "perdeu" | "reclama" | "acorda" | "voltaDormir"): void {
+    const distance = Math.abs(vigia.positionX - this.player.position.x);
+    if (distance > GUARD_VOICE_RANGE) return;
+    this.clock.guard(kind, 1 - 0.6 * (distance / GUARD_VOICE_RANGE));
+  }
+
+  /** O Zacarias faz barulho ao cair de um pulo ou ao começar a deslizar: o segurança que cochila pode acordar. */
+  private updatePlayerNoise(dt: number): void {
+    const player = this.player;
+    let loud = 0;
+    if (!player.isGrounded) this.airTime += dt;
+    else {
+      if (this.airTime > LANDING_NOISE_AIR) loud = 1;
+      this.airTime = 0;
+    }
+    if (player.isSliding && !this.wasSliding) loud = Math.max(loud, 0.8);
+    this.wasSliding = player.isSliding;
+    if (loud <= 0) return;
+    for (const vigia of this.vigias) vigia.hearPlayer(player.position.x, player.feetY, loud);
+  }
+
   // Caixa que cai com força faz barulho: os Vigias de patrulha por perto vão investigar.
   private updateNoise(): void {
     for (const box of this.boxes) {
@@ -833,5 +988,51 @@ export class Game {
     mesh.isPickable = false;
     mesh.receiveShadows = true;
     mesh.freezeWorldMatrix();
+    if (decor.giz) this.createChalk(decor, name);
+  }
+
+  /** Texto a giz na face da frente de uma decoração (o recado no quadro, as placas). */
+  private createChalk(decor: DecorData, name: string): void {
+    const width = decor.width * 0.92;
+    const height = decor.height * 0.86;
+    const pxPerMeter = 420;
+    const texture = new DynamicTexture(`${name}-giz`, { width: Math.round(width * pxPerMeter), height: Math.round(height * pxPerMeter) }, this.scene, true);
+    texture.hasAlpha = true;
+    const ctx = texture.getContext() as CanvasRenderingContext2D;
+    const w = texture.getSize().width;
+    const h = texture.getSize().height;
+    ctx.clearRect(0, 0, w, h);
+    const lines = (decor.giz ?? "").split("\n");
+    const longest = Math.max(...lines.map((line) => line.length), 1);
+    // Letra de mão: a maior que cabe na largura e na altura.
+    const size = Math.floor(Math.min(h / (lines.length * 1.25), (w / longest) * 2.1));
+    ctx.font = `600 ${size}px ${CHALK_FONT}, "Bradley Hand", "Segoe Print", cursive`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(238, 238, 228, 0.9)";
+    ctx.shadowColor = "rgba(238, 238, 228, 0.35)";
+    ctx.shadowBlur = size * 0.08;
+    const top = h / 2 - ((lines.length - 1) * size * 1.2) / 2;
+    lines.forEach((line, i) => {
+      // Cada linha levemente torta, como escrita à mão.
+      ctx.save();
+      ctx.translate(w / 2, top + i * size * 1.2);
+      ctx.rotate((((i * 37) % 7) - 3) * 0.004);
+      ctx.fillText(line, 0, 0);
+      ctx.restore();
+    });
+    texture.update(true);
+    const material = new StandardMaterial(`${name}-giz`, this.scene);
+    material.diffuseTexture = texture;
+    material.opacityTexture = texture;
+    // Giz claro sobre o quadro escuro: legível mesmo na sala apagada, sem brilhar como uma tela.
+    material.emissiveColor = new Color3(0.32, 0.32, 0.3);
+    material.specularColor = Color3.Black();
+    material.disableLighting = false;
+    const plane = CreatePlane(`${name}-giz`, { width, height }, this.scene);
+    plane.material = material;
+    plane.position.set(decor.x, decor.y, decor.z - decor.depth / 2 - 0.004);
+    plane.isPickable = false;
+    plane.freezeWorldMatrix();
   }
 }

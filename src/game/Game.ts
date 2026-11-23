@@ -37,6 +37,7 @@ import { Props } from "./Props";
 import { Kit } from "./Kit";
 import { createBackdrop } from "./Backdrop";
 import { createSkyline } from "./Skyline";
+import { createRails, createWires } from "./Wiring";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Music, type MusicScene } from "./Music";
@@ -383,6 +384,8 @@ export class Game {
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
     for (const trecho of level.cidade ?? []) createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW);
+    createWires(scene, level.fios ?? []);
+    createRails(scene, level.grades ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);

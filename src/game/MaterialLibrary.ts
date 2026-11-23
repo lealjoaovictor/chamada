@@ -30,6 +30,7 @@ const PALETTE: Record<MaterialName, Color3> = {
   interior: new Color3(0.015, 0.016, 0.02),
   "janela-acesa": new Color3(0.05, 0.04, 0.03),
   saida: new Color3(0.02, 0.06, 0.03),
+  sinal: new Color3(0.1, 0.01, 0.01),
 };
 
 const EMISSIVE: Partial<Record<MaterialName, Color3>> = {
@@ -37,6 +38,8 @@ const EMISSIVE: Partial<Record<MaterialName, Color3>> = {
   tela: new Color3(0.45, 0.6, 0.85),
   "janela-acesa": new Color3(0.42, 0.47, 0.45),
   saida: new Color3(0.22, 0.62, 0.36),
+  // Luz vermelha de balizamento no alto das antenas.
+  sinal: new Color3(0.9, 0.08, 0.05),
 };
 
 const ALPHA: Partial<Record<MaterialName, number>> = {

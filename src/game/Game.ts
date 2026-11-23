@@ -36,6 +36,7 @@ import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
 import { Kit } from "./Kit";
 import { createBackdrop } from "./Backdrop";
+import { createSkyline } from "./Skyline";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Checkpoints } from "./Checkpoints";
@@ -63,6 +64,9 @@ const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
 const LIGHT_CULL_DISTANCE = 17;
+// Brilho alaranjado de cidade grande no horizonte (iluminação pública de vapor de sódio).
+const CITY_GLOW = new Color3(0.2, 0.15, 0.14);
+const DEFAULT_FOG: [number, number, number] = [VISUAL.background.r, VISUAL.background.g, VISUAL.background.b];
 const MAX_LIGHTS_PER_MATERIAL = 8;
 // Blocos de uniforms que o material usa além das luzes (cena, malha, material e um de folga).
 const NON_LIGHT_UNIFORM_BLOCKS = 4;
@@ -321,6 +325,7 @@ export class Game {
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
+    for (const trecho of level.cidade ?? []) createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
@@ -452,6 +457,12 @@ export class Game {
         c.g += (zone.cor[1] - c.g) * k;
         c.b += (zone.cor[2] - c.b) * k;
       }
+      // Névoa por trecho: lá fora puxa para o brilho da cidade; nas outras áreas volta ao tom padrão.
+      const fog = zone?.nevoa ?? DEFAULT_FOG;
+      const f = this.scene.fogColor;
+      f.r += (fog[0] - f.r) * k;
+      f.g += (fog[1] - f.g) * k;
+      f.b += (fog[2] - f.b) * k;
     }
     this.player.setCrouch((this.level.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.setGrip(this.pushTimer > 0 ? this.gripPoint() : null);

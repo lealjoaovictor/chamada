@@ -22,6 +22,10 @@ export interface SoundState {
   doorBottoms: number[];
   elevatorsMoving: boolean[];
   elevatorsCalled: boolean[];
+  /** Porta do elevador: +1 abrindo, -1 fechando, 0 parada. */
+  elevatorDoors: number[];
+  /** Chegadas da cabine (cada uma é um "plim"). */
+  elevatorArrivals: number[];
   lampsDead: boolean[];
   vigias: { x: number; walking: boolean; chases: boolean; shown: boolean; suspicious: boolean }[];
   finalDoorOpen: boolean;
@@ -82,6 +86,14 @@ export class Soundscape {
     });
     state.elevatorsCalled.forEach((called, i) => {
       if (called && !before.elevatorsCalled[i]) this.sfx.play("botao", { volume: 0.7 });
+    });
+    state.elevatorArrivals.forEach((count, i) => {
+      if (count > (before.elevatorArrivals[i] ?? count)) this.sfx.chime(0.35);
+    });
+    state.elevatorDoors.forEach((motion, i) => {
+      if (motion !== 0 && motion !== before.elevatorDoors[i]) {
+        this.sfx.play(motion > 0 ? "porta-abre" : "porta-fecha", { volume: 0.3, pitch: 1.6 });
+      }
     });
     this.updateElevators(dt, state.elevatorsMoving.some(Boolean));
     state.lampsDead.forEach((dead, i) => {

@@ -270,7 +270,7 @@ export class Game {
     );
     if (level.finalDoor) this.finalDoor = new FinalDoor(scene, level.finalDoor, this.materials.get("madeira"), "porta-final");
     level.elevators.forEach((elevator, i) =>
-      this.elevators.push(new Elevator(scene, elevator, level.depth, this.materials.get("metal"), `elevator-${i}`)),
+      this.elevators.push(new Elevator(scene, elevator, this.materials, `elevator-${i}`)),
     );
 
     level.boxes.forEach((data, i) => {
@@ -546,6 +546,8 @@ export class Game {
       doorBottoms: this.doors.map((door) => door.bottom),
       elevatorsMoving: this.elevators.map((elevator) => elevator.moving),
       elevatorsCalled: this.elevators.map((elevator) => elevator.called),
+      elevatorDoors: this.elevators.map((elevator) => elevator.doorMotion),
+      elevatorArrivals: this.elevators.map((elevator) => elevator.arrivals),
       lampsDead: this.lamps.map((lamp) => lamp.isDead),
       vigias: this.vigias.map((vigia) => ({
         x: vigia.positionX,

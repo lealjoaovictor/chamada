@@ -174,6 +174,8 @@ export interface ElevatorData {
   topY: number;
   buttonX: number;
   buttonY: number;
+  /** Topo do poço (onde fica a viga e o cabo). */
+  shaftTop?: number;
 }
 
 export interface FinalDoorData {

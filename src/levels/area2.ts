@@ -1,4 +1,5 @@
-import type { BlockData, DecorData, LampData, LevelData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
+import { CARDBOARD_VISUAL, CART_VISUAL, CRATE_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 48;
 const END = 76;
@@ -31,12 +32,9 @@ const PITS: [number, number][] = [
 ];
 const END2 = 118;
 
+/** Luar atrás do vidro da janela pronta (a moldura vem de `moonWindow`). */
 function archWindow(x: number): DecorData[] {
-  return [
-    { x, y: 2.05, z: BACK_Z - 0.05, width: 1.1, height: 1.5, depth: 0.1, material: "moldura" },
-    { x, y: 2.75, z: BACK_Z - 0.05, width: 1.1, height: 0.55, depth: 0.1, shape: "disc", material: "moldura" },
-    { x, y: 2.0, z: BACK_Z - 0.1, width: 0.85, height: 1.3, depth: 0.1, material: "janela" },
-  ];
+  return [{ x, y: 2.05, z: BACK_Z - 0.04, width: 0.9, height: 1.6, depth: 0.02, material: "luar" }];
 }
 
 function hangingLamp(lamp: LampData): DecorData {
@@ -108,9 +106,9 @@ export const area2Level: LevelData = {
   ],
   ramps: [],
   boxes: [
-    { x: 59.5, y: 0.5, size: 1, mass: 20, material: "carrinho" },
-    { x: 80.5, y: 0.5, size: 1, mass: 20, material: "caixa" },
-    { x: 86.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "caixa" },
+    { x: 59.5, y: 0.5, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL },
+    { x: 80.5, y: 0.5, size: 1, mass: 20, material: "caixa", visual: CARDBOARD_VISUAL },
+    { x: 86.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "caixa", visual: CRATE_VISUAL },
   ],
   lamps,
   plates: [
@@ -123,6 +121,44 @@ export const area2Level: LevelData = {
   ],
   vigias: [],
   elevators: [],
+  props: [
+    // Janelas (molduras prontas) e luminárias fluorescentes.
+    ...[58.5, 61, 70, 72.8, 102.8, 108, 113.5].flatMap((x) => moonWindow(x, 1.25, BACK_Z)),
+    ...[82, 87.5].flatMap((x) => moonWindow(x, 2.25, BACK_Z)),
+    ...lamps.map((l) => fluorescent(l.x, l.y + 0.12)),
+    // Corredor da catraca.
+    { model: "SchoolChair_01", x: 48.9, y: 0, z: 1.55, rotY: 160 },
+    { model: "SchoolChair_01", x: 49.6, y: 0, z: 1.6, rotY: 200 },
+    { model: "painted_wooden_bench", x: 64.3, y: 0, z: 1.75, rotY: 180, scale: 1.25 },
+    { model: "painted_wooden_bench", x: 69.5, y: 0, z: 1.75, rotY: 180, scale: 1.25 },
+    { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 75.3, y: 0, z: 1.65, scale: 0.8 },
+    { model: "WetFloorSign_01", x: 61.6, y: 0, z: -1.3, rotY: 20 },
+    { model: "security_camera_01", x: 56, y: 2.75, z: 1.85, rotY: 220 },
+    { model: "power_box_01", x: 67.8, y: 1.6, z: BACK_Z - 0.02, rotY: 180 },
+    // Zeladoria: estantes de aço, tambores, caixas e dutos.
+    { model: "steel_frame_shelves_01", x: 81.6, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
+    { model: "steel_frame_shelves_01", x: 92.1, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
+    { model: "plastic_crate_01", x: 81.2, y: 0.95, z: 1.75, rotY: 90 },
+    { model: "plastic_crate_01", x: 81.9, y: 1.85, z: 1.75, rotY: 85 },
+    { model: "cardboard_box_01", x: 92, y: 0.95, z: 1.75, rotY: 90 },
+    { model: "cardboard_box_01", x: 91.7, y: 1.85, z: 1.75, rotY: 96 },
+    { model: "barrel_03", x: 90.3, y: STAGE_TOP, z: 1.55 },
+    { model: "barrel_03", x: 84.9, y: STAGE_TOP, z: 1.6, rotY: 40 },
+    { model: "hand_truck", x: 83.4, y: STAGE_TOP, z: 1.5, rotY: 200 },
+    { model: "trashbag", x: 93.9, y: 0, z: 1.7 },
+    { model: "plastic_crate_01", x: 79.2, y: 0, z: 1.6, rotY: 20 },
+    ...[81.4, 83.2, 85, 86.8, 88.6, 90.4, 92.2].map((x): PropData => ({
+      model: "modular_airduct_rectangular_01", part: "modular_airduct_rectangular_01_tripple_01", x, y: 4.55, z: 1.3, rotY: 90, origin: false,
+    })),
+    // Sala escura: carteiras largadas.
+    ...([
+      [97.6, 1.3, 180], [98.5, 1.2, 160], [103, 1.4, 195], [107.6, 1.3, 170], [112.6, 1.3, 185], [115, 1.35, 150],
+    ] as const).flatMap(([x, z, r]): PropData[] => [
+      { model: "SchoolDesk_01", x, y: 0, z, rotY: r },
+      { model: "SchoolChair_01", x: x + 0.1, y: 0, z: z - 0.55, rotY: r + 15 },
+    ]),
+    { model: "SchoolChair_01", x: 106.9, y: 0, z: -1.3, rotY: 75 },
+  ],
   decor: [
     // Narrativa: mochila largada perto da catraca.
     { x: 53.6, y: 0.22, z: -1.1, width: 0.36, height: 0.44, depth: 0.2, material: "tecido" },

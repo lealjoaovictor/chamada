@@ -39,6 +39,7 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
       walkToX: level.finalDoor.walkToX + dx,
     },
     decor: sx(level.decor, dx),
+    props: level.props && sx(level.props, dx),
     furtivo: level.furtivo?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
     escuro: level.escuro?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
     vultos: level.vultos && sx(level.vultos, dx),

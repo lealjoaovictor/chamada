@@ -1,4 +1,5 @@
-import type { DecorData, LampData, LevelData } from "./types";
+import type { DecorData, LampData, LevelData, PropData } from "./types";
+import { fluorescent, moonWindow } from "./kits.ts";
 
 const START = 166;
 const STAIRS_START = 166.5;
@@ -18,13 +19,12 @@ const DOOR_HEIGHT = 2.6;
 const END = 219 + SHIFT;
 const BACK_Z = 2.1;
 const STEPS = 6;
+/** Altura do tampo da carteira pronta. */
+const DESK_TOP = 0.77;
 
+/** Vidro escuro atrás da janela pronta (a moldura vem de `moonWindow`). */
 function archWindow(x: number): DecorData[] {
-  return [
-    { x, y: FLOOR + 2.05, z: BACK_Z - 0.05, width: 1.1, height: 1.5, depth: 0.1, material: "moldura" },
-    { x, y: FLOOR + 2.75, z: BACK_Z - 0.05, width: 1.1, height: 0.55, depth: 0.1, shape: "disc", material: "moldura" },
-    { x, y: FLOOR + 2.0, z: BACK_Z - 0.1, width: 0.85, height: 1.3, depth: 0.1, material: "janela" },
-  ];
+  return [{ x, y: FLOOR + 2.0, z: BACK_Z - 0.04, width: 0.95, height: 1.55, depth: 0.02, material: "janela" }];
 }
 
 function speaker(x: number, scale: number): DecorData[] {
@@ -34,13 +34,11 @@ function speaker(x: number, scale: number): DecorData[] {
   ];
 }
 
-function desk(x: number, z: number): DecorData[] {
+/** Carteira escolar pronta com a cadeira atrás, viradas para o quadro (no fundo). */
+function desk(x: number, z: number, turn = 0): PropData[] {
   return [
-    { x, y: FLOOR + 0.74, z, width: 1, height: 0.05, depth: 0.55, material: "madeira" },
-    { x, y: FLOOR + 0.36, z: z + 0.22, width: 0.9, height: 0.72, depth: 0.04, material: "metal" },
-    { x: x - 0.55, y: FLOOR + 0.45, z, width: 0.42, height: 0.05, depth: 0.42, material: "madeira" },
-    { x: x - 0.78, y: FLOOR + 0.7, z, width: 0.05, height: 0.5, depth: 0.42, material: "madeira" },
-    { x: x - 0.55, y: FLOOR + 0.22, z, width: 0.38, height: 0.44, depth: 0.04, material: "metal" },
+    { model: "SchoolDesk_01", x, y: FLOOR, z, rotY: 180 + turn },
+    { model: "SchoolChair_01", x: x + 0.04, y: FLOOR, z: z - 0.55, rotY: 180 + turn * 2 },
   ];
 }
 
@@ -75,8 +73,8 @@ export const area5Level: LevelData = {
   laco: { gatilhoX: LOOP_X, recuo: LOOP_BACK, apagar: LOOP_DARKEN },
   decor: [
     // Narrativa: na sala vazia, uma prova esperando na carteira do meio.
-    { x: 212.2 + SHIFT, y: FLOOR + 0.772, z: -1.45, width: 0.3, height: 0.005, depth: 0.22, material: "papel" },
-    { x: 212.2 + SHIFT - 0.55, y: FLOOR + 0.62, z: -1.45, width: 0.34, height: 0.42, depth: 0.2, material: "tecido" },
+    { x: 212.2 + SHIFT, y: FLOOR + DESK_TOP, z: -1.45, width: 0.3, height: 0.005, depth: 0.22, material: "papel" },
+    { x: 212.2 + SHIFT + 0.42, y: FLOOR + 0.21, z: -1.95, width: 0.34, height: 0.42, depth: 0.2, material: "tecido" },
     ...Array.from({ length: STEPS }, (_, i): DecorData => {
       const step = (STAIRS_END - STAIRS_START) / STEPS;
       const height = ((i + 1) * FLOOR) / STEPS;
@@ -103,9 +101,17 @@ export const area5Level: LevelData = {
     { x: (DOOR_X + END) / 2, y: (FLOOR + CEILING) / 2 + 0.3, z: BACK_Z + 0.05, width: END - DOOR_X, height: CEILING - FLOOR, depth: 0.1, material: "parede" },
     { x: 213.5 + SHIFT, y: FLOOR + 2, z: BACK_Z - 0.06, width: 3.2, height: 1.3, depth: 0.05, material: "quadro" },
     { x: 213.5 + SHIFT, y: FLOOR + 1.3, z: BACK_Z - 0.12, width: 3.3, height: 0.06, depth: 0.12, material: "moldura" },
-    { x: 217.6 + SHIFT, y: FLOOR + 2.1, z: BACK_Z - 0.06, width: 1.2, height: 1.9, depth: 0.05, material: "moldura" },
-    { x: 217.6 + SHIFT, y: FLOOR + 2.1, z: BACK_Z - 0.1, width: 1, height: 1.7, depth: 0.05, material: "luar" },
-    { x: 216.8 + SHIFT, y: FLOOR + 0.42, z: 1.1, width: 1.6, height: 0.84, depth: 0.7, material: "madeira" },
-    ...[209.8, 212.2, 214.6].map((x) => x + SHIFT).flatMap((x) => [...desk(x, -1.45), ...desk(x, 1.0)]),
+    { x: 217.6 + SHIFT, y: FLOOR + 2.06, z: BACK_Z - 0.04, width: 0.95, height: 1.6, depth: 0.02, material: "luar" },
+  ],
+  props: [
+    // Corredor: janelas e bancos a cada 6 m (o trecho é periódico, então tudo se repete igual).
+    ...Array.from({ length: 8 }, (_, i) => 177 + i * 6).flatMap((x) => moonWindow(x, FLOOR + 1.15, BACK_Z)),
+    ...Array.from({ length: 8 }, (_, i) => 177 + i * 6).map((x): PropData => ({ model: "painted_wooden_bench", x, y: FLOOR, z: 1.75, rotY: 180, scale: 1.25 })),
+    ...lamps.filter((lamp) => !lamp.moonlight).map((lamp) => fluorescent(lamp.x, CEILING - 0.01)),
+    // Sala de aula: carteiras, mesa do professor e a janela do fundo.
+    ...[209.8, 212.2, 214.6].map((x) => x + SHIFT).flatMap((x, i) => [...desk(x, -1.45, i - 1), ...desk(x, 1.0, 1 - i)]),
+    { model: "metal_office_desk", x: 216.8 + SHIFT, y: FLOOR, z: 1.45, rotY: 180, scale: 0.8 },
+    { model: "SchoolChair_01", x: 216.9 + SHIFT, y: FLOOR, z: 1.95, rotY: 10 },
+    ...moonWindow(217.6 + SHIFT, FLOOR + 1.2, BACK_Z),
   ],
 };

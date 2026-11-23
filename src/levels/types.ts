@@ -20,7 +20,9 @@ export type MaterialName =
   | "quadro"
   | "papel"
   | "tecido"
-  | "tela";
+  | "tela"
+  | "interior"
+  | "janela-acesa";
 
 export type ModelName = "estante-1" | "estante-2" | "estante-3";
 
@@ -33,6 +35,8 @@ export interface BlockData {
   z?: number;
   depth?: number;
   model?: ModelName;
+  /** Colisão sem visual (o visual vem de um modelo pronto em `props`). */
+  hidden?: boolean;
 }
 
 export interface DecorData extends BlockData {
@@ -40,6 +44,30 @@ export interface DecorData extends BlockData {
   z: number;
   depth: number;
   shape?: "box" | "sphere" | "cylinder" | "disc";
+}
+
+/** Modelo pronto colocado no cenário (só visual; a colisão continua nos blocos). */
+export interface PropData {
+  model: string;
+  /** Peças a usar: expressão regular com o nome inteiro das malhas (ex.: "wall_standard_standard_01|base_.*"). */
+  part?: string;
+  /** true = usa a origem do próprio modelo; padrão: centro da base (kits "modular_*" sempre usam a origem). */
+  origin?: boolean;
+  x: number;
+  /** Altura onde a base do modelo encosta. */
+  y: number;
+  z: number;
+  /** Rotação em graus em torno do eixo vertical. */
+  rotY?: number;
+  scale?: number;
+  /** Escala uniforme para o modelo ficar com esta altura (m). */
+  fitHeight?: number;
+  /** Escala uniforme para o modelo ficar com esta largura em X antes de girar (m). */
+  fitWidth?: number;
+  /** Multiplicador por eixo depois da escala uniforme (usar pouco, para não deformar). */
+  stretch?: [number, number, number];
+  /** Projeta sombra na lanterna do Vigia. */
+  shadow?: boolean;
 }
 
 export interface RampData {
@@ -57,6 +85,8 @@ export interface BoxData {
   size: number;
   mass: number;
   material?: MaterialName;
+  /** Modelos prontos usados como visual da caixa (o cubo segue como corpo físico). Posições relativas ao centro da base. */
+  visual?: PropData[];
 }
 
 export interface PointData {
@@ -142,6 +172,8 @@ export interface LevelData {
   elevators: ElevatorData[];
   finalDoor?: FinalDoorData;
   decor: DecorData[];
+  /** Modelos prontos (glTF) colocados só como visual. */
+  props?: PropData[];
   /** Trechos em que o personagem anda agachado e devagar (furtividade). */
   furtivo?: { minX: number; maxX: number }[];
   /** Trechos em que a luz ambiente quase some: só as lâmpadas iluminam. */

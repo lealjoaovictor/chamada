@@ -2,6 +2,9 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
+import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
+import { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
+import { Constants } from "@babylonjs/core/Engines/constants";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { LampData } from "../../levels/types";
@@ -14,6 +17,10 @@ const MOON_INTENSITY = 0.9;
 const MOON_RANGE = 14;
 const MOON_Z = -2.5;
 const OFF_LEVEL = 0.06;
+/** Cone de luz visível (poeira iluminada) abaixo de cada lâmpada. */
+const CONE_ALPHA = 0.11;
+const CONE_TOP = 0.22;
+const CONE_SPREAD = 0.55;
 const ON_TIME = [0.3, 2.6];
 const OFF_TIME = [0.03, 0.16];
 const BURST_CHANCE = 0.45;
@@ -28,6 +35,7 @@ function between(range: number[]): number {
 export class Lamp {
   private readonly light: PointLight;
   private readonly bulbMaterial: StandardMaterial;
+  private coneMaterial: StandardMaterial | null = null;
   private readonly intensity: number;
   private flicker: boolean;
   private dark: boolean;
@@ -57,6 +65,7 @@ export class Lamp {
     this.bulbMaterial.emissiveColor = LAMP_COLOR;
     this.bulbMaterial.disableLighting = true;
     bulb.material = this.bulbMaterial;
+    this.createCone(scene, data, name);
     this.timer = between(ON_TIME);
   }
 
@@ -104,5 +113,37 @@ export class Lamp {
   private setLevel(level: number): void {
     this.light.intensity = this.intensity * level;
     this.bulbMaterial.emissiveColor = LAMP_COLOR.scale(level);
+    if (this.coneMaterial) this.coneMaterial.emissiveColor = LAMP_COLOR.scale(level);
+  }
+
+  /** Tronco de cone aditivo, mais forte junto da lâmpada e sumindo até o chão. */
+  private createCone(scene: Scene, data: LampData, name: string): void {
+    const height = Math.max(1, data.y - 0.15);
+    const cone = CreateCylinder(
+      `${name}-cone`,
+      { height, diameterTop: CONE_TOP, diameterBottom: CONE_TOP + height * CONE_SPREAD * 2, tessellation: 24, cap: 0 },
+      scene,
+    );
+    cone.position.set(data.x, data.y - 0.15 - height / 2, LAMP_Z);
+    const positions = cone.getVerticesData(VertexBuffer.PositionKind) ?? [];
+    const colors: number[] = [];
+    for (let i = 0; i < positions.length; i += 3) {
+      const t = (positions[i + 1] + height / 2) / height;
+      const k = CONE_ALPHA * t * t * t;
+      colors.push(k, k, k, 1);
+    }
+    cone.setVerticesData(VertexBuffer.ColorKind, colors);
+    const material = new StandardMaterial(`${name}-cone-mat`, scene);
+    material.disableLighting = true;
+    material.emissiveColor = LAMP_COLOR.clone();
+    material.backFaceCulling = false;
+    material.alpha = 0.999;
+    material.alphaMode = Constants.ALPHA_ONEONE;
+    material.disableDepthWrite = true;
+    material.fogEnabled = false;
+    cone.material = material;
+    cone.isPickable = false;
+    cone.freezeWorldMatrix();
+    this.coneMaterial = material;
   }
 }

@@ -1,4 +1,5 @@
-import type { BlockData, DecorData, LampData, LevelData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
+import { CARDBOARD_VISUAL, fluorescent } from "./kits.ts";
 
 const START = 117;
 const RAMP_END = 123;
@@ -33,6 +34,25 @@ const ELASTICO = { distancia: 5, ganho: 0.12, min: 0.8, max: 1.4 };
 function laneBlock(x: number, y: number, width: number, height: number, material: BlockData["material"]): BlockData {
   return { x, y, width, height, z: LANE_Z, depth: LANE_DEPTH, material };
 }
+
+/** Barreira de concreto: o bloco de colisão fica escondido e duas barreiras prontas ocupam a faixa. */
+function barrier(x: number, height: number): BlockData {
+  return { ...laneBlock(x, height / 2, 0.6, height, "concreto"), hidden: true };
+}
+
+function barrierVisual(x: number, height: number): PropData[] {
+  const s = height / 0.83;
+  return [-0.65, 0.65].map((dz, i): PropData => ({
+    model: "concrete_road_barrier",
+    x: x + (i ? 0.03 : -0.02),
+    y: 0,
+    z: LANE_Z + dz,
+    rotY: 90 + (i ? 2 : -1),
+    scale: s,
+    stretch: [1.4 / (1.54 * s), 1, 0.62 / (0.63 * s)],
+  }));
+}
+
 
 function column(x: number): DecorData[] {
   return [
@@ -113,13 +133,13 @@ export const area4Level: LevelData = {
   platforms: [],
   obstacles: [
     laneBlock(BAR_X, (GAP + CEILING) / 2, 0.25, CEILING - GAP, "listrado"),
-    laneBlock(BARRIER_X, 0.5, 0.6, 1, "concreto"),
-    laneBlock(BARRIER2_X, 0.4, 0.6, 0.8, "concreto"),
+    barrier(BARRIER_X, 1),
+    barrier(BARRIER2_X, 0.8),
     ...SLIDES2.map((x) => laneBlock(x, (GAP + CEILING) / 2, 0.25, CEILING - GAP, "listrado")),
-    ...BARRIERS2.map((x) => laneBlock(x, 0.45, 0.6, 0.9, "concreto")),
+    ...BARRIERS2.map((x) => barrier(x, 0.9)),
   ],
   ramps: [{ x0: START, y0: GALLERY_Y, x1: RAMP_END, y1: 0, material: "concreto" }],
-  boxes: [{ x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "caixa" }],
+  boxes: [{ x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "caixa", visual: CARDBOARD_VISUAL }],
   lamps,
   plates: [{ x: DEPOT_PLATE_X, y: -DEPOT_PLATE_DEPTH, width: DEPOT_PLATE_WIDTH, door: 1 }],
   doors: [
@@ -169,13 +189,9 @@ export const area4Level: LevelData = {
       ...stripes(x, (GAP + CEILING) / 2, CEILING - GAP, 0.25),
       { x, y: CEILING - 0.02, z: LANE_Z, width: 0.08, height: 0.04, depth: LANE_DEPTH, material: "metal" } as DecorData,
     ]),
-    ...BARRIERS2.flatMap((x) => stripes(x, 0.45, 0.9, 0.6)),
-    ...stripes(BARRIER2_X, 0.4, 0.8, 0.6),
     ...[DEPOT_GATE_X, GATE2_X].map((x): DecorData => ({ x, y: CEILING / 2, z: BACK_Z - 0.1, width: 0.6, height: CEILING, depth: 0.2, material: "concreto" })),
     ...[164, 170, 175, 180, 185, 190, 195].flatMap(column),
     ...[172.5, 187.5].flatMap(cobogo),
-    // Prateleiras do depósito, ao fundo.
-    ...[157.5, 160.5].map((x): DecorData => ({ x, y: 1.1, z: BACK_Z - 0.4, width: 2.4, height: 2.2, depth: 0.6, material: "metal" })),
     { x: (START + RAMP_END) / 2, y: GALLERY_Y / 2 - 0.2, z: 0, width: RAMP_END - START, height: GALLERY_Y - 0.4, depth: 4, material: "concreto" },
     { x: (RAMP_END + END) / 2, y: CEILING + 2.2, z: 0, width: END - RAMP_END, height: 3.6, depth: 4.6, material: "concreto" },
     { x: RAMP_END - 0.2, y: (CEILING + HALL_CEILING) / 2 + 0.2, z: 0, width: 0.4, height: HALL_CEILING - CEILING, depth: 4.6, material: "concreto" },
@@ -183,19 +199,46 @@ export const area4Level: LevelData = {
     { x: (RAMP_END + END) / 2, y: 0.45, z: BACK_Z, width: END - RAMP_END, height: 0.9, depth: 0.1, material: "concreto" },
     { x: (RAMP_END + END) / 2, y: 1.95, z: BACK_Z + 0.03, width: END - RAMP_END, height: 2.1, depth: 0.1, material: "parede" },
     ...[125, 130, 135, 140, 145, 150, 155, 160].flatMap(column),
-    ...[132.5, 147.5, 157.5].flatMap(cobogo),
+    ...[132.5, 147.5].flatMap(cobogo),
     { x: 123.3, y: 1.1, z: BACK_Z - 0.06, width: 1.2, height: 2.2, depth: 0.08, material: "metal" },
 
     ...[127, 131, 137, 141, 146, 150, 155, 159].map((x): DecorData => ({
       x, y: 0.005, z: -1, width: 0.12, height: 0.01, depth: 1.8, material: "listrado",
     })),
     ...stripes(BAR_X, (GAP + CEILING) / 2, CEILING - GAP, 0.25),
-    ...stripes(BARRIER_X, 0.5, 1, 0.6),
     { x: BAR_X, y: CEILING - 0.02, z: LANE_Z, width: 0.08, height: 0.04, depth: LANE_DEPTH, material: "metal" },
     { x: GATE_X, y: CEILING / 2, z: BACK_Z - 0.1, width: 0.6, height: CEILING, depth: 0.2, material: "concreto" },
 
-    ...lamps.map((lamp): DecorData => ({
-      x: lamp.x, y: (lamp.y + CEILING) / 2, z: 1.4, width: 0.6, height: CEILING - lamp.y, depth: 0.08, material: "metal",
-    })),
+  ],
+  props: [
+    // Barreiras de concreto prontas na faixa de corrida.
+    ...barrierVisual(BARRIER_X, 1),
+    ...barrierVisual(BARRIER2_X, 0.8),
+    ...BARRIERS2.flatMap((x) => barrierVisual(x, 0.9)),
+    // Luminárias fluorescentes no teto baixo.
+    ...lamps.map((lamp) => fluorescent(lamp.x, CEILING - 0.01)),
+    // Canos descendo pela parede do fundo, ao lado de algumas colunas.
+    ...[125, 140, 155, 170, 185].map((x): PropData => ({ model: "modular_pipes", part: "pipe_200cm_metal", x: x + 0.55, y: 0, z: BACK_Z - 0.12, scale: 1.5 })),
+    ...[130, 175].map((x): PropData => ({ model: "modular_pipes", part: "pipe_200cm_metal", x: x - 0.5, y: 0, z: BACK_Z - 0.12, scale: 2.4, stretch: [1, 0.625, 1] })),
+    // Depósito: prateleiras de aço com caixas, tambores e pneus velhos.
+    ...[157.5, 160.5].map((x): PropData => ({ model: "steel_frame_shelves_01", x, y: 0, z: BACK_Z - 0.35, rotY: 180, fitHeight: 2.2 })),
+    { model: "cardboard_box_01", x: 157.1, y: 0.95, z: BACK_Z - 0.35, rotY: 92 },
+    { model: "cardboard_box_01", x: 157.8, y: 0.95, z: BACK_Z - 0.35, rotY: 86 },
+    { model: "plastic_crate_01", x: 160.2, y: 0.95, z: BACK_Z - 0.35, rotY: 90 },
+    { model: "cardboard_box_01", x: 160.7, y: 1.85, z: BACK_Z - 0.35, rotY: 95 },
+    { model: "plastic_crate_01", x: 157.4, y: 1.85, z: BACK_Z - 0.35, rotY: 88 },
+    { model: "barrel_03", x: 154.2, y: 0, z: 2.15 },
+    { model: "barrel_03", x: 154.85, y: 0, z: 2.2, rotY: 70 },
+    // Garagem: pneus, sacos de lixo e caixas de força.
+    ...[0, 1, 2].map((i): PropData => ({ model: "old_tyre", x: 128.3 + i * 0.12, y: 0, z: 2.05 + i * 0.17, rotY: 25 - i * 8 })),
+    { model: "trashbag", x: 136.6, y: 0, z: 2.25 },
+    { model: "trashbag", x: 137.1, y: 0, z: 2.3, rotY: 60 },
+    { model: "utility_box_01", x: 144.2, y: 0, z: 2.3, rotY: 180 },
+    { model: "power_box_01", x: 126.4, y: 1.5, z: BACK_Z - 0.04, rotY: 180 },
+    { model: "security_camera_01", x: 165.4, y: 2.75, z: BACK_Z - 0.1, rotY: 220 },
+    { model: "trashbag", x: 178.4, y: 0, z: 2.25, rotY: 20 },
+    { model: "utility_box_02", x: 182.2, y: 0, z: 2.3, rotY: 180 },
+    { model: "barrel_03", x: 191.2, y: 0, z: 2.2, rotY: 15 },
+    { model: "old_tyre", x: 197.4, y: 0, z: 2.3, rotY: 8 },
   ],
 };

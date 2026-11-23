@@ -60,6 +60,7 @@ function buildWorld(levels: LevelData[]): World {
     vigias: shifted.flatMap((a) => a.vigias),
     elevators: shifted.flatMap((a) => a.elevators),
     decor: shifted.flatMap((a) => a.decor),
+    props: shifted.flatMap((a) => a.props ?? []),
     furtivo: shifted.flatMap((a) => a.furtivo ?? []),
     escuro: shifted.flatMap((a) => a.escuro ?? []),
     laco: shifted.find((a) => a.laco)?.laco,

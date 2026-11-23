@@ -1,4 +1,5 @@
-import type { BlockData, DecorData, LampData, LevelData, ModelName } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, ModelName, PropData } from "./types";
+import { CART_VISUAL, CRATE_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 80;
 const HALL_START = 84;
@@ -31,13 +32,13 @@ function shelf(x: number, i: number): BlockData {
   return { x, y: SHELF_HEIGHT / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: SHELF_WIDTH, height: SHELF_HEIGHT, material: "madeira", model: SHELF_MODELS[i % SHELF_MODELS.length] };
 }
 
+/** Luar atrás da janela alta (a moldura pronta vem de `moonWindow`). */
 function tallWindow(x: number): DecorData[] {
-  return [
-    { x, y: 2.9, z: BACK_Z - 0.05, width: 1.3, height: 3.8, depth: 0.1, material: "moldura" },
-    { x, y: 4.8, z: BACK_Z - 0.05, width: 1.3, height: 0.65, depth: 0.1, shape: "disc", material: "moldura" },
-    { x, y: 2.85, z: BACK_Z - 0.1, width: 1.05, height: 3.5, depth: 0.1, material: "luar" },
-  ];
+  return [{ x, y: 2.85, z: BACK_Z - 0.04, width: 1.45, height: 3.45, depth: 0.02, material: "luar" }];
 }
+
+const HALL_WINDOWS = [85.5, 88, 91, 94, 97, 100];
+const READING_WINDOWS = [122, 130, 136];
 
 const lamps: LampData[] = [
   { x: 82, y: 2.7 },
@@ -74,14 +75,14 @@ export const area3Level: LevelData = {
       material: "pedra",
     },
     // Degrau (caixote fixo) e mezanino de leitura.
-    { x: STEP_X, y: GALLERY_Y + 0.5, width: 1, height: 1, material: "madeira" },
+    { x: STEP_X, y: GALLERY_Y + 0.5, width: 1, height: 1, material: "madeira", hidden: true },
     { x: (MEZZ_X0 + MEZZ_X1) / 2, y: (GALLERY_Y + MEZZ_TOP) / 2, width: MEZZ_X1 - MEZZ_X0, height: MEZZ_TOP - GALLERY_Y, material: "madeira" },
     // Mureta na borda direita do mezanino: esconde quem está em cima.
     { x: MEZZ_X1 - 0.1, y: MEZZ_TOP + 0.3, width: 0.2, height: 0.6, material: "madeira" },
   ],
   ramps: [],
   furtivo: [{ minX: HALL_START + 1, maxX: 102.6 }],
-  boxes: [{ x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho" }],
+  boxes: [{ x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL }],
   lamps,
   plates: [],
   doors: [],
@@ -116,6 +117,26 @@ export const area3Level: LevelData = {
   elevators: [
     { x: SHAFT_X, width: SHAFT_WIDTH, bottomY: 0, topY: GALLERY_Y, buttonX: 103.4, buttonY: 1 },
   ],
+  props: [
+    // Janelas altas prontas, com o luar atrás.
+    ...HALL_WINDOWS.flatMap((x) => moonWindow(x, 1.12, BACK_Z, true)),
+    ...READING_WINDOWS.flatMap((x) => moonWindow(x, 1.12 + GALLERY_Y - 0.6, BACK_Z, true)),
+    ...lamps.filter((lamp) => !lamp.moonlight).map((lamp) => fluorescent(lamp.x, lamp.y + 0.12)),
+    // Degrau: caixotes empilhados.
+    ...CRATE_VISUAL.map((c): PropData => ({ ...c, x: STEP_X + c.x, y: GALLERY_Y + c.y, z: c.z })),
+    // Sala de leitura: estantes, mesa da bibliotecária e cadeiras.
+    { model: "metal_office_desk", x: 139.6, y: GALLERY_Y, z: 1.7, rotY: 180, scale: 0.85 },
+    { model: "SchoolChair_01", x: 139.4, y: GALLERY_Y, z: 2.4, rotY: 170 },
+    { model: "SchoolChair_01", x: 126.6, y: GALLERY_Y, z: 1.9, rotY: 120 },
+    { model: "cardboard_box_01", x: 127.2, y: GALLERY_Y, z: 2.2, rotY: 80 },
+    { model: "WetFloorSign_01", x: 108.6, y: GALLERY_Y, z: 2.6, rotY: 200 },
+    { model: "security_camera_01", x: 116.2, y: 5.7, z: BACK_Z - 0.05, rotY: 200 },
+    // Térreo do salão: carrinho de livros, lixeira e caixas perto do elevador.
+    { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 103.9, y: 0, z: 2.6, scale: 0.8 },
+    { model: "plastic_crate_01", x: 82.6, y: 0, z: 1.6, rotY: 10 },
+    { model: "plastic_crate_01", x: 82.65, y: 0.3, z: 1.6, rotY: 2 },
+    { model: "power_box_01", x: 80.9, y: 1.4, z: 2.08, rotY: 180 },
+  ],
   decor: [
     // Narrativa: livros abertos e folhas na sala de leitura.
     { x: 127.4, y: GALLERY_Y + 0.01, z: -0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
@@ -134,11 +155,12 @@ export const area3Level: LevelData = {
     { x: (END + READING_END) / 2, y: GALLERY_Y + 0.6, z: BACK_Z, width: READING_END - END, height: 1.2, depth: 0.1, material: "madeira" },
     { x: (END + READING_END) / 2, y: (GALLERY_Y + 1.2 + READING_CEILING) / 2, z: BACK_Z + 0.05, width: READING_END - END, height: READING_CEILING - GALLERY_Y - 1.2, depth: 0.1, material: "parede" },
     { x: END, y: (HALL_CEILING + READING_CEILING) / 2 + 0.2, z: 0, width: 0.6, height: READING_CEILING - HALL_CEILING, depth: 4.4, material: "concreto" },
-    ...[122, 130, 136].flatMap((x) => tallWindow(x).map((d) => ({ ...d, y: d.y + GALLERY_Y - 0.6 }))),
-    ...[128.5, 131, 135.5, 138].map((x): DecorData => ({ x, y: GALLERY_Y + 1.1, z: 2.4, width: 1.6, height: 2.2, depth: 0.5, material: "madeira" })),
+    // Estantes cheias da sala de leitura, encostadas na parede do fundo (só visual, sem colisão).
+    ...[128.5, 131, 135.5, 138].map((x, i): DecorData => ({ ...shelf(x, i + 1), y: GALLERY_Y + 1.1, z: 2.4, depth: 0.5, width: 1.6, height: 2.2 })),
+    ...READING_WINDOWS.flatMap((x) => tallWindow(x).map((d) => ({ ...d, y: d.y + GALLERY_Y - 0.6 }))),
     { x: (MEZZ_X0 + MEZZ_X1) / 2, y: MEZZ_TOP + 0.95, z: -1.6, width: MEZZ_X1 - MEZZ_X0, height: 0.05, depth: 0.05, material: "metal" },
     { x: (HALL_START + END) / 2, y: 3.85, z: BACK_Z + 0.05, width: END - HALL_START, height: 5.3, depth: 0.1, material: "parede" },
-    ...[85.5, 88, 91, 94, 97, 100].flatMap(tallWindow),
+    ...HALL_WINDOWS.flatMap(tallWindow),
     
     { x: SHAFT_X - SHAFT_WIDTH / 2 - 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },
     { x: SHAFT_X + SHAFT_WIDTH / 2 + 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },

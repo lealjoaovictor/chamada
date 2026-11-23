@@ -31,6 +31,8 @@ import { createDust } from "./Dust";
 import { Vultos } from "./entities/Vultos";
 import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
+import { Kit } from "./Kit";
+import { createBackdrop } from "./Backdrop";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Checkpoints } from "./Checkpoints";
@@ -80,8 +82,11 @@ export class Game {
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
   private readonly vigias: Vigia[] = [];
+  /** Só no modo dev: os Vigias não veem o jogador (para tirar fotos das fases). */
+  devInvisible = false;
   private readonly elevators: Elevator[] = [];
   private readonly obstacleMeshes: AbstractMesh[] = [];
+  private readonly propShadowCasters: AbstractMesh[] = [];
   private readonly sightPoints = [new Vector3(), new Vector3(), new Vector3()];
   private warming = false;
   private finalDoor: FinalDoor | null = null;
@@ -96,6 +101,7 @@ export class Game {
   private audioPrimed = false;
   private hints!: Hints;
   private props!: Props;
+  private kit!: Kit;
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
@@ -151,6 +157,21 @@ export class Game {
     }
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
+    if (import.meta.env.DEV) {
+      // Só em desenvolvimento: teletransporte para capturas automáticas.
+      (window as unknown as { chamadaTp: (x: number, y: number) => void }).chamadaTp = (x, y) => {
+        // Pula os focos de câmera que ficaram para trás, senão a câmera volta para mostrá-los.
+        while (game.hints.cameraBeat(x)) {
+          /* consome */
+        }
+        game.player.respawn({ x, y });
+        game.cameraRig.focus(x, 0);
+        game.cameraRig.snap(x, y);
+      };
+      (window as unknown as { chamadaScene: Scene }).chamadaScene = game.scene;
+      (window as unknown as { chamadaInvisivel: (on: boolean) => void }).chamadaInvisivel = (on) => (game.devInvisible = on);
+      (window as unknown as { chamadaGame: Game }).chamadaGame = game;
+    }
     return game;
   }
 
@@ -170,12 +191,13 @@ export class Game {
 
     this.materials = new MaterialLibrary(scene);
     this.props = new Props(scene);
-    await this.props.load(level.obstacles.flatMap((block) => (block.model ? [block.model] : [])));
+    await this.props.load([...level.obstacles, ...level.decor].flatMap((block) => (block.model ? [block.model] : [])));
     for (const [i, block] of [...level.ground, ...level.walls, ...level.platforms].entries()) {
       this.createStatic(block, level.depth, `solid-${i}`);
     }
     level.obstacles.forEach((block, i) => {
       const mesh = this.createStatic(block, level.depth, `obstacle-${i}`);
+      if (block.hidden) mesh.isVisible = false;
       if (!block.model) {
         this.obstacleMeshes.push(mesh);
         return;
@@ -185,7 +207,21 @@ export class Game {
       this.obstacleMeshes.push(this.props.place(block, block.model, size));
     });
     level.ramps.forEach((ramp, i) => this.createRamp(ramp, level.depth, `ramp-${i}`));
-    level.decor.forEach((decor, i) => this.createDecor(decor, `decor-${i}`));
+    level.decor.forEach((decor, i) => {
+      // Decoração com modelo: só o visual, sem colisão (não bloqueia o jogador nem a visão dos Vigias).
+      if (decor.model) this.props.place(decor, decor.model, { width: decor.width, height: decor.height, depth: decor.depth });
+      else this.createDecor(decor, `decor-${i}`);
+    });
+    this.kit = new Kit(scene);
+    const kitModels = [
+      ...(level.props ?? []).map((prop) => prop.model),
+      ...level.boxes.flatMap((box) => (box.visual ?? []).map((prop) => prop.model)),
+    ];
+    await this.kit.load(kitModels);
+    (level.props ?? []).forEach((prop, i) => {
+      const root = this.kit.place(prop, `prop-${i}`);
+      if (prop.shadow) this.propShadowCasters.push(...root.getChildMeshes());
+    });
     level.doors.forEach((door, i) =>
       this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
     );
@@ -197,9 +233,19 @@ export class Game {
       this.elevators.push(new Elevator(scene, elevator, level.depth, this.materials.get("metal"), `elevator-${i}`)),
     );
 
-    level.boxes.forEach((data, i) =>
-      this.boxes.push(new Box(scene, data, `box-${i}`, this.materials.get(data.material ?? "caixa"))),
-    );
+    level.boxes.forEach((data, i) => {
+      const box = new Box(scene, data, `box-${i}`, this.materials.get(data.material ?? "caixa"));
+      if (data.visual) {
+        // O cubo continua sendo o corpo físico; os modelos prontos vão junto, como visual.
+        data.visual.forEach((prop, j) => {
+          const visual = this.kit.place({ ...prop, y: prop.y - data.size / 2 }, `box-${i}-visual-${j}`);
+          visual.parent = box.mesh;
+          for (const child of visual.getChildMeshes()) child.unfreezeWorldMatrix();
+        });
+        box.mesh.isVisible = false;
+      }
+      this.boxes.push(box);
+    });
 
     this.checkpoints = new Checkpoints(level.checkpoints);
     if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
@@ -210,11 +256,12 @@ export class Game {
     this.player = await Player.create(scene, spawn);
     for (const data of level.vigias) {
       const vigia = await Vigia.create(scene, data);
-      vigia.addShadowCasters([...this.obstacleMeshes, ...this.player.meshes, ...this.boxes.map((box) => box.mesh)]);
+      vigia.addShadowCasters([...this.obstacleMeshes, ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
       this.vigias.push(vigia);
     }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+    createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
@@ -246,6 +293,7 @@ export class Game {
     const camera = this.cameraRig.camera;
     const startX = camera.position.x;
     await this.materials.whenTexturesReady();
+    await this.kit.whenReady();
     for (let x = minX; x <= maxX + WARMUP_STEP; x += WARMUP_STEP) {
       camera.position.x = x;
       this.player.placeVisual(x, camera.position.y - 2.5);
@@ -567,7 +615,7 @@ export class Game {
   }
 
   private isSeen(dt: number): "luz" | "toque" | null {
-    if (this.vigias.length === 0) return null;
+    if (this.vigias.length === 0 || this.devInvisible) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
     const height = (p.y - feetY) * 2 * (1 - 0.25 * this.player.crouchAmount);

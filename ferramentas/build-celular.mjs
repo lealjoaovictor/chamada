@@ -6,9 +6,11 @@ import { readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "no
 import { join } from "node:path";
 
 const root = "dist-celular";
-for (const file of readdirSync(join(root, "models"))) {
-  if (file.endsWith(".glb")) renameSync(join(root, "models", file), join(root, "models", `${file}.mp4`));
-  if (file === ".gitkeep") rmSync(join(root, "models", file));
+for (const dir of [join(root, "models"), join(root, "models", "kit")]) {
+  for (const file of readdirSync(dir)) {
+    if (file.endsWith(".glb")) renameSync(join(dir, file), join(dir, `${file}.mp4`));
+    if (file === ".gitkeep") rmSync(join(dir, file));
+  }
 }
 for (const dir of ["audio", "textures"]) rmSync(join(root, dir, ".gitkeep"), { force: true });
 

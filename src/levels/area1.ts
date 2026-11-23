@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
+import type { BlockData, DecorData, LampData, LevelData, PropData, WireData } from "./types";
 import { DRUMS_GRIP, DRUMS_VISUAL, TRASH_CAN_GRIP, TRASH_CAN_VISUAL, clad, facade, type BayKind } from "./kits.ts";
 
 const FACADE_FRONT = 4;
@@ -36,6 +36,12 @@ const CABINET_DEPTH = 0.6;
 const FURTIVO_MIN_X = GUARITA_X - GUARITA_WIDTH / 2 - 1;
 const FURTIVO_MAX_X = 87;
 const END = 92;
+// Postes de concreto da rede elétrica, na calçada da frente (silhueta fina entre a câmera e o jogo).
+const POLE_Z = -4.6;
+const POLE_HEIGHT = 6.4;
+const POLE_XS = [-2, 24, 61];
+// Três fios por vão, presos na cruzeta do alto do poste.
+const WIRE_YS = [6.1, 5.8, 5.5];
 // A calçada da frente começa antes da parede da esquerda, para não aparecer a ponta na câmera.
 const FRONT_MIN_X = -12;
 
@@ -50,6 +56,23 @@ const lamps: LampData[] = ([
   { x: 70, y: 3.4 },
   { x: 86, y: 3.4 },
 ] as LampData[]).map((lamp) => ({ ...lamp, tom: "sodio" }));
+
+/** Caixa d'água de fibra no telhado: corpo azul e tampa um pouco mais larga. */
+function roofTank(x: number, roofY: number, z: number, size: number): DecorData[] {
+  const height = size * 0.8;
+  return [
+    { x, y: roofY + height / 2, z, width: size, height, depth: size, material: "tatil", shape: "cylinder" },
+    { x, y: roofY + height + 0.06, z, width: size * 1.08, height: 0.12, depth: size * 1.08, material: "tatil", shape: "cylinder" },
+  ];
+}
+
+/** Antena fina com a luz vermelha de balizamento na ponta. */
+function antenna(x: number, baseY: number, z: number, height: number): DecorData[] {
+  return [
+    { x, y: baseY + height / 2, z, width: 0.08, height, depth: 0.08, material: "metal", shape: "cylinder" },
+    { x, y: baseY + height + 0.1, z, width: 0.22, height: 0.22, depth: 0.22, material: "sinal", shape: "sphere" },
+  ];
+}
 
 function van(x: number): BlockData {
   return { x, y: VAN_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: VAN_WIDTH, height: VAN_HEIGHT, material: "metal", hidden: true };
@@ -67,6 +90,26 @@ export const area1Level: LevelData = {
   // Lá fora a névoa puxa para o brilho alaranjado da cidade, e o horizonte ganha silhuetas de prédios.
   ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.14, 0.12, 0.125] }],
   cidade: [{ minX: -10, maxX: END }],
+  fios: [
+    // Entre os postes da frente: três fios com barriga.
+    ...POLE_XS.slice(1).flatMap((x, i) =>
+      WIRE_YS.map((y, k) => ({ a: [POLE_XS[i], y, POLE_Z + (k - 1) * 0.6], b: [x, y, POLE_Z + (k - 1) * 0.6], sag: 0.7, thickness: 0.035 }) as WireData),
+    ),
+    // Ramais: do poste até as fachadas, atravessando a cena em profundidade.
+    { a: [-2, 5.8, POLE_Z], b: [11, 8.6, FACADE_FRONT - 0.1], sag: 0.5 },
+    { a: [24, 5.8, POLE_Z], b: [36.5, 7.6, 9.9], sag: 0.6 },
+    { a: [61, 5.5, POLE_Z], b: [64, 5.4, 4.4], sag: 0.35 },
+    { a: [61, 6.1, POLE_Z], b: [90, 6.8, 4.1], sag: 1.1, thickness: 0.03 },
+    // Fios ao fundo, entre os telhados.
+    { a: [-6, 9.6, 17], b: [14, 8.5, 9.9], sag: 0.7, thickness: 0.03 },
+    { a: [47, 8.4, 9.9], b: [50, 5.8, 4.4], sag: 0.3 },
+    { a: [64, 5.8, 4.3], b: [70, 9.6, 16], sag: 0.6, thickness: 0.03 },
+  ],
+  // Grade baixa na beira da calçada da frente, onde não há esconderijo.
+  grades: [
+    { x0: -6, x1: 8.5, z: -4.05, height: 0.9 },
+    { x0: 47.5, x1: 57, z: -4.05, height: 0.9 },
+  ],
   vultos: [{ x: 21, y: 1.5, z: 1.5, facing: 1 }, { x: 60.5, y: 0, z: 0.8, facing: 1, anda: true }],
   depth: 4,
   ground: [
@@ -210,6 +253,28 @@ export const area1Level: LevelData = {
     { x: (FRONT_MIN_X + END) / 2, y: -0.06, z: -3.1, width: END - FRONT_MIN_X, height: 0.12, depth: 2.2, material: "concreto" },
     { x: (FRONT_MIN_X + END) / 2, y: -0.08, z: -4.25, width: END - FRONT_MIN_X, height: 0.2, depth: 0.2, material: "moldura" },
     { x: (FRONT_MIN_X + END) / 2, y: -0.3, z: -7, width: END - FRONT_MIN_X, height: 0.1, depth: 5.4, material: "asfalto" },
+    // Postes da rede elétrica: fuste de concreto e cruzeta no alto.
+    ...POLE_XS.flatMap((x): DecorData[] => [
+      { x, y: POLE_HEIGHT / 2, z: POLE_Z, width: 0.26, height: POLE_HEIGHT, depth: 0.26, material: "concreto", shape: "cylinder" },
+      { x, y: WIRE_YS[0] - 0.05, z: POLE_Z, width: 0.12, height: 0.1, depth: 1.6, material: "madeira" },
+    ]),
+    // Telhados: caixas d'água de fibra (azuis), casas de máquinas e antenas com luz vermelha.
+    ...roofTank(52, 7.2, 8.2, 1.5),
+    ...roofTank(54.2, 7.2, 8.6, 1.2),
+    { x: 60.5, y: 7.2 + 1.1, z: 9, width: 3, height: 2.2, depth: 2.4, material: "concreto" },
+    { x: 84, y: 7.2 + 1.2, z: 9, width: 3.6, height: 2.4, depth: 2.6, material: "concreto" },
+    ...antenna(75, 7.2, 9, 4.5),
+    ...roofTank(38, 9, 12.5, 1.8),
+    ...roofTank(44, 9, 13, 1.4),
+    ...roofTank(-4, 10, 20, 2),
+    ...roofTank(5.5, 10, 20.5, 1.6),
+    { x: 40, y: 13 + 1.2, z: 21, width: 4, height: 2.4, depth: 3, material: "concreto" },
+    ...antenna(41.2, 15.4, 21, 6),
+    ...roofTank(52, 13, 21.5, 2),
+    ...roofTank(70, 10, 19, 1.8),
+    ...roofTank(73, 10, 19.5, 1.5),
+    ...antenna(86, 10, 19.5, 5),
+
     // Vãos preenchidos: interior dos prédios novos (entre a escadaria e a garagem, e à esquerda da rua).
     { x: 40.5, y: 4.5, z: 12.5, width: 15, height: 9, depth: 5, material: "interior" },
     { x: -1, y: 6, z: 10.5, width: 18, height: 12, depth: 5, material: "interior" },

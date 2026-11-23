@@ -4,6 +4,8 @@
 
 *Chegue à sala antes que o professor chame o seu nome.*
 
+**[Apresentação do projeto](APRESENTACAO.md)** · a ideia, o Babylon.js, o uso de IA e o processo em uma página
+
 ![Babylon.js](https://img.shields.io/badge/Babylon.js-9.37-BB464B?style=flat-square&logo=babylondotjs&logoColor=white)
 ![Havok](https://img.shields.io/badge/física-Havok-1f1f1f?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?style=flat-square&logo=typescript&logoColor=white)

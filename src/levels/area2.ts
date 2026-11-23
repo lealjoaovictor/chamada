@@ -155,6 +155,30 @@ export const area2Level: LevelData = {
   killY: -5,
   bounds: { minX: START, maxX: END2 },
   primeiroPlano: [{ x0: START, x1: END2, y0: 0 }],
+  // Identidade e desgaste: placas da universidade, avisos do DCE, umidade e marcas no piso. Nada atrás dos
+  // armários, da estante ou do bebedouro (esconderijos e ronda), e nada na altura da lanterna.
+  adesivos: [
+    { kind: "placa", x: 53.9, y: 2.72, z: BACK_Z - 0.07, width: 1.3, height: 0.32, color: "#262626", ink: "#d9d2bf", glow: 0.24, text: ["BLOCO A • TÉRREO"] },
+    { kind: "cartaz", x: 55.6, y: 1.95, z: BACK_Z - 0.06, width: 0.6, height: 0.82, rot: 0.03, color: "#f0c63a", ink: "#2a1a10", glow: 0.45, text: ["CALOURADA", "SEXTA • 22H", "QUADRA DO DCE"] },
+    { kind: "cartaz", x: 56.35, y: 2.0, z: BACK_Z - 0.065, width: 0.55, height: 0.75, rot: -0.04, color: "#ebe6d8", ink: "#b3201a", glow: 0.45, text: ["MONITORIA", "CÁLCULO I", "TER E QUI • 18H", "SALA 112"] },
+    { kind: "cartaz", x: 57.0, y: 1.86, z: BACK_Z - 0.06, width: 0.48, height: 0.66, rot: 0.05, color: "#f7f7f2", ink: "#1e3c8a", glow: 0.45, text: ["XEROX", "R$ 0,25", "AO LADO DO RU"] },
+    { kind: "placa", x: 64.3, y: 2.4, z: BACK_Z - 0.07, width: 1.9, height: 0.4, color: "#1f3a34", ink: "#e6e0cc", glow: 0.24, text: ["SECRETARIA ACADÊMICA  →"] },
+    { kind: "rachadura", x: 61.4, y: 2.0, z: BACK_Z - 0.06, width: 1.4, height: 0.5 },
+    { kind: "umidade", x: 58, y: 0.55, z: BACK_Z - 0.06, width: 5, height: 1.1 },
+    { kind: "umidade", x: 71.5, y: 0.55, z: BACK_Z - 0.06, width: 3, height: 1.1 },
+    { kind: "mancha", x: 57.2, y: 0.02, z: -0.5, width: 2.2, height: 1.4, chao: true },
+    { kind: "mancha", x: 70.4, y: 0.02, z: 0.7, width: 1.6, height: 1.1, chao: true },
+    // Hall dos armários: só no alto do recuo, longe da ronda.
+    { kind: "placa", x: 82, y: 2.75, z: HALL_BACK_Z - 0.07, width: 1.6, height: 0.36, color: "#262626", ink: "#d9d2bf", glow: 0.24, text: ["ARMÁRIOS • CA"] },
+    { kind: "placa", x: 87.2, y: 2.55, z: HALL_BACK_Z - 0.07, width: 0.5, height: 0.36, color: "#e0b51e", ink: "#141414", glow: 0.24, text: ["ALTA", "TENSÃO"] },
+    // Zeladoria e sala escura.
+    { kind: "placa", x: 98.8, y: 3.4, z: BACK_Z - 0.07, width: 2.2, height: 0.4, color: "#3a2a1a", ink: "#e6dcc2", glow: 0.24, text: ["ZELADORIA • ACESSO RESTRITO"] },
+    { kind: "umidade", x: 95, y: 1.2, z: BACK_Z - 0.06, width: 4, height: 2.4 },
+    { kind: "mancha", x: 94.6, y: 0.02, z: 0.6, width: 2, height: 1.4, chao: true, color: "10,8,6" },
+    { kind: "cartaz", x: 113.2, y: 1.95, z: BACK_Z - 0.06, width: 0.55, height: 0.75, rot: 0.04, color: "#ebe6d8", ink: "#222222", glow: 0.45, text: ["PROVA P2", "QUINTA", "TRAZER", "CALCULADORA"] },
+    { kind: "rachadura", x: 120.5, y: 1.8, z: BACK_Z - 0.06, width: 1.6, height: 0.5 },
+    { kind: "umidade", x: 124, y: 0.55, z: BACK_Z - 0.06, width: 4, height: 1.1 },
+  ],
   ambiente: [
     { minX: START, maxX: ROOM1_END, intensidade: 0.52, cor: [0.64, 0.7, 0.7] },
     { minX: ROOM1_END, maxX: END2, intensidade: 0.44, cor: [0.6, 0.66, 0.66] },

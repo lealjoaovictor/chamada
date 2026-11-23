@@ -1,4 +1,4 @@
-import type { DecorData, LampData, LevelData, PropData } from "./types";
+import type { StickerData, DecorData, LampData, LevelData, PropData } from "./types";
 import { fluorescent, moonWindow } from "./kits.ts";
 
 const START = 166;
@@ -85,6 +85,21 @@ export const area5Level: LevelData = {
   furtivo: [{ minX: FURTIVO_MIN, maxX: FURTIVO_MAX }],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  // Corredor do 2º andar: placa do bloco, números das salas, cartazes perto dos murais, umidade e marcas.
+  adesivos: [
+    { kind: "placa", x: 173.4, y: FLOOR + 2.75, z: BACK_Z - 0.07, width: 1.5, height: 0.34, color: "#262626", ink: "#d9d2bf", glow: 0.24, text: ["BLOCO B • 2º ANDAR"] },
+    { kind: "placa", x: 186, y: FLOOR + 2.75, z: BACK_Z - 0.07, width: 1.6, height: 0.36, color: "#1f3a34", ink: "#e6e0cc", glow: 0.24, text: ["SALAS 201–204  →"] },
+    ...[["201", CLASS_DOORS[0]], ["203", CLASS_DOORS[1]], ["204", DOOR_X]].map(([text, x]): StickerData => ({
+      kind: "placa", x: (x as number) + 0.85, y: FLOOR + 1.6, z: BACK_Z - 0.07, width: 0.32, height: 0.22, color: "#d8d2c0", ink: "#1a1a1a", glow: 0.24, text: [text as string],
+    })),
+    { kind: "cartaz", x: BOARDS[0] - 1.1, y: FLOOR + 1.75, z: BACK_Z - 0.06, width: 0.55, height: 0.75, rot: -0.03, color: "#ebe6d8", ink: "#b3201a", glow: 0.45, text: ["ASSEMBLEIA", "QUINTA • 18H", "AUDITÓRIO B"] },
+    { kind: "cartaz", x: BOARDS[1] + 1.1, y: FLOOR + 1.7, z: BACK_Z - 0.06, width: 0.55, height: 0.78, rot: 0.04, color: "#f0c63a", ink: "#2a1a10", glow: 0.45, text: ["ESTÁGIO", "VAGAS", "MURAL DO CA"] },
+    { kind: "rachadura", x: 200.5, y: FLOOR + 2.4, z: BACK_Z - 0.06, width: 1.6, height: 0.5 },
+    { kind: "umidade", x: 185, y: FLOOR + 0.55, z: BACK_Z - 0.06, width: 5, height: 1.1 },
+    { kind: "umidade", x: 222, y: FLOOR + 0.55, z: BACK_Z - 0.06, width: 4, height: 1.1 },
+    { kind: "mancha", x: 188.4, y: FLOOR + 0.02, z: -0.3, width: 2.4, height: 1.4, chao: true },
+    { kind: "mancha", x: 213.4, y: FLOOR + 0.02, z: 0.7, width: 1.8, height: 1.2, chao: true },
+  ],
   primeiroPlano: [
     { x0: START, x1: STAIRS_START, y0: 0, material: "asfalto" },
     { x0: STAIRS_START, x1: STAIRS_END, y0: 0, y1: FLOOR, material: "concreto" },

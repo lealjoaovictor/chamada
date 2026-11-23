@@ -1,4 +1,4 @@
-import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
+import type { StickerData, BlockData, DecorData, LampData, LevelData, PropData } from "./types";
 import { DRUMS_GRIP, DRUMS_VISUAL, GAS_CART_GRIP, GAS_CART_VISUAL, fluorescent } from "./kits.ts";
 
 const START = 117;
@@ -149,6 +149,25 @@ export const area4Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  // Garagem: número nos pilares, saída, vaga reservada, pichação, óleo e poças; depósito com placa de manutenção.
+  adesivos: [
+    ...[125, 130, 135, 140, 145, 150, 155, 160, 164, 170, 175, 180, 185, 190, 195].map((x, i): StickerData => ({
+      kind: "placa", x, y: 1.75, z: 1.985, width: 0.42, height: 0.42, color: "#c9a21a", ink: "#141414", glow: 0.24, text: [`G${i + 1}`],
+    })),
+    { kind: "placa", x: 127.5, y: 2.35, z: BACK_Z - 0.07, width: 1.7, height: 0.45, color: "#1d5a36", ink: "#f1f1e6", glow: 0.35, text: ["SAÍDA  →"] },
+    { kind: "placa", x: 146.6, y: 1.7, z: BACK_Z - 0.07, width: 1.0, height: 0.7, color: "#e8e4d6", ink: "#b3201a", glow: 0.24, text: ["VAGA", "RESERVADA", "DIRETORIA"] },
+    { kind: "pichacao", x: 142.4, y: 1.0, z: BACK_Z - 0.07, width: 1.8, height: 0.8, color: "#d8d8cc", text: ["ZK 22"] },
+    { kind: "umidade", x: 137.5, y: 1.3, z: BACK_Z - 0.06, width: 4, height: 2.6 },
+    { kind: "umidade", x: 182.5, y: 1.3, z: BACK_Z - 0.06, width: 5, height: 2.6 },
+    { kind: "mancha", x: 136.2, y: 0.02, z: 0.5, width: 2.4, height: 1.8, chao: true, color: "8,8,6" },
+    { kind: "mancha", x: 141.3, y: 0.02, z: 1.0, width: 2.0, height: 1.5, chao: true, color: "8,8,6" },
+    { kind: "mancha", x: 178.2, y: 0.02, z: 0.2, width: 2.6, height: 1.6, chao: true, color: "8,8,6" },
+    { kind: "poca", x: 132.6, y: 0.02, z: -1.0, width: 2.2, height: 1.2, chao: true },
+    { kind: "poca", x: 147.4, y: 0.02, z: 0.9, width: 1.6, height: 0.9, chao: true },
+    { kind: "poca", x: 186.8, y: 0.02, z: -0.6, width: 1.8, height: 1.0, chao: true },
+    { kind: "rachadura", x: 134, y: 0.02, z: 0.2, width: 2.4, height: 0.8, chao: true },
+    { kind: "placa", x: 161.8, y: 2.6, z: BACK_Z - 0.07, width: 2.0, height: 0.38, color: "#3a2a1a", ink: "#e6dcc2", glow: 0.24, text: ["DEPÓSITO • MANUTENÇÃO"] },
+  ],
   primeiroPlano: [
     { x0: START, x1: RAMP_END, y0: GALLERY_Y, y1: 0, material: "concreto" },
     { x0: RAMP_END, x1: END, y0: 0, material: "asfalto" },

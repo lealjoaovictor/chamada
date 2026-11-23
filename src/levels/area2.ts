@@ -153,8 +153,8 @@ export const area2Level: LevelData = {
   bounds: { minX: START, maxX: END2 },
   primeiroPlano: [{ x0: START, x1: END2, y0: 0 }],
   ambiente: [
-    { minX: START, maxX: ROOM1_END, intensidade: 0.62, cor: [0.66, 0.72, 0.7] },
-    { minX: ROOM1_END, maxX: END2, intensidade: 0.5, cor: [0.6, 0.66, 0.66] },
+    { minX: START, maxX: ROOM1_END, intensidade: 0.52, cor: [0.64, 0.7, 0.7] },
+    { minX: ROOM1_END, maxX: END2, intensidade: 0.44, cor: [0.6, 0.66, 0.66] },
   ],
   vultos: [{ x: 114.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 126.5 }],

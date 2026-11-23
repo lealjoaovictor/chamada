@@ -36,6 +36,11 @@ const CABINET_DEPTH = 0.6;
 const FURTIVO_MIN_X = GUARITA_X - GUARITA_WIDTH / 2 - 1;
 const FURTIVO_MAX_X = 87;
 const END = 92;
+// Frente das superfícies onde os adesivos encostam: o revestimento do kit tem 20 cm de espessura para fora.
+const WALL_FACE = -2.23;
+const MAIN_FACE = FACADE_FRONT - 0.25;
+const GARAGE_FACE = 4.25;
+const BACK_FACE = 3.95;
 // Postes de concreto da rede elétrica, na calçada da frente (silhueta fina entre a câmera e o jogo).
 const POLE_Z = -4.6;
 const POLE_HEIGHT = 6.4;
@@ -104,6 +109,48 @@ export const area1Level: LevelData = {
     { a: [-6, 9.6, 17], b: [14, 8.5, 9.9], sag: 0.7, thickness: 0.03 },
     { a: [47, 8.4, 9.9], b: [50, 5.8, 4.4], sag: 0.3 },
     { a: [64, 5.8, 4.3], b: [70, 9.6, 16], sag: 0.6, thickness: 0.03 },
+  ],
+  // Sujeira e identidade: cartazes do DCE, placas da universidade, pichação, umidade, folhas, óleo e rachaduras.
+  adesivos: [
+    // Muro com passarela: mural de cartazes e pichação.
+    { kind: "umidade", x: 34.5, y: 0.6, z: WALL_FACE, width: 7, height: 1.2 },
+    { kind: "cartaz", x: 32.2, y: 1.4, z: WALL_FACE, width: 0.9, height: 1.25, rot: 0.03, color: "#f0c63a", ink: "#2a1a10", text: ["CALOURADA", "SEXTA • 22H", "QUADRA DO DCE", "R$ 10 C/ CARTEIRINHA"] },
+    { kind: "cartaz", x: 33.3, y: 1.5, z: WALL_FACE - 0.005, width: 0.8, height: 1.1, rot: -0.04, color: "#ebe6d8", ink: "#b3201a", text: ["ASSEMBLEIA", "GERAL", "QUINTA • 18H", "AUDITÓRIO B"] },
+    { kind: "cartaz", x: 34.2, y: 1.25, z: WALL_FACE, width: 0.7, height: 0.9, rot: 0.02, color: "#f7f7f2", ink: "#1e3c8a", text: ["XEROX", "IMPRESSÃO", "ENCADERNAÇÃO", "AO LADO DO RU"] },
+    { kind: "cartaz", x: 35.0, y: 1.55, z: WALL_FACE - 0.005, width: 0.6, height: 0.8, rot: -0.06, color: "#f4efe4", ink: "#222222", text: ["ALUGA-SE", "QUARTO P/", "ESTUDANTE", "TRATAR NA", "PORTARIA"] },
+    { kind: "pichacao", x: 36.6, y: 0.65, z: WALL_FACE - 0.01, width: 2, height: 0.8, color: "#e6e6de", text: ["DCE LIVRE"] },
+    // Prédio principal: placa da universidade, umidade no embasamento e uma pichação.
+    { kind: "umidade", x: 12.8, y: 0.75, z: MAIN_FACE, width: 4.6, height: 1.5 },
+    { kind: "umidade", x: 27.3, y: 0.75, z: MAIN_FACE, width: 8.4, height: 1.5 },
+    { kind: "placa", x: 27.6, y: 1.05, z: MAIN_FACE - 0.01, width: 2.6, height: 0.55, color: "#262626", ink: "#d9d2bf", glow: 0.15, text: ["UNIVERSIDADE FEDERAL", "INSTITUTO DE CIÊNCIAS EXATAS"] },
+    { kind: "pichacao", x: 12.4, y: 0.75, z: MAIN_FACE - 0.01, width: 1.3, height: 0.7, color: "#c8342b", text: ["ZK"] },
+    // Placa de rua azul na esquina do prédio da esquerda.
+    { kind: "placa", x: 6.8, y: 3, z: 7.75, width: 1.3, height: 0.32, color: "#1f4d8f", ink: "#f4f4f4", glow: 0.2, text: ["R. DOS ESTUDANTES"] },
+    // Portão lateral.
+    { kind: "placa", x: 43, y: 2.15, z: 1.54, width: 0.38, height: 0.3, color: "#e8e2cf", ink: "#222222", text: ["ENTRADA", "DE SERVIÇO"] },
+    // Doca e garagem.
+    { kind: "umidade", x: DOCK_X, y: 0.5, z: WALL_FACE, width: DOCK_WIDTH, height: 1 },
+    { kind: "pichacao", x: DOCK_X - 0.4, y: 0.5, z: WALL_FACE - 0.01, width: 1.6, height: 0.6, color: "#d0d0c8", text: ["FORA"] },
+    { kind: "placa", x: 61, y: 3.3, z: GARAGE_FACE, width: 1.9, height: 0.36, color: "#f2c200", ink: "#111111", text: ["SAÍDA DE VEÍCULOS"] },
+    { kind: "placa", x: 56.5, y: 1.8, z: GARAGE_FACE, width: 0.7, height: 0.5, color: "#b81d18", ink: "#f4f4f4", text: ["PROIBIDO", "ESTACIONAR"] },
+    { kind: "pichacao", x: 50.5, y: 1.5, z: GARAGE_FACE, width: 2.2, height: 0.8, color: "#9fd3c7", text: ["UNIÃO"] },
+    // Guarita e o prédio do fundo.
+    { kind: "placa", x: GUARITA_X, y: 2.35, z: COVER_Z - COVER_DEPTH / 2 - 0.24, width: 1.4, height: 0.3, color: "#e6e1d3", ink: "#1d2b4a", glow: 0.2, text: ["PORTARIA"] },
+    { kind: "cartaz", x: 78, y: 1.5, z: BACK_FACE, width: 0.7, height: 0.9, rot: 0.02, color: "#fffbe8", ink: "#222222", text: ["AVISO", "O PRÉDIO", "FECHA ÀS 23H", "— PORTARIA"] },
+    { kind: "pichacao", x: 88, y: 1.15, z: BACK_FACE, width: 2.3, height: 0.75, color: "#e3e3dc", text: ["PRESENTE!"] },
+    { kind: "umidade", x: 79, y: 0.7, z: BACK_FACE + 0.01, width: 24, height: 1.4 },
+    // Chão: folhas sob as árvores, óleo na garagem, sujeira perto da lixeira e rachaduras na calçada.
+    { kind: "folhas", x: 3.5, y: 0.012, z: 1, width: 4, height: 2.5, chao: true },
+    { kind: "folhas", x: 9, y: 0.012, z: 0.2, width: 3, height: 2, chao: true, rot: 0.6 },
+    { kind: "folhas", x: 5, y: 0.012, z: -3.1, width: 3, height: 1.6, chao: true },
+    { kind: "folhas", x: 33.5, y: 2.25, z: 0.2, width: 2, height: 1.2, chao: true },
+    { kind: "mancha", x: 27, y: 0.012, z: 1.4, width: 1.6, height: 1.2, chao: true, color: "25,30,15" },
+    { kind: "mancha", x: 56, y: 0.012, z: 0.2, width: 2, height: 1.4, chao: true, color: "8,8,10" },
+    { kind: "mancha", x: 63, y: 0.012, z: -0.6, width: 2.4, height: 1.6, chao: true, color: "8,8,10" },
+    { kind: "mancha", x: 76, y: 0.012, z: 1.3, width: 3, height: 1.4, chao: true, color: "8,8,10" },
+    { kind: "rachadura", x: 20, y: 0.012, z: -3, width: 3, height: 0.8, chao: true },
+    { kind: "rachadura", x: 70, y: 0.012, z: -3.2, width: 2.5, height: 0.7, chao: true, rot: 0.2 },
+    { kind: "rachadura", x: 40, y: 0.012, z: 0.6, width: 2.2, height: 0.7, chao: true, rot: -0.3 },
   ],
   // Grade baixa na beira da calçada da frente, onde não há esconderijo.
   grades: [

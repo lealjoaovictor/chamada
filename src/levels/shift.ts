@@ -46,6 +46,7 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
     cidade: level.cidade?.map((c) => ({ minX: c.minX + dx, maxX: c.maxX + dx })),
     fios: level.fios?.map((w) => ({ ...w, a: [w.a[0] + dx, w.a[1], w.a[2]], b: [w.b[0] + dx, w.b[1], w.b[2]] })),
     grades: level.grades?.map((g) => ({ ...g, x0: g.x0 + dx, x1: g.x1 + dx })),
+    adesivos: level.adesivos?.map((a) => ({ ...a, x: a.x + dx })),
     vultos: level.vultos && sx(level.vultos, dx),
     figurantes: level.figurantes && sx(level.figurantes, dx),
   };

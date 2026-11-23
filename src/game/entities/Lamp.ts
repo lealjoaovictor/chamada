@@ -7,10 +7,18 @@ import { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
 import { Constants } from "@babylonjs/core/Engines/constants";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { LampData } from "../../levels/types";
+import type { LampData, LampTone } from "../../levels/types";
 
-const LAMP_COLOR = new Color3(1, 0.72, 0.38);
+/** Cor de cada tipo de lâmpada (paleta "Clima da Chamada"): sódio #D4932F, fluorescente #C7D0CB, tubo velho #A2A067, sala #E2B47A. */
+const TONE_COLORS: Record<LampTone, Color3> = {
+  sodio: new Color3(1, 0.62, 0.2),
+  fluorescente: new Color3(0.9, 1, 0.97),
+  subsolo: new Color3(0.86, 1, 0.55),
+  sala: new Color3(1, 0.76, 0.48),
+};
 const LAMP_RANGE = 9;
+/** Intensidade de referência do cone visível (uma lâmpada com força 1). */
+const BASE_INTENSITY = 3.6;
 const LAMP_Z = 1.4;
 const MOON_COLOR = new Color3(0.45, 0.58, 0.85);
 const MOON_INTENSITY = 0.9;
@@ -35,6 +43,7 @@ function between(range: number[]): number {
 export class Lamp {
   private readonly light: PointLight;
   private readonly bulbMaterial: StandardMaterial;
+  private readonly color: Color3;
   private coneMaterial: StandardMaterial | null = null;
   private readonly intensity: number;
   private flicker: boolean;
@@ -47,13 +56,14 @@ export class Lamp {
 
   constructor(scene: Scene, data: LampData, intensity: number, name: string) {
     const moon = data.moonlight ?? false;
-    this.intensity = moon ? MOON_INTENSITY : intensity;
+    this.intensity = (moon ? MOON_INTENSITY : intensity) * (data.forca ?? 1);
+    this.color = TONE_COLORS[data.tom ?? "fluorescente"];
     this.flicker = (data.flicker ?? false) !== false;
     this.dark = data.flicker === "escuro";
     this.x = data.x;
     this.diesWhenPassed = data.diesWhenPassed ?? false;
     this.light = new PointLight(name, new Vector3(data.x, data.y, moon ? MOON_Z : LAMP_Z), scene);
-    this.light.diffuse = moon ? MOON_COLOR : LAMP_COLOR;
+    this.light.diffuse = moon ? MOON_COLOR : this.color;
     this.light.specular = Color3.Black();
     this.light.intensity = this.intensity;
     this.light.range = moon ? MOON_RANGE : LAMP_RANGE;
@@ -62,11 +72,16 @@ export class Lamp {
     if (moon) return;
     const bulb = CreateSphere(`${name}-bulb`, { diameter: 0.18 }, scene);
     bulb.position.set(data.x, data.y, LAMP_Z);
-    this.bulbMaterial.emissiveColor = LAMP_COLOR;
+    this.bulbMaterial.emissiveColor = this.color;
     this.bulbMaterial.disableLighting = true;
     bulb.material = this.bulbMaterial;
     this.createCone(scene, data, name);
     this.timer = between(ON_TIME);
+    if (data.desligada) {
+      this.dead = true;
+      this.setLevel(0);
+      this.bulbMaterial.emissiveColor = this.color.scale(0.04);
+    }
   }
 
   get positionX(): number {
@@ -112,8 +127,8 @@ export class Lamp {
 
   private setLevel(level: number): void {
     this.light.intensity = this.intensity * level;
-    this.bulbMaterial.emissiveColor = LAMP_COLOR.scale(level);
-    if (this.coneMaterial) this.coneMaterial.emissiveColor = LAMP_COLOR.scale(level);
+    this.bulbMaterial.emissiveColor = this.color.scale(level);
+    if (this.coneMaterial) this.coneMaterial.emissiveColor = this.color.scale(level * (this.intensity / BASE_INTENSITY));
   }
 
   /** Tronco de cone aditivo, mais forte junto da lâmpada e sumindo até o chão. */
@@ -135,7 +150,7 @@ export class Lamp {
     cone.setVerticesData(VertexBuffer.ColorKind, colors);
     const material = new StandardMaterial(`${name}-cone-mat`, scene);
     material.disableLighting = true;
-    material.emissiveColor = LAMP_COLOR.clone();
+    material.emissiveColor = this.color.scale(this.intensity / BASE_INTENSITY);
     material.backFaceCulling = false;
     material.alpha = 0.999;
     material.alphaMode = Constants.ALPHA_ONEONE;

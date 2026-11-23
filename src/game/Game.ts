@@ -23,6 +23,7 @@ import { Door } from "./entities/Door";
 import { Lamp } from "./entities/Lamp";
 import { PressurePlate } from "./entities/PressurePlate";
 import { Vigia } from "./entities/Vigia";
+import { Figurante } from "./entities/Figurante";
 import { Elevator } from "./entities/Elevator";
 import { FinalDoor } from "./entities/FinalDoor";
 import { Hints } from "./Hints";
@@ -76,7 +77,6 @@ export class Game {
   private readonly boxes: Box[] = [];
   private ambient: HemisphericLight | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
-  private loopsDone = 0;
   private vultos: Vultos | null = null;
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
@@ -226,7 +226,7 @@ export class Game {
       this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
     );
     level.plates.forEach((plate, i) =>
-      this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials.get("metal"), `plate-${i}`)),
+      this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials, `plate-${i}`)),
     );
     if (level.finalDoor) this.finalDoor = new FinalDoor(scene, level.finalDoor, this.materials.get("madeira"), "porta-final");
     level.elevators.forEach((elevator, i) =>
@@ -254,6 +254,7 @@ export class Game {
     this.killY = level.killY;
     const spawn = this.checkpoints.current;
     this.player = await Player.create(scene, spawn);
+    await Promise.all((level.figurantes ?? []).map((data, i) => Figurante.create(scene, data, `figurante-${i}`)));
     for (const data of level.vigias) {
       const vigia = await Vigia.create(scene, data);
       vigia.addShadowCasters([...this.obstacleMeshes, ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
@@ -370,12 +371,20 @@ export class Game {
     const px = this.player.position.x;
     if (this.ambient) {
       const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
-      const target = dark ? DARK_AMBIENT : 1;
-      this.ambient.intensity += (target - this.ambient.intensity) * Math.min(1, dt * 1.5);
+      // O prédio apaga aos poucos: cada trecho tem quanto sobra de luz geral e de que cor.
+      const zone = (worldLevel.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
+      const target = (zone?.intensidade ?? 1) * (dark ? DARK_AMBIENT : 1);
+      const k = Math.min(1, dt * 1.5);
+      this.ambient.intensity += (target - this.ambient.intensity) * k;
+      if (zone) {
+        const c = this.ambient.diffuse;
+        c.r += (zone.cor[0] - c.r) * k;
+        c.g += (zone.cor[1] - c.g) * k;
+        c.b += (zone.cor[2] - c.b) * k;
+      }
     }
     this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.update(dt, this.input, this.pushTimer > 0);
-    this.updateLoop(px);
     this.vultos?.update(dt, this.player.position.x);
     this.updateNoise();
     this.cameraRig.update(dt, {
@@ -569,20 +578,6 @@ export class Game {
       this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
       for (const vigia of this.vigias) vigia.hear(p.x, p.y);
     }
-  }
-
-  // Corredor que se repete (área 5): ao cruzar o gatilho, jogador e câmera recuam juntos.
-  private updateLoop(previousX: number): void {
-    const loop = worldLevel.laco;
-    if (!loop || this.loopsDone >= loop.apagar.length) return;
-    const x = this.player.position.x;
-    if (previousX >= loop.gatilhoX || x < loop.gatilhoX) return;
-    this.player.shiftX(-loop.recuo);
-    this.cameraRig.shift(-loop.recuo);
-    for (const lamp of this.lamps) {
-      if (loop.apagar[this.loopsDone].some((lx) => Math.abs(lamp.positionX - lx) < 0.01)) lamp.makeDark();
-    }
-    this.loopsDone += 1;
   }
 
   private updateDoors(dt: number): void {

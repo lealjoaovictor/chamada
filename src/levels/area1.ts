@@ -26,7 +26,8 @@ const GUARITA_WIDTH = 4;
 const VAN_WIDTH = 4.4;
 const END = 92;
 
-const lamps: LampData[] = [
+// Postes de rua: vapor de sódio (laranja), que tira a cor de tudo e deixa as pessoas em silhueta.
+const lamps: LampData[] = ([
   { x: 7, y: 3.4 },
   { x: 13.5, y: 3.4 },
   { x: 26.5, y: 3.4 },
@@ -35,7 +36,7 @@ const lamps: LampData[] = [
   { x: 57, y: 3.4, flicker: true },
   { x: 70, y: 3.4 },
   { x: 86, y: 3.4 },
-];
+] as LampData[]).map((lamp) => ({ ...lamp, tom: "sodio" }));
 
 function van(x: number): BlockData {
   return { x, y: VAN_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: VAN_WIDTH, height: VAN_HEIGHT, material: "metal", hidden: true };
@@ -49,6 +50,7 @@ export const area1Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: -5, maxX: END },
+  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7] }],
   vultos: [{ x: 21, y: 1.5, z: 1.5, facing: 1 }, { x: 60.5, y: 0, z: 0.8, facing: 1, anda: true }],
   depth: 4,
   ground: [

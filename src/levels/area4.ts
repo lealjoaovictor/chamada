@@ -92,8 +92,9 @@ function stripes(x: number, y: number, height: number, width: number): DecorData
   }));
 }
 
-const lamps: LampData[] = [
-  { x: 126, y: 2.75 },
+// Subsolo: tubos fluorescentes velhos, esverdeados; o primeiro é o poste de sódio da rampa.
+const lamps: LampData[] = ([
+  { x: 126, y: 2.75, tom: "sodio" },
   { x: 133, y: 2.75, flicker: true },
   { x: 140, y: 2.75 },
   { x: 147, y: 2.75, flicker: true },
@@ -103,7 +104,7 @@ const lamps: LampData[] = [
   { x: 180, y: 2.75, flicker: true },
   { x: 188, y: 2.75 },
   { x: 196, y: 2.75 },
-];
+] as LampData[]).map((lamp) => ({ tom: "subsolo", ...lamp }));
 
 function groundWithRecess(): BlockData[] {
   const a = DEPOT_PLATE_X - DEPOT_PLATE_WIDTH / 2;
@@ -123,6 +124,7 @@ export const area4Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  ambiente: [{ minX: START, maxX: END, intensidade: 0.36, cor: [0.56, 0.62, 0.44] }],
   vultos: [],
   depth: 4,
   ground: groundWithRecess(),

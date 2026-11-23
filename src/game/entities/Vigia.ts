@@ -24,7 +24,8 @@ const WALK_CLIP_SPEED = 1.68;
 const RUN_CLIP_SPEED = 5.33;
 const CATCH_DISTANCE = 0.55;
 const BLEND_TIME = 0.25;
-const LIGHT_COLOR = new Color3(1, 0.82, 0.55);
+// Lanterna LED dos seguranças: branca e fria (#E6EEF5), para nunca se confundir com a luz quente da sala.
+const LIGHT_COLOR = new Color3(0.9, 0.94, 1);
 const ALERT_COLOR = new Color3(1, 0.1, 0.03);
 const ALERT_RISE = 1 / 0.85;
 const ALERT_FALL = 0.45;

@@ -41,12 +41,12 @@ const HALL_WINDOWS = [85.5, 88, 91, 94, 97, 100];
 const READING_WINDOWS = [122, 130, 136];
 
 const lamps: LampData[] = [
-  { x: 82, y: 2.7 },
-  { x: 111, y: 5.6, flicker: true },
+  { x: 82, y: 2.7, forca: 0.85 },
+  { x: 111, y: 5.6, flicker: true, forca: 0.8 },
   { x: 89, y: 5, moonlight: true },
   { x: 98, y: 5, moonlight: true },
-  { x: 127, y: 7.4 },
-  { x: 137, y: 7.4, flicker: true },
+  { x: 127, y: 7.4, forca: 0.8 },
+  { x: 137, y: 7.4, flicker: true, forca: 0.8 },
   { x: 122, y: 7.6, moonlight: true },
 ];
 
@@ -54,6 +54,7 @@ export const area3Level: LevelData = {
   checkpoints: [{ x: 110, y: GALLERY_Y + 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: READING_END },
+  ambiente: [{ minX: START, maxX: READING_END, intensidade: 0.4, cor: [0.5, 0.56, 0.66] }],
   vultos: [],
   depth: 4,
   ground: [{ x: (START + SHAFT_X + SHAFT_WIDTH / 2) / 2, y: -0.5, width: SHAFT_X + SHAFT_WIDTH / 2 - START, height: 1, material: "piso" }],

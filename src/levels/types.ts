@@ -22,7 +22,7 @@ export type MaterialName =
   | "tecido"
   | "tela"
   | "interior"
-  | "janela-acesa";
+  | "janela-acesa" | "saida";
 
 export type ModelName = "estante-1" | "estante-2" | "estante-3";
 
@@ -99,6 +99,22 @@ export interface LampData extends PointData {
   flicker?: boolean | "escuro";
   moonlight?: boolean;
   diesWhenPassed?: boolean;
+  /** Tipo de lâmpada (cor real): sódio nos postes, fluorescente dentro, tubo velho no subsolo, luz quente da sala. */
+  tom?: LampTone;
+  /** Multiplica a intensidade padrão (o prédio apagando aos poucos). */
+  forca?: number;
+  /** Lâmpada desligada: a luminária aparece, mas não acende. */
+  desligada?: boolean;
+}
+
+export type LampTone = "sodio" | "fluorescente" | "subsolo" | "sala";
+
+/** Luz ambiente de um trecho: quanto sobra de luz geral e de que cor. */
+export interface AmbientZone {
+  minX: number;
+  maxX: number;
+  intensidade: number;
+  cor: [number, number, number];
 }
 
 export interface PlateData {
@@ -106,6 +122,12 @@ export interface PlateData {
   y: number;
   width: number;
   door: number;
+  /** "sensor" (padrão): sensor de portão automático. "contrapeso": estrado pendurado que puxa a porta por uma roldana. */
+  tipo?: "sensor" | "contrapeso";
+  /** Contrapeso: altura do teto (onde fica a roldana). */
+  topo?: number;
+  /** Contrapeso: x da porta puxada pela corda. */
+  portaX?: number;
 }
 
 export interface DoorData {
@@ -178,10 +200,24 @@ export interface LevelData {
   furtivo?: { minX: number; maxX: number }[];
   /** Trechos em que a luz ambiente quase some: só as lâmpadas iluminam. */
   escuro?: { minX: number; maxX: number }[];
-  /** Corredor que se repete: ao cruzar gatilhoX o jogador recua `recuo` metros; a cada volta apaga um grupo de lâmpadas (por X). */
-  laco?: { gatilhoX: number; recuo: number; apagar: number[][] };
+  /** Luz ambiente por trecho (o prédio apagando aos poucos). Fora de todas, vale o padrão do visual. */
+  ambiente?: AmbientZone[];
+  figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];
+}
+
+/** Pessoa parada em cena (professor e colega no final), feita com os bonecos do Mixamo do jogo. */
+export interface FiguranteData {
+  modelo: "personagem" | "vigia";
+  x: number;
+  y: number;
+  z: number;
+  rotY?: number;
+  pose: "em-pe" | "sentado";
+  /** Cor do boneco (um tom diferente do Zacarias e dos seguranças). */
+  tom: [number, number, number];
+  segura?: "lista" | "celular";
 }
 
 export interface VultoData {

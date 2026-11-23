@@ -47,7 +47,8 @@ const lamps: LampData[] = [
   { x: 57.5, y: 2.7, flicker: true },
   { x: 62, y: 2.7 },
   { x: 66, y: 2.7, flicker: true },
-  { x: 71.5, y: 2.7, flicker: true },
+  // Alguém já começou a apagar o corredor.
+  { x: 71.5, y: 2.7, desligada: true },
   { x: 81, y: 4.4 },
   { x: 89, y: 4.4, flicker: true },
   { x: 100.3, y: 2.7, flicker: "escuro" },
@@ -82,6 +83,10 @@ export const area2Level: LevelData = {
   checkpoints: [{ x: 74, y: 1.2 }, { x: 96.5, y: 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: END2 },
+  ambiente: [
+    { minX: START, maxX: ROOM1_END, intensidade: 0.62, cor: [0.66, 0.72, 0.7] },
+    { minX: ROOM1_END, maxX: END2, intensidade: 0.5, cor: [0.6, 0.66, 0.66] },
+  ],
   vultos: [{ x: 102.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 114.5 }],
   depth: 4,
@@ -113,7 +118,8 @@ export const area2Level: LevelData = {
   lamps,
   plates: [
     { x: RECESS_X, y: -RECESS_DEPTH, width: RECESS_WIDTH, door: 0 },
-    { x: STAGE_PLATE_X, y: STAGE_TOP - STAGE_PLATE_DEPTH, width: STAGE_PLATE_WIDTH, door: 1 },
+    // Zeladoria: a porta de enrolar tem um contrapeso; a caixa no estrado puxa a corda e segura a porta aberta.
+    { x: STAGE_PLATE_X, y: STAGE_TOP - STAGE_PLATE_DEPTH, width: STAGE_PLATE_WIDTH, door: 1, tipo: "contrapeso", topo: ROOM2_CEILING, portaX: GATE2_X },
   ],
   doors: [
     { x: DOOR_X, y: CEILING / 2, width: 0.25, height: CEILING, openHeight: ARM_HEIGHT },

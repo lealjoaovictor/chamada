@@ -56,7 +56,7 @@ function desk(x: number, z: number, turn = 0): PropData[] {
 const lamps: LampData[] = [
   // Corredor: fluorescente cada vez mais fraco, apagando atrás do jogador.
   ...CORRIDOR_LAMPS.map((x, i): LampData => ({
-    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i % 3 === 2, diesWhenPassed: true,
+    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i === 2, diesWhenPassed: true,
   })),
   // A sala de aula: a única luz quente do jogo, vazando pela porta.
   { x: 208.4 + SHIFT, y: FLOOR + 2.6, tom: "sala", forca: 1.25 },

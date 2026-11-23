@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { CART_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
+import { CART_VISUAL, CRATE_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 48;
 const END = 88;
@@ -30,6 +30,8 @@ const STAGE_PLATE_X = 101;
 const STAGE_PLATE_WIDTH = 1.4;
 const STAGE_PLATE_DEPTH = 0.2;
 const GATE2_X = 105;
+const STEP2_WIDTH = 1;
+const STEP2_HEIGHT = 1.2;
 const GATE2_OPEN = 2.2;
 const ROOM2_END = 107;
 
@@ -53,16 +55,16 @@ function hangingLamp(lamp: LampData): DecorData {
 
 const lamps: LampData[] = [
   { x: 51, y: 2.7 },
-  { x: 57.5, y: 2.7, flicker: true },
+  { x: 57.5, y: 2.7 },
   { x: 62, y: 2.7 },
-  { x: 66, y: 2.7, flicker: true },
+  { x: 66, y: 2.7 },
   // Alguém já começou a apagar o corredor.
   { x: 71.5, y: 2.7, desligada: true },
   { x: 80.4, y: 2.7, forca: 0.8 },
   { x: 84, y: 2.7, desligada: true },
   { x: 87.6, y: 2.7, desligada: true },
   { x: 93, y: 4.4 },
-  { x: 101, y: 4.4, flicker: true },
+  { x: 101, y: 4.4 },
   { x: 112.3, y: 2.7, flicker: "escuro" },
   { x: 117.4, y: 2.7, flicker: "escuro" },
   { x: 122.7, y: 2.7, flicker: "escuro" },
@@ -120,8 +122,11 @@ export const area2Level: LevelData = {
     // Pilares do recuo: escondem quem está na frente e cortam a luz da lanterna.
     ...PILLAR_XS.map((x): BlockData => ({ x, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" })),
     ...stage(),
-    // Rodapé na borda do palco: segura a caixa de cima para ela não cair de volta.
+    // Rodapé nas bordas do palco: segura a caixa de cima para ela não cair de nenhum lado.
     { x: STAGE_X0 + 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
+    { x: STAGE_X1 - 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
+    // Caixote entre o palco e a porta: quem cai do lado direito com a porta fechada sobe de volta por ele.
+    { x: STAGE_X1 + STEP2_WIDTH / 2, y: STEP2_HEIGHT / 2, width: STEP2_WIDTH, height: STEP2_HEIGHT, hidden: true },
   ],
   ramps: [],
   boxes: [
@@ -182,6 +187,12 @@ export const area2Level: LevelData = {
     { model: "barrel_03", x: 96.9, y: STAGE_TOP, z: 1.6, rotY: 40 },
     { model: "hand_truck", x: 95.4, y: STAGE_TOP, z: 1.5, rotY: 200 },
     { model: "trashbag", x: 105.9, y: 0, z: 1.7 },
+    ...CRATE_VISUAL.map((p): PropData => ({
+      ...p,
+      x: p.x + STAGE_X1 + STEP2_WIDTH / 2,
+      y: p.y * STEP2_HEIGHT,
+      stretch: p.stretch && [p.stretch[0], p.stretch[1] * STEP2_HEIGHT, p.stretch[2]],
+    })),
     { model: "plastic_crate_01", x: 91.2, y: 0, z: 1.6, rotY: 20 },
     ...[93.4, 95.2, 97, 98.8, 100.6, 102.4, 104.2].map((x): PropData => ({
       model: "modular_airduct_rectangular_01", part: "modular_airduct_rectangular_01_tripple_01", x, y: 4.55, z: 1.3, rotY: 90, origin: false,

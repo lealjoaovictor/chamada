@@ -188,7 +188,7 @@ export class Music {
     const ctx = this.sfx.audio;
     this.bus = ctx.createGain();
     this.bus.gain.value = MUSIC_VOLUME;
-    this.bus.connect(this.sfx.output);
+    this.bus.connect(this.sfx.musicOutput);
     this.filter = ctx.createBiquadFilter();
     this.filter.type = "lowpass";
     this.filter.frequency.value = OPEN_LOWPASS;

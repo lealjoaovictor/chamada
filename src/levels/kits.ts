@@ -181,9 +181,27 @@ export const GAS_CART_VISUAL: PropData[] = [
 ];
 export const GAS_CART_GRIP = { y: 1.12, x: 0.15 };
 
-/** Carrinho da biblioteca: o carrinho de metal com livros em cima. */
-export const LIBRARY_CART_VISUAL: PropData[] = [
-  ...CART_VISUAL,
-  { model: "book_encyclopedia_set_01", x: -0.22, y: 1.0, z: 0.05, fitWidth: 0.45 },
-  { model: "book_encyclopedia_set_01", x: 0.24, y: 1.0, z: -0.05, rotY: 180, fitWidth: 0.42 },
-];
+// Os 20 livros da coleção chegam todos na mesma origem (a posição de cada um no arquivo se perde), e a coleção
+// inteira medida como um livro só fazia `fitWidth` ampliar tudo umas 11 vezes, um bloco gigante na frente da
+// câmera. Por isso cada livro entra como peça própria, em tamanho real, enfileirado à mão.
+const BOOKS_PER_ROW = 14;
+const BOOK_SCALE = 1.25;
+const BOOK_STEP = 0.05;
+
+function bookRow(z: number, first: number, rotY: number): PropData[] {
+  return Array.from({ length: BOOKS_PER_ROW }, (_, i): PropData => {
+    const n = String(((first + i) % 20) + 1).padStart(2, "0");
+    return {
+      model: "book_encyclopedia_set_01",
+      part: `book_encyclopedia_set_01_book${n}`,
+      x: (i - (BOOKS_PER_ROW - 1) / 2) * BOOK_STEP,
+      y: 0.95,
+      z,
+      rotY: rotY + ((i * 7) % 5) - 2,
+      scale: BOOK_SCALE,
+    };
+  });
+}
+
+/** Carrinho da biblioteca: o carrinho de metal com duas fileiras de livros em cima. */
+export const LIBRARY_CART_VISUAL: PropData[] = [...CART_VISUAL, ...bookRow(0.15, 0, 0), ...bookRow(-0.15, 6, 180)];

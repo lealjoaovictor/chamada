@@ -1,4 +1,4 @@
-export type Action = "left" | "right" | "jump" | "slide";
+export type Action = "left" | "right" | "jump" | "slide" | "pause";
 
 const KEYBOARD_MAP: Record<string, Action> = {
   KeyA: "left",
@@ -8,6 +8,8 @@ const KEYBOARD_MAP: Record<string, Action> = {
   Space: "jump",
   KeyS: "slide",
   ArrowDown: "slide",
+  Escape: "pause",
+  KeyP: "pause",
 };
 
 const STICK_DEADZONE = 0.35;
@@ -15,6 +17,7 @@ const PAD_JUMP = 0;
 const PAD_DOWN = 13;
 const PAD_LEFT = 14;
 const PAD_RIGHT = 15;
+const PAD_START = 9;
 
 export class Input {
   private readonly held = new Set<Action>();
@@ -82,6 +85,7 @@ export class Input {
       if (x > STICK_DEADZONE || button(PAD_RIGHT)) this.padHeld.add("right");
       if (y > STICK_DEADZONE || button(PAD_DOWN)) this.padHeld.add("slide");
       if (button(PAD_JUMP)) this.padHeld.add("jump");
+      if (button(PAD_START)) this.padHeld.add("pause");
     }
 
     this.padHeld.forEach((action) => {
@@ -98,6 +102,17 @@ export class Input {
     } else {
       this.touchHeld.delete(action);
     }
+  }
+
+  /** Esc, P ou Start: vale mesmo com o piloto automático (câmera mostrando algo), para sempre dar para pausar. */
+  pausePressed(): boolean {
+    return this.pressed.has("pause");
+  }
+
+  /** Solta tudo o que estava apertado (ao pausar, para o Zacarias não sair andando sozinho na volta). */
+  releaseAll(): void {
+    this.onBlur();
+    this.anyPressed = false;
   }
 
   consumeAnyPress(): boolean {

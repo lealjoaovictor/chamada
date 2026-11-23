@@ -158,7 +158,7 @@ export class Soundscape {
       this.vigiaTimers[i] = (this.vigiaTimers[i] ?? 0) - dt;
       if (this.vigiaTimers[i] > 0) return;
       this.vigiaTimers[i] = vigia.chases ? VIGIA_RUN_INTERVAL : VIGIA_STEP_INTERVAL;
-      const volume = 0.7 * (1 - distance / HEARING_DISTANCE);
+      const volume = 0.35 * (1 - distance / HEARING_DISTANCE);
       this.sfx.play(STEPS[Math.floor(Math.random() * STEPS.length)], { volume, pitch: 0.65, pitchJitter: 0.05 });
     });
   }

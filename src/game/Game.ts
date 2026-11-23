@@ -1168,7 +1168,7 @@ export class Game {
       const impact = box.takeImpact();
       if (impact <= 0) continue;
       const p = box.mesh.position;
-      this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
+      this.sfx.play("aterrissar", { volume: Math.min(0.5, 0.2 + impact * 0.04), pitch: 0.55 });
       let heard = false;
       for (const vigia of this.vigias) {
         if (vigia.hear(p.x, p.y) && !heard) {

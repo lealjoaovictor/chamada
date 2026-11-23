@@ -3,67 +3,82 @@ import type { CenaPerseguicao, CameraBeatData, HintData, LevelData, RattleData }
 // Cada área é desenhada nas próprias coordenadas; o mundo contínuo desloca as áreas seguintes
 // quando uma área cresce. Estas funções somam `dx` a tudo o que é posição X.
 
-type WithX = { x: number };
-const sx = <T extends WithX>(items: T[], dx: number): T[] => items.map((item) => ({ ...item, x: item.x + dx }));
+/** Função que leva uma posição X para outra (deslocar uma área, ou esticar um trecho dela). */
+export type MapX = (x: number) => number;
+
+type WithX = { x: number; width?: number };
+/** Objetos com largura têm as duas bordas levadas pela função: um piso que atravessa um trecho esticado estica junto. */
+function mx<T extends WithX>(item: T, f: MapX): T {
+  if (typeof item.width !== "number") return { ...item, x: f(item.x) };
+  const left = f(item.x - item.width / 2);
+  const right = f(item.x + item.width / 2);
+  return { ...item, x: (left + right) / 2, width: right - left };
+}
+const sx = <T extends WithX>(items: T[], f: MapX): T[] => items.map((item) => mx(item, f));
+const opt = (value: number | undefined, f: MapX): number | undefined => (value === undefined ? undefined : f(value));
+const range = <T extends { minX: number; maxX: number }>(r: T, f: MapX): T => ({ ...r, minX: f(r.minX), maxX: f(r.maxX) });
 
 export function shiftLevel(level: LevelData, dx: number): LevelData {
   if (dx === 0) return level;
+  return mapLevelX(level, (x) => x + dx);
+}
+
+/** Leva toda posição X da área pela função `f` (deslocar ou esticar). */
+export function mapLevelX(level: LevelData, f: MapX): LevelData {
   return {
     ...level,
-    checkpoints: sx(level.checkpoints, dx),
-    bounds: { minX: level.bounds.minX + dx, maxX: level.bounds.maxX + dx },
-    ground: sx(level.ground, dx),
-    walls: sx(level.walls, dx),
-    platforms: sx(level.platforms, dx),
-    obstacles: sx(level.obstacles, dx),
-    ramps: level.ramps.map((r) => ({ ...r, x0: r.x0 + dx, x1: r.x1 + dx })),
-    boxes: sx(level.boxes, dx),
-    lamps: sx(level.lamps, dx),
-    plates: level.plates.map((p) => ({ ...p, x: p.x + dx, portaX: p.portaX === undefined ? undefined : p.portaX + dx })),
-    doors: level.doors.map((d) => ({
-      ...d,
-      x: d.x + dx,
-      closeAfterX: d.closeAfterX === undefined ? undefined : d.closeAfterX + dx,
-    })),
+    checkpoints: level.checkpoints.map((c) => ({ ...c, x: f(c.x) })),
+    bounds: { minX: f(level.bounds.minX), maxX: f(level.bounds.maxX) },
+    ground: sx(level.ground, f),
+    walls: sx(level.walls, f),
+    platforms: sx(level.platforms, f),
+    obstacles: sx(level.obstacles, f),
+    ramps: level.ramps.map((r) => ({ ...r, x0: f(r.x0), x1: f(r.x1) })),
+    boxes: level.boxes.map((b) => ({ ...b, x: f(b.x) })),
+    lamps: level.lamps.map((l) => ({ ...l, x: f(l.x) })),
+    plates: level.plates.map((p) => ({ ...mx(p, f), portaX: opt(p.portaX, f) })),
+    doors: level.doors.map((d) => ({ ...mx(d, f), closeAfterX: opt(d.closeAfterX, f) })),
     vigias: level.vigias.map((v) => ({
       ...v,
-      x0: v.x0 + dx,
-      x1: v.x1 + dx,
-      triggerX: v.triggerX === undefined ? undefined : v.triggerX + dx,
-      cena: shiftCena(v.cena, dx),
+      x0: f(v.x0),
+      x1: f(v.x1),
+      triggerX: opt(v.triggerX, f),
+      cena: mapCena(v.cena, f),
     })),
-    elevators: level.elevators.map((e) => ({ ...e, x: e.x + dx, buttonX: e.buttonX + dx })),
+    elevators: level.elevators.map((e) => ({ ...mx(e, f), buttonX: f(e.buttonX) })),
     finalDoor: level.finalDoor && {
       ...level.finalDoor,
-      x: level.finalDoor.x + dx,
-      triggerX: level.finalDoor.triggerX + dx,
-      walkToX: level.finalDoor.walkToX + dx,
+      x: f(level.finalDoor.x),
+      triggerX: f(level.finalDoor.triggerX),
+      walkToX: f(level.finalDoor.walkToX),
     },
     salaVazia: level.salaVazia && {
-      quadroX: level.salaVazia.quadroX + dx,
+      quadroX: f(level.salaVazia.quadroX),
       porta: {
         ...level.salaVazia.porta,
-        x: level.salaVazia.porta.x + dx,
-        triggerX: level.salaVazia.porta.triggerX + dx,
-        walkToX: level.salaVazia.porta.walkToX + dx,
+        x: f(level.salaVazia.porta.x),
+        triggerX: f(level.salaVazia.porta.triggerX),
+        walkToX: f(level.salaVazia.porta.walkToX),
       },
     },
-    decor: sx(level.decor, dx),
-    props: level.props && sx(level.props, dx),
-    furtivo: level.furtivo?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
-    escuro: level.escuro?.map((f) => ({ minX: f.minX + dx, maxX: f.maxX + dx })),
-    ambiente: level.ambiente?.map((z) => ({ ...z, minX: z.minX + dx, maxX: z.maxX + dx })),
-    cidade: level.cidade?.map((c) => ({ minX: c.minX + dx, maxX: c.maxX + dx })),
-    fios: level.fios?.map((w) => ({ ...w, a: [w.a[0] + dx, w.a[1], w.a[2]], b: [w.b[0] + dx, w.b[1], w.b[2]] })),
-    grades: level.grades?.map((g) => ({ ...g, x0: g.x0 + dx, x1: g.x1 + dx })),
-    adesivos: level.adesivos?.map((a) => ({ ...a, x: a.x + dx })),
-    vida: level.vida?.map((v) => ({ ...v, minX: v.minX + dx, maxX: v.maxX + dx, tvs: v.tvs?.map((t) => ({ ...t, x: t.x + dx })),
-      monitores: v.monitores?.map((m) => ({ ...m, x: m.x + dx })),
-      relogios: v.relogios?.map((r) => ({ ...r, x: r.x + dx })),
+    decor: sx(level.decor, f),
+    props: level.props?.map((p) => ({ ...p, x: f(p.x) })),
+    furtivo: level.furtivo?.map((r) => range(r, f)),
+    escuro: level.escuro?.map((r) => range(r, f)),
+    ambiente: level.ambiente?.map((r) => range(r, f)),
+    cidade: level.cidade?.map((r) => range(r, f)),
+    fios: level.fios?.map((w) => ({ ...w, a: [f(w.a[0]), w.a[1], w.a[2]], b: [f(w.b[0]), w.b[1], w.b[2]] })),
+    grades: level.grades?.map((g) => ({ ...g, x0: f(g.x0), x1: f(g.x1) })),
+    adesivos: level.adesivos && sx(level.adesivos, f),
+    vida: level.vida?.map((v) => ({
+      ...range(v, f),
+      tvs: v.tvs?.map((t) => ({ ...t, x: f(t.x) })),
+      monitores: v.monitores?.map((m) => ({ ...m, x: f(m.x) })),
+      relogios: v.relogios?.map((r) => ({ ...r, x: f(r.x) })),
     })),
-    vultos: level.vultos && sx(level.vultos, dx),
-    figurantes: level.figurantes && sx(level.figurantes, dx),
-    primeiroPlano: level.primeiroPlano?.map((a) => ({ ...a, x0: a.x0 + dx, x1: a.x1 + dx })),
+    vultos: level.vultos?.map((v) => ({ ...v, x: f(v.x) })),
+    figurantes: level.figurantes?.map((v) => ({ ...v, x: f(v.x) })),
+    primeiroPlano: level.primeiroPlano?.map((a) => ({ ...a, x0: f(a.x0), x1: f(a.x1) })),
   };
 }
 
@@ -76,13 +91,17 @@ export interface IndexOffsets {
 const add = (value: number | undefined, offset: number): number | undefined => (value === undefined ? undefined : value + offset);
 
 export function shiftHint(hint: HintData, dx: number, o: IndexOffsets): HintData {
+  return mapHint(hint, (x) => x + dx, o);
+}
+
+export function mapHint(hint: HintData, f: MapX, o: IndexOffsets = { boxes: 0, plates: 0, elevators: 0 }): HintData {
   return {
     ...hint,
-    zone: { minX: hint.zone.minX + dx, maxX: hint.zone.maxX + dx },
-    deathZone: hint.deathZone && { minX: hint.deathZone.minX + dx, maxX: hint.deathZone.maxX + dx },
+    zone: range(hint.zone, f),
+    deathZone: hint.deathZone && range(hint.deathZone, f),
     icon: hint.icon && {
       ...hint.icon,
-      x: hint.icon.followBox === undefined ? hint.icon.x + dx : hint.icon.x,
+      x: hint.icon.followBox === undefined ? f(hint.icon.x) : hint.icon.x,
       followBox: add(hint.icon.followBox, o.boxes),
     },
     glow: hint.glow && {
@@ -95,25 +114,19 @@ export function shiftHint(hint: HintData, dx: number, o: IndexOffsets): HintData
       boxMoved: add(hint.doneWhen.boxMoved, o.boxes),
       platePressed: add(hint.doneWhen.platePressed, o.plates),
       elevatorCalled: add(hint.doneWhen.elevatorCalled, o.elevators),
-      passedX: add(hint.doneWhen.passedX, dx),
+      passedX: opt(hint.doneWhen.passedX, f),
     },
   };
 }
 
-export const shiftBeat = (beat: CameraBeatData, dx: number): CameraBeatData => ({
-  ...beat,
-  triggerX: beat.triggerX + dx,
-  focusX: beat.focusX + dx,
-});
+export const mapBeat = (beat: CameraBeatData, f: MapX): CameraBeatData => ({ ...beat, triggerX: f(beat.triggerX), focusX: f(beat.focusX) });
+export const shiftBeat = (beat: CameraBeatData, dx: number): CameraBeatData => mapBeat(beat, (x) => x + dx);
 
-export const shiftRattle = (rattle: RattleData, dx: number): RattleData => ({
-  ...rattle,
-  minX: rattle.minX + dx,
-  maxX: rattle.maxX + dx,
-});
+export const mapRattle = (rattle: RattleData, f: MapX): RattleData => range(rattle, f);
+export const shiftRattle = (rattle: RattleData, dx: number): RattleData => mapRattle(rattle, (x) => x + dx);
 
-function shiftCena(cena: CenaPerseguicao | undefined, dx: number): CenaPerseguicao | undefined {
+function mapCena(cena: CenaPerseguicao | undefined, f: MapX): CenaPerseguicao | undefined {
   if (!cena) return undefined;
-  if (cena.tipo === "porta") return { ...cena, triggerX: cena.triggerX + dx, focusX: cena.focusX + dx };
-  return { ...cena, de: cena.de + dx, ate: cena.ate + dx };
+  if (cena.tipo === "porta") return { ...cena, triggerX: f(cena.triggerX), focusX: f(cena.focusX) };
+  return { ...cena, de: f(cena.de), ate: f(cena.ate) };
 }

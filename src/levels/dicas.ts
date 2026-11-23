@@ -3,8 +3,9 @@ import type { CameraBeatData, HintData, RattleData } from "./types";
 // Dicas por área, nas coordenadas e índices (caixa, placa, elevador) da própria área.
 // O mundo contínuo (`world.ts`) desloca tudo para a posição final.
 
-const CHASE = { minX: 124, maxX: 153 };
-const CHASE2 = { minX: 169, maxX: 194 };
+// Área 4 (esticada): as duas perseguições.
+const CHASE = { minX: 124, maxX: 163 };
+const CHASE2 = { minX: 179, maxX: 214 };
 
 export const DICAS_POR_AREA: Record<number, HintData[]> = {
   1: [
@@ -101,42 +102,21 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       doneWhen: { passedX: 146 },
     },
   ],
+  // Área 4 já nas coordenadas esticadas (ver `AREA4_STRETCH` em area4.ts: 10 m a mais antes de cada portão).
   4: [
-    {
-      zone: { minX: 124, maxX: 134.3 },
-      trigger: "mortes",
-      deathZone: CHASE,
-      iconAfter: 2,
-      icon: { action: "deslizar", x: 133.6, y: 1.7 },
-      doneWhen: { passedX: 134.5 },
-    },
-    {
-      zone: { minX: 134.3, maxX: 138.6 },
-      trigger: "mortes",
-      deathZone: CHASE,
-      iconAfter: 2,
-      icon: { action: "pular", x: 137.9, y: 1.5 },
-      doneWhen: { passedX: 138.8 },
-    },
-    {
-      zone: { minX: 138.6, maxX: 143.3 },
-      trigger: "mortes",
-      deathZone: CHASE,
-      iconAfter: 2,
-      icon: { action: "pular", x: 142.6, y: 1.7 },
-      doneWhen: { passedX: 143.5 },
-    },
-    {
-      zone: { minX: 143.3, maxX: 152.3 },
-      trigger: "mortes",
-      deathZone: CHASE,
-      iconAfter: 2,
-      icon: { action: "deslizar", x: 151.6, y: 1.7 },
-      doneWhen: { passedX: 152.5 },
-    },
+    ...[[134, "deslizar"], [138.3, "pular"], [143, "pular"], [149.2, "deslizar"], [154, "pular"], [162, "deslizar"]].map(
+      ([x, action], i, all): HintData => ({
+        zone: { minX: i === 0 ? 124 : (all[i - 1][0] as number) + 0.3, maxX: (x as number) + 0.3 },
+        trigger: "mortes",
+        deathZone: CHASE,
+        iconAfter: 2,
+        icon: { action: action as "deslizar" | "pular", x: (x as number) - 0.4, y: action === "pular" ? 1.6 : 1.7 },
+        doneWhen: { passedX: (x as number) + 0.5 },
+      }),
+    ),
     {
       // Depósito: primeiro um objeto vai para a valeta (vira ponte)...
-      zone: { minX: 153, maxX: 166.8 },
+      zone: { minX: 163, maxX: 176.8 },
       trigger: "tempo",
       glowAfter: 40,
       iconAfter: 80,
@@ -146,7 +126,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
     },
     {
       // ...e o outro passa por cima até o sensor.
-      zone: { minX: 153, maxX: 166.8 },
+      zone: { minX: 163, maxX: 176.8 },
       trigger: "tempo",
       glowAfter: 70,
       iconAfter: 110,
@@ -154,7 +134,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       icon: { action: "empurrar", x: 0, y: 0.9, followBox: 1 },
       doneWhen: { platePressed: 0 },
     },
-    ...[174.5, 183.2, 193].map((x): HintData => ({
+    ...[184.5, 193.2, 207.5, 213].map((x): HintData => ({
       zone: { minX: x - 3, maxX: x + 0.3 },
       trigger: "mortes",
       deathZone: CHASE2,
@@ -162,7 +142,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       icon: { action: "deslizar", x: x - 0.4, y: 1.7 },
       doneWhen: { passedX: x + 0.5 },
     })),
-    ...[177.6, 186.1, 188.4].map((x): HintData => ({
+    ...[187.6, 196.1, 198.4, 203].map((x): HintData => ({
       zone: { minX: x - 2.2, maxX: x + 0.3 },
       trigger: "mortes",
       deathZone: CHASE2,

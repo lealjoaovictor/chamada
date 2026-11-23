@@ -161,6 +161,8 @@ export interface VigiaData {
   aimY: number;
   coneAngle: number;
   range: number;
+  /** Segundos vendo o jogador até pegá-lo (padrão: `TUNING.reacao`). Menor = quem passa correndo na frente é pego. */
+  reacao?: number;
   /** Perseguição: o segurança entra por uma porta na parede do fundo (em x0), em vez de surgir do nada. */
   porta?: { z: number; largura?: number; altura?: number };
 }

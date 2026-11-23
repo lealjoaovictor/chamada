@@ -2,7 +2,16 @@ import type { BlockData, DecorData, LampData, LevelData, PropData } from "./type
 import { CART_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 48;
-const END = 76;
+const END = 88;
+// Trecho do segurança (entre a porta do corredor e a zeladoria): ele faz a ronda apagando as luzes, num recuo
+// do corredor com pilares. O jogador vai de pilar em pilar quando ele está de costas.
+const HALL_X0 = 76;
+const HALL_X1 = 88;
+const HALL_BACK_Z = 3.4;
+const PILLAR_XS = [77.4, 85.6];
+const PILLAR_WIDTH = 1.1;
+const PILLAR_Z = 2.0;
+const PILLAR_DEPTH = 0.6;
 const CEILING = 3.2;
 const BACK_Z = 2.1;
 const RECESS_X = 63;
@@ -14,23 +23,23 @@ const ROOM1_END = END + 4;
 
 // Sala 2 (zeladoria): um palco alto com uma caixa e uma placa em cima; a caixa do chão vira degrau.
 const ROOM2_CEILING = 5.4;
-const STAGE_X0 = 84;
-const STAGE_X1 = 91;
+const STAGE_X0 = 96;
+const STAGE_X1 = 103;
 const STAGE_TOP = 2.0;
-const STAGE_PLATE_X = 89;
+const STAGE_PLATE_X = 101;
 const STAGE_PLATE_WIDTH = 1.4;
 const STAGE_PLATE_DEPTH = 0.2;
-const GATE2_X = 93;
+const GATE2_X = 105;
 const GATE2_OPEN = 2.2;
-const ROOM2_END = 95;
+const ROOM2_END = 107;
 
 // Sala 3 (sala escura): três vãos no piso que só aparecem nos lampejos das lâmpadas.
 const PITS: [number, number][] = [
-  [99.5, 101.1],
-  [104.5, 106.3],
-  [109.8, 111.6],
+  [111.5, 113.1],
+  [116.5, 118.3],
+  [121.8, 123.6],
 ];
-const END2 = 118;
+const END2 = 130;
 
 /** Luar atrás do vidro da janela pronta (a moldura vem de `moonWindow`). */
 function archWindow(x: number): DecorData[] {
@@ -49,12 +58,15 @@ const lamps: LampData[] = [
   { x: 66, y: 2.7, flicker: true },
   // Alguém já começou a apagar o corredor.
   { x: 71.5, y: 2.7, desligada: true },
-  { x: 81, y: 4.4 },
-  { x: 89, y: 4.4, flicker: true },
-  { x: 100.3, y: 2.7, flicker: "escuro" },
-  { x: 105.4, y: 2.7, flicker: "escuro" },
-  { x: 110.7, y: 2.7, flicker: "escuro" },
-  { x: 116, y: 2.7 },
+  { x: 80.4, y: 2.7, forca: 0.8 },
+  { x: 84, y: 2.7, desligada: true },
+  { x: 87.6, y: 2.7, desligada: true },
+  { x: 93, y: 4.4 },
+  { x: 101, y: 4.4, flicker: true },
+  { x: 112.3, y: 2.7, flicker: "escuro" },
+  { x: 117.4, y: 2.7, flicker: "escuro" },
+  { x: 122.7, y: 2.7, flicker: "escuro" },
+  { x: 128, y: 2.7 },
 ];
 
 // Piso da sala escura: blocos entre os vãos.
@@ -80,15 +92,15 @@ function stage(): BlockData[] {
 }
 
 export const area2Level: LevelData = {
-  checkpoints: [{ x: 74, y: 1.2 }, { x: 96.5, y: 1.2 }],
+  checkpoints: [{ x: 71, y: 1.2 }, { x: 108.5, y: 1.2 }],
   killY: -5,
   bounds: { minX: START, maxX: END2 },
   ambiente: [
     { minX: START, maxX: ROOM1_END, intensidade: 0.62, cor: [0.66, 0.72, 0.7] },
     { minX: ROOM1_END, maxX: END2, intensidade: 0.5, cor: [0.6, 0.66, 0.66] },
   ],
-  vultos: [{ x: 102.8, y: 0, z: 0.8, facing: 1 }],
-  escuro: [{ minX: ROOM2_END + 1, maxX: 114.5 }],
+  vultos: [{ x: 114.8, y: 0, z: 0.8, facing: 1 }],
+  escuro: [{ minX: ROOM2_END + 1, maxX: 126.5 }],
   depth: 4,
   ground: [
     { x: (START + RECESS_X - RECESS_WIDTH / 2) / 2, y: -0.5, width: RECESS_X - RECESS_WIDTH / 2 - START, height: 1, material: "piso" },
@@ -105,6 +117,8 @@ export const area2Level: LevelData = {
   platforms: [],
   obstacles: [
     { x: 55, y: (ARM_HEIGHT + CEILING) / 2, width: 0.12, height: CEILING - ARM_HEIGHT, material: "vidro" },
+    // Pilares do recuo: escondem quem está na frente e cortam a luz da lanterna.
+    ...PILLAR_XS.map((x): BlockData => ({ x, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" })),
     ...stage(),
     // Rodapé na borda do palco: segura a caixa de cima para ela não cair de volta.
     { x: STAGE_X0 + 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
@@ -112,8 +126,8 @@ export const area2Level: LevelData = {
   ramps: [],
   boxes: [
     { x: 59.5, y: 0.5, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL },
-    { x: 80.5, y: 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP },
-    { x: 86.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "metal", visual: HAND_TRUCK_VISUAL, pegada: HAND_TRUCK_GRIP },
+    { x: 92.5, y: 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP },
+    { x: 98.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "metal", visual: HAND_TRUCK_VISUAL, pegada: HAND_TRUCK_GRIP },
   ],
   lamps,
   plates: [
@@ -125,12 +139,28 @@ export const area2Level: LevelData = {
     { x: DOOR_X, y: CEILING / 2, width: 0.25, height: CEILING, openHeight: ARM_HEIGHT },
     { x: GATE2_X, y: ROOM2_CEILING / 2, width: 0.25, height: ROOM2_CEILING, openHeight: GATE2_OPEN },
   ],
-  vigias: [],
+  vigias: [
+    {
+      x0: 79.5,
+      x1: 87,
+      y: 0,
+      z: 2.9,
+      speed: 1,
+      pause: 1.5,
+      pauseMax: 3,
+      startHeading: -1,
+      aimAhead: 3.5,
+      aimY: 0.6,
+      coneAngle: 0.65,
+      range: 8.5,
+      reacao: 0.5,
+    },
+  ],
   elevators: [],
   props: [
     // Janelas (molduras prontas) e luminárias fluorescentes.
-    ...[58.5, 61, 70, 72.8, 102.8, 108, 113.5].flatMap((x) => moonWindow(x, 1.25, BACK_Z)),
-    ...[82, 87.5].flatMap((x) => moonWindow(x, 2.25, BACK_Z)),
+    ...[58.5, 61, 70, 72.8, 114.8, 120, 125.5].flatMap((x) => moonWindow(x, 1.25, BACK_Z)),
+    ...[94, 99.5].flatMap((x) => moonWindow(x, 2.25, BACK_Z)),
     ...lamps.map((l) => fluorescent(l.x, l.y + 0.12)),
     // Corredor da catraca.
     { model: "SchoolChair_01", x: 48.9, y: 0, z: 1.55, rotY: 160 },
@@ -142,28 +172,28 @@ export const area2Level: LevelData = {
     { model: "security_camera_01", x: 56, y: 2.75, z: 1.85, rotY: 220 },
     { model: "power_box_01", x: 67.8, y: 1.6, z: BACK_Z - 0.02, rotY: 180 },
     // Zeladoria: estantes de aço, tambores, caixas e dutos.
-    { model: "steel_frame_shelves_01", x: 81.6, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
-    { model: "steel_frame_shelves_01", x: 92.1, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
-    { model: "plastic_crate_01", x: 81.2, y: 0.95, z: 1.75, rotY: 90 },
-    { model: "plastic_crate_01", x: 81.9, y: 1.85, z: 1.75, rotY: 85 },
-    { model: "cardboard_box_01", x: 92, y: 0.95, z: 1.75, rotY: 90 },
-    { model: "cardboard_box_01", x: 91.7, y: 1.85, z: 1.75, rotY: 96 },
-    { model: "barrel_03", x: 90.3, y: STAGE_TOP, z: 1.55 },
-    { model: "barrel_03", x: 84.9, y: STAGE_TOP, z: 1.6, rotY: 40 },
-    { model: "hand_truck", x: 83.4, y: STAGE_TOP, z: 1.5, rotY: 200 },
-    { model: "trashbag", x: 93.9, y: 0, z: 1.7 },
-    { model: "plastic_crate_01", x: 79.2, y: 0, z: 1.6, rotY: 20 },
-    ...[81.4, 83.2, 85, 86.8, 88.6, 90.4, 92.2].map((x): PropData => ({
+    { model: "steel_frame_shelves_01", x: 93.6, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
+    { model: "steel_frame_shelves_01", x: 104.1, y: 0, z: 1.75, rotY: 180, fitHeight: 2.2 },
+    { model: "plastic_crate_01", x: 93.2, y: 0.95, z: 1.75, rotY: 90 },
+    { model: "plastic_crate_01", x: 93.9, y: 1.85, z: 1.75, rotY: 85 },
+    { model: "cardboard_box_01", x: 104, y: 0.95, z: 1.75, rotY: 90 },
+    { model: "cardboard_box_01", x: 103.7, y: 1.85, z: 1.75, rotY: 96 },
+    { model: "barrel_03", x: 102.3, y: STAGE_TOP, z: 1.55 },
+    { model: "barrel_03", x: 96.9, y: STAGE_TOP, z: 1.6, rotY: 40 },
+    { model: "hand_truck", x: 95.4, y: STAGE_TOP, z: 1.5, rotY: 200 },
+    { model: "trashbag", x: 105.9, y: 0, z: 1.7 },
+    { model: "plastic_crate_01", x: 91.2, y: 0, z: 1.6, rotY: 20 },
+    ...[93.4, 95.2, 97, 98.8, 100.6, 102.4, 104.2].map((x): PropData => ({
       model: "modular_airduct_rectangular_01", part: "modular_airduct_rectangular_01_tripple_01", x, y: 4.55, z: 1.3, rotY: 90, origin: false,
     })),
     // Sala escura: carteiras largadas.
     ...([
-      [97.6, 1.3, 180], [98.5, 1.2, 160], [103, 1.4, 195], [107.6, 1.3, 170], [112.6, 1.3, 185], [115, 1.35, 150],
+      [109.6, 1.3, 180], [110.5, 1.2, 160], [115, 1.4, 195], [119.6, 1.3, 170], [124.6, 1.3, 185], [127, 1.35, 150],
     ] as const).flatMap(([x, z, r]): PropData[] => [
       { model: "SchoolDesk_01", x, y: 0, z, rotY: r },
       { model: "SchoolChair_01", x: x + 0.1, y: 0, z: z - 0.55, rotY: r + 15 },
     ]),
-    { model: "SchoolChair_01", x: 106.9, y: 0, z: -1.3, rotY: 75 },
+    { model: "SchoolChair_01", x: 118.9, y: 0, z: -1.3, rotY: 75 },
   ],
   decor: [
     // Narrativa: mochila largada perto da catraca.
@@ -171,7 +201,7 @@ export const area2Level: LevelData = {
     { x: 53.6, y: 0.36, z: -0.98, width: 0.28, height: 0.18, depth: 0.06, material: "tecido" },
     { x: 54.4, y: 0.01, z: -0.6, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 55.6, y: 0.01, z: -1.3, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
-    { x: 90.2, y: 0.01, z: -0.8, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 102.2, y: 0.01, z: -0.8, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: START, y: CEILING + 1.9, z: 0, width: 0.8, height: 3.4, depth: 4.4, material: "pedra" },
     { x: (START + ROOM1_END) / 2, y: CEILING + 2.1, z: 0, width: ROOM1_END - START, height: 3.4, depth: 4.6, material: "pedra" },
 
@@ -182,8 +212,19 @@ export const area2Level: LevelData = {
     { x: 52.6, y: 1.25, z: BACK_Z - 0.06, width: 1.3, height: 2.5, depth: 0.1, material: "moldura" },
     { x: 52.6, y: 1.2, z: BACK_Z - 0.1, width: 1.1, height: 2.4, depth: 0.1, material: "madeira" },
 
-    { x: (54 + ROOM1_END) / 2, y: 0.55, z: BACK_Z, width: ROOM1_END - 54, height: 1.1, depth: 0.1, material: "pedra" },
-    { x: (54 + ROOM1_END) / 2, y: 2.15, z: BACK_Z + 0.05, width: ROOM1_END - 54, height: 2.1, depth: 0.1, material: "parede" },
+    ...([[54, HALL_X0, BACK_Z], [HALL_X0, HALL_X1, HALL_BACK_Z], [HALL_X1, ROOM1_END, BACK_Z]] as const).flatMap(([a, b, z]): DecorData[] => [
+      { x: (a + b) / 2, y: 0.55, z, width: b - a, height: 1.1, depth: 0.1, material: "pedra" },
+      { x: (a + b) / 2, y: 2.15, z: z + 0.05, width: b - a, height: 2.1, depth: 0.1, material: "parede" },
+    ]),
+    // Recuo do corredor: paredes dos lados e o teto por cima.
+    ...[HALL_X0, HALL_X1].map((x): DecorData => ({ x, y: CEILING / 2, z: (BACK_Z + HALL_BACK_Z) / 2, width: 0.2, height: CEILING, depth: HALL_BACK_Z - BACK_Z, material: "parede" })),
+    { x: (HALL_X0 + HALL_X1) / 2, y: CEILING + 0.2, z: (BACK_Z + HALL_BACK_Z) / 2 + 0.2, width: HALL_X1 - HALL_X0, height: 0.4, depth: HALL_BACK_Z - BACK_Z + 0.6, material: "concreto" },
+    // Um quadro de avisos e folhas caídas no recuo.
+    { x: 83.9, y: 1.6, z: HALL_BACK_Z - 0.04, width: 1.4, height: 0.9, depth: 0.03, material: "madeira" },
+    ...[[-0.4, 0.15], [-0.05, 0.08], [0.3, 0.18], [-0.25, -0.2]].map(([dx, dy]): DecorData => ({
+      x: 83.9 + dx, y: 1.6 + dy, z: HALL_BACK_Z - 0.06, width: 0.21, height: 0.29, depth: 0.005, material: "papel",
+    })),
+    { x: 80.9, y: 0.01, z: -1.1, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     ...[58.5, 61, 70, 72.8].flatMap(archWindow),
 
     { x: (START + RECESS_X - RECESS_WIDTH / 2) / 2, y: 0.005, z: -0.9, width: RECESS_X - RECESS_WIDTH / 2 - START, height: 0.01, depth: 0.35, material: "tatil" },
@@ -211,7 +252,7 @@ export const area2Level: LevelData = {
     { x: (ROOM1_END + ROOM2_END) / 2, y: (1.1 + ROOM2_CEILING) / 2, z: BACK_Z + 0.05, width: ROOM2_END - ROOM1_END, height: ROOM2_CEILING - 1.1, depth: 0.1, material: "parede" },
     { x: ROOM1_END, y: (CEILING + ROOM2_CEILING) / 2 + 0.2, z: 0, width: 0.6, height: ROOM2_CEILING - CEILING, depth: 4.4, material: "concreto" },
     { x: (STAGE_X0 + STAGE_X1) / 2, y: STAGE_TOP + 0.01, z: -0.6, width: STAGE_X1 - STAGE_X0, height: 0.02, depth: 2, material: "listrado" },
-    ...[82, 87.5].flatMap(archWindow).map((d) => ({ ...d, y: d.y + 1 })),
+    ...[94, 99.5].flatMap(archWindow).map((d) => ({ ...d, y: d.y + 1 })),
     { x: GATE2_X, y: ROOM2_CEILING / 2, z: BACK_Z - 0.05, width: 0.6, height: ROOM2_CEILING, depth: 0.2, material: "concreto" },
     { x: GATE2_X - 0.25, y: ROOM2_CEILING / 2, z: -1.95, width: 0.25, height: ROOM2_CEILING, depth: 0.15, material: "concreto" },
 
@@ -219,6 +260,6 @@ export const area2Level: LevelData = {
     { x: (ROOM2_END + END2) / 2, y: CEILING + 2.1, z: 0, width: END2 - ROOM2_END, height: 3.4, depth: 4.6, material: "pedra" },
     { x: (ROOM2_END + END2) / 2, y: 0.55, z: BACK_Z, width: END2 - ROOM2_END, height: 1.1, depth: 0.1, material: "pedra" },
     { x: (ROOM2_END + END2) / 2, y: 2.15, z: BACK_Z + 0.05, width: END2 - ROOM2_END, height: 2.1, depth: 0.1, material: "parede" },
-    ...[102.8, 108, 113.5].flatMap(archWindow),
+    ...[114.8, 120, 125.5].flatMap(archWindow),
   ],
 };

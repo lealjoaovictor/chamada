@@ -88,8 +88,9 @@ Cada tipo tem 3 variações sorteadas, sem repetir a anterior, e às vezes nenhu
 | Área | Comportamento | Regra |
 | --- | --- | --- |
 | 1 (guarita) | Segurança na guarita, primeiro encontro. | Ser visto é ser pego. Vans e a guarita servem de cobertura. |
-| 3 (biblioteca) | Ronda em linha reta entre dois pontos, com cone de luz da lanterna; na sala de leitura, um de guarda que vai ver de onde veio o barulho. | Ficar no cone é ser pego. O jogador passa quando o segurança está de costas ou atrás das estantes. |
-| 4 (subsolo) | Um segurança corre atrás do jogador por um corredor longo, em velocidade elástica: acelera quando o jogador abre distância e alivia quando ele erra. | Ser alcançado é ser pego. Duas perseguições com obstáculos em ritmo irregular, separadas por um depósito com caixa e sensor. |
+| 2 (corredor) | Segurança fazendo a ronda num recuo do corredor, que já apagou metade das luzes (decisão de 2026-11-23, para alongar a fase). | Ser visto é ser pego, e ele reage rápido: quem passa correndo na frente dele é pego. Dois pilares servem de cobertura. |
+| 3 (biblioteca) | Ronda em linha reta entre dois pontos, com cone de luz da lanterna; na sala de leitura, um de guarda que vai ver de onde veio o barulho; no acervo, dois em rondas que se cruzam. | Ficar no cone é ser pego. O jogador passa quando o segurança está de costas ou atrás das estantes. |
+| 4 (subsolo) | Um segurança corre atrás do jogador por um corredor longo, em velocidade elástica: acelera quando o jogador abre distância e alivia quando ele erra. | Ser alcançado é ser pego. Duas perseguições com obstáculos em ritmo irregular, separadas por um depósito com sensor e valeta. |
 
 É um único modelo reaproveitado. O cone de luz é uma luz do tipo spot mais uma checagem geométrica simples.
 
@@ -100,9 +101,9 @@ A fase tem cinco áreas em sequência, cada uma com uma ideia principal; o check
 | # | Área | Ação principal | Puzzle ou perigo | História |
 | --- | --- | --- | --- | --- |
 | 1 | Pátio e garagem (noite, névoa) | Andar, pular, empurrar | Portão principal trancado: lixeira empurrada até o muro para pular pela lateral; na garagem, caixote que cai sobre o sensor do portão; na guarita, o primeiro segurança | A ligação começa; primeiros colegas saindo |
-| 2 | Corredor do bloco principal | Deslizar | Catraca baixa; zeladoria com palco alto e caixa que trava a porta; sala escura com vãos no piso | Luzes sendo desligadas; mais colegas saindo |
-| 3 | Biblioteca e escadas | Todas | Elevador com botão; seguranças com lanterna; agachado entre as estantes; na sala de leitura, derrubar um carrinho faz barulho e tira o segurança do lugar | Furtividade; colega cada vez mais nervoso |
-| 4 | Subsolo | Pular e deslizar | Duas perseguições elásticas com obstáculos em ritmo irregular; depósito com caixa e sensor entre elas | Pico de tensão; a ligação picota |
+| 2 | Corredor do bloco principal | Deslizar | Catraca baixa; segurança apagando o corredor (pilares como cobertura); zeladoria com palco alto e caixa que trava a porta; sala escura com vãos no piso | Luzes sendo desligadas; mais colegas saindo |
+| 3 | Biblioteca e escadas | Todas | Elevador com botão; seguranças com lanterna; agachado entre as estantes; na sala de leitura, derrubar um carrinho faz barulho e tira o segurança do lugar; no acervo (piso rebaixado), dois seguranças em rondas que se cruzam e um carrinho no patamar que serve de isca | Furtividade; colega cada vez mais nervoso |
+| 4 | Subsolo | Pular e deslizar | Duas perseguições elásticas com obstáculos em ritmo irregular; entre elas, um depósito em dois passos: um objeto vai para a valeta aberta no piso e vira ponte, e o outro passa por cima até o sensor do portão | Pico de tensão; a ligação picota |
 | 5 | Corredor final e sala de aula | Andar | Corredor longo, sem repetição, com as luzes apagando; porta da sala | A voz real do professor chegando; o final |
 
 A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e deslizar, a 3 junta puzzle e segurança, a 4 é puro movimento sob pressão e a 5 é só tensão.

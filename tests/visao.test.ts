@@ -37,7 +37,9 @@ test("sala de teste: no vão entre estantes, o segurança em frente vê", () => 
 
 test("biblioteca: cada estante esconde quem está atrás dela", () => {
   const covers = coverFromBlocks(WORLD.level.obstacles, WORLD.level.depth);
-  for (const shelfX of [168.5, 171.5, 174.5, 177.5, 180.5]) {
+  // Estantes do salão em coordenadas da área 3 (que começa em x 80), levadas para o mundo.
+  const offset = WORLD.areas[2].inicioX - 80;
+  for (const shelfX of [86.5, 89.5, 92.5, 95.5, 98.5].map((x) => x + offset)) {
     assert.ok(hidden(shelfX + 3, shelfX, covers), `estante ${shelfX}`);
     assert.ok(exposed(shelfX + 1.5, shelfX + 1.5, covers), `vão depois de ${shelfX}`);
   }
@@ -59,6 +61,23 @@ test("sala de leitura: em pé na frente de uma estante, o segurança que passa p
       // Lente na altura da mão, ainda atrás das estantes mesmo com o braço esticado para a frente.
       const lensPos = { x: shelf.x + dx, y: guard.y + 1.1, z: guard.z - 0.3 };
       assert.ok(standing(shelf.x).every((p) => coverBlocks(lensPos, p, covers)), `estante ${shelf.x}, segurança ${dx}`);
+    }
+  }
+});
+
+test("acervo e recuo do corredor: atrás do pilar ou da estante, o segurança que passa por trás não vê", () => {
+  const covers = coverFromBlocks(WORLD.level.obstacles, WORLD.level.depth);
+  const patrols = WORLD.level.vigias.filter((v) => v.mode !== "perseguicao");
+  for (const guard of patrols) {
+    const cover = WORLD.level.obstacles.filter(
+      (b) => (b.z ?? 0) > 0.5 && b.x > guard.x0 - 3 && b.x < guard.x1 + 3 && Math.abs(b.y - b.height / 2 - guard.y) < 0.05,
+    );
+    for (const block of cover) {
+      const standing = [0.25, 0.9, 1.6].map((h) => ({ x: block.x, y: guard.y + h, z: 0 }));
+      for (const dx of [-3, -1, 1, 3]) {
+        const lensPos = { x: block.x + dx, y: guard.y + 1.1, z: guard.z - 0.3 };
+        assert.ok(standing.every((p) => coverBlocks(lensPos, p, covers)), `x ${block.x}, segurança ${dx}`);
+      }
     }
   }
 });

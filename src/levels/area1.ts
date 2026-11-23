@@ -24,6 +24,17 @@ const VAN_XS = [76];
 const GUARITA_X = 68.6;
 const GUARITA_WIDTH = 4;
 const VAN_WIDTH = 4.4;
+// O Kit mede a base do covered_car pela caixa das rodas sem a posição delas (fica 0,3 m abaixo do pneu),
+// então o carro subia uns 44 cm. Afundar a mesma medida põe os pneus no asfalto.
+const CAR_SINK = 0.44;
+// Depois do carro, um quadro de energia da rua: segundo esconderijo dentro da ronda do Vigia.
+const CABINET_X = 81.3;
+const CABINET_WIDTH = 1.6;
+const CABINET_HEIGHT = 1.7;
+const CABINET_DEPTH = 0.6;
+// Da guarita até o fim da ronda o Zacarias anda agachado sozinho, como entre as estantes da biblioteca.
+const FURTIVO_MIN_X = GUARITA_X - GUARITA_WIDTH / 2 - 1;
+const FURTIVO_MAX_X = 87;
 const END = 92;
 
 // Postes de rua: vapor de sódio (laranja), que tira a cor de tudo e deixa as pessoas em silhueta.
@@ -50,6 +61,7 @@ export const area1Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: -5, maxX: END },
+  furtivo: [{ minX: FURTIVO_MIN_X, maxX: FURTIVO_MAX_X }],
   ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7] }],
   vultos: [{ x: 21, y: 1.5, z: 1.5, facing: 1 }, { x: 60.5, y: 0, z: 0.8, facing: 1, anda: true }],
   depth: 4,
@@ -74,6 +86,7 @@ export const area1Level: LevelData = {
     { x: 34.5, y: 1.1, width: 7, height: 2.2, material: "pedra" },
     { x: GUARITA_X, y: 1.3, z: COVER_Z, depth: COVER_DEPTH, width: GUARITA_WIDTH, height: 2.6, material: "parede" },
     ...VAN_XS.map(van),
+    { x: CABINET_X, y: CABINET_HEIGHT / 2, z: COVER_Z, depth: CABINET_DEPTH, width: CABINET_WIDTH, height: CABINET_HEIGHT, material: "metal", hidden: true },
   ],
   ramps: [
     { x0: 15, y0: 0, x1: 19, y1: 1.5, hidden: true },
@@ -297,12 +310,12 @@ export const area1Level: LevelData = {
     { model: "security_light", x: 52, y: 3.3, z: 4.45, rotY: 180 },
     { model: "exterior_aircon_unit", part: "exterior_aircon_unit_rusted", x: 51.5, y: 4.6, z: 4.35, rotY: 180 },
 
-    // Guarita e vans.
+    // Guarita, vans e o quadro de energia.
     { model: "rollershutter_window_01", part: "rollershutter_window_01", x: GUARITA_X, y: 0.6, z: COVER_Z - COVER_DEPTH / 2 - 0.03, rotY: 180, fitWidth: 2.2 },
     { model: "security_light", x: GUARITA_X + 1.6, y: 2.4, z: COVER_Z - COVER_DEPTH / 2 - 0.02, rotY: 180 },
     { model: "security_camera_01", x: GUARITA_X - 1.8, y: 2.76, z: COVER_Z - 0.4, rotY: 230 },
-    ...VAN_XS.map((x): PropData => ({ model: "covered_car", x, y: 0, z: COVER_Z, rotY: 90, fitWidth: VAN_WIDTH * 0.42, stretch: [1, 1.42, 1], shadow: true })),
-    { model: "utility_box_02", x: 82, y: 0, z: 3.9, rotY: 180 },
+    ...VAN_XS.map((x): PropData => ({ model: "covered_car", x, y: -CAR_SINK, z: COVER_Z, rotY: 90, fitWidth: VAN_WIDTH * 0.42, stretch: [1, 1.42, 1], shadow: true })),
+    { model: "utility_box_02", x: CABINET_X, y: 0, z: COVER_Z, rotY: 180, fitHeight: CABINET_HEIGHT, stretch: [1.14, 1, 1], shadow: true },
     { model: "power_box_01", x: 84.3, y: 1.5, z: 4.15, rotY: 180 },
     { model: "exterior_aircon_unit", part: "exterior_aircon_unit", x: 88.5, y: 3.6, z: 4.05, rotY: 180 },
     { model: "WetFloorSign_01", x: 90.2, y: 0, z: 1.8, rotY: 30 },

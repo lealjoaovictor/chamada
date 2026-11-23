@@ -65,6 +65,8 @@ npm run dev
 
 Abra `http://localhost:5173` no navegador (Chrome, Edge ou Firefox) e pressione qualquer botão. Para parar o servidor, use `Ctrl+C` no terminal. O servidor também escuta na rede local, então dá para abrir no celular pelo IP do computador (com um controle bluetooth).
 
+**Versão publicada.** A cada atualização do `main`, o GitHub publica o jogo sozinho em https://lealjoaovictor.github.io/chamada/ (veja a aba Actions). Para testar, basta abrir o link no Chrome, Edge ou Firefox, sem instalar nada.
+
 <details>
 <summary><b>Versão final, testes e fase de teste</b></summary>
 

@@ -878,7 +878,11 @@ export class Game {
       elevatorsCalled: this.elevators.map((elevator) => elevator.called),
       elevatorDoors: this.elevators.map((elevator) => elevator.doorMotion),
       elevatorArrivals: this.elevators.map((elevator) => elevator.arrivals),
-      elevatorHum: Math.max(0, ...this.elevators.map((elevator) => elevator.hum)),
+      elevatorHum: Math.max(
+        0,
+        ...this.elevators.map((elevator) => elevator.hum),
+        ...this.lamps.map((lamp) => lamp.humAt(this.player.position.x, this.player.position.y)),
+      ),
       lampsDead: this.lamps.map((lamp) => lamp.isDead),
       vigias: this.vigias.map((vigia) => ({
         x: vigia.positionX,

@@ -123,6 +123,8 @@ export interface LampData extends PointData {
   forca?: number;
   /** Lâmpada desligada: a luminária aparece, mas não acende. */
   desligada?: boolean;
+  /** Reator velho: zumbe perto do jogador, e o zumbido corta junto com as piscadas. */
+  zumbido?: boolean;
 }
 
 export type LampTone = "sodio" | "fluorescente" | "subsolo" | "sala";
@@ -482,5 +484,9 @@ export interface LifeData {
   /** Folhas secas levadas pelo vento rente ao chão. */
   folhas?: boolean;
   /** Janelas com TV ligada (luz azul que muda em cortes). */
-  tvs?: { x: number; y: number; z: number }[];
+  tvs?: { x: number; y: number; z: number; largura?: number; altura?: number }[];
+  /** Monitor esquecido ligado em cima de uma mesa (`y` = tampo da mesa): brilho frio que respira devagar. */
+  monitores?: { x: number; y: number; z: number }[];
+  /** Relógio de parede (`z` = face da parede): o ponteiro dos segundos anda. */
+  relogios?: { x: number; y: number; z: number }[];
 }

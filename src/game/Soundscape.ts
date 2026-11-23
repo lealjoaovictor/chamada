@@ -26,7 +26,7 @@ export interface SoundState {
   elevatorDoors: number[];
   /** Chegadas da cabine (cada uma é um "plim"). */
   elevatorArrivals: number[];
-  /** Zumbido da lâmpada da cabine mais próxima (0 a 1). */
+  /** Zumbido mais forte por perto (0 a 1): lâmpada da cabine do elevador ou reator velho de uma luminária. */
   elevatorHum: number;
   lampsDead: boolean[];
   vigias: { x: number; walking: boolean; chases: boolean; shown: boolean; suspicious: boolean }[];

@@ -192,7 +192,7 @@ export const area3Level: LevelData = {
     },
   ],
   elevators: [
-    { x: SHAFT_X, width: SHAFT_WIDTH, bottomY: 0, topY: GALLERY_Y, buttonX: 103.4, buttonY: 1 },
+    { x: SHAFT_X, width: SHAFT_WIDTH, bottomY: 0, topY: GALLERY_Y, buttonX: 103.2, buttonY: 1.15, shaftTop: HALL_CEILING },
   ],
   props: [
     // Janelas altas prontas, com o luar atrás.
@@ -216,7 +216,7 @@ export const area3Level: LevelData = {
     { model: "WetFloorSign_01", x: 108.6, y: GALLERY_Y, z: 2.6, rotY: 200 },
     { model: "security_camera_01", x: 116.2, y: 5.7, z: BACK_Z - 0.05, rotY: 200 },
     // Térreo do salão: carrinho de livros, lixeira e caixas perto do elevador.
-    { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 103.9, y: 0, z: 2.6, scale: 0.8 },
+    { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 102.45, y: 0, z: 1.05, scale: 0.8 },
     { model: "plastic_crate_01", x: 82.6, y: 0, z: 1.6, rotY: 10 },
     { model: "plastic_crate_01", x: 82.65, y: 0.3, z: 1.6, rotY: 2 },
     { model: "power_box_01", x: 80.9, y: 1.4, z: 2.08, rotY: 180 },
@@ -259,10 +259,7 @@ export const area3Level: LevelData = {
     { x: (HALL_START + END) / 2, y: 3.85, z: BACK_Z + 0.05, width: END - HALL_START, height: 5.3, depth: 0.1, material: "parede" },
     ...HALL_WINDOWS.flatMap(tallWindow),
     
-    { x: SHAFT_X - SHAFT_WIDTH / 2 - 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },
-    { x: SHAFT_X + SHAFT_WIDTH / 2 + 0.1, y: HALL_CEILING / 2, z: 1.9, width: 0.15, height: HALL_CEILING, depth: 0.15, material: "metal" },
-    { x: SHAFT_X, y: HALL_CEILING - 0.3, z: 1.9, width: SHAFT_WIDTH + 0.35, height: 0.15, depth: 0.15, material: "metal" },
-    { x: 103.4, y: 1, z: 1.98, width: 0.5, height: 0.6, depth: 0.05, material: "metal" },
+    // O poço, a cabine, as portas e a botoeira do elevador são montados pelo próprio elevador.
 
     { x: (SHAFT_X + END) / 2 + 1, y: GALLERY_Y + 0.55, z: -1.6, width: END - SHAFT_X - 2, height: 0.05, depth: 0.05, material: "metal" },
     ...[108, 111, 114].map((x): DecorData => ({ x, y: GALLERY_Y + 0.3, z: -1.6, width: 0.05, height: 0.6, depth: 0.05, material: "metal" })),

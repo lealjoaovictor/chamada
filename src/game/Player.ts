@@ -1,7 +1,6 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
 import {
   CharacterSupportedState,
@@ -18,6 +17,7 @@ import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
 import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
+import { dressCharacter } from "./characterLook";
 import { HandIK, type HandTarget } from "./HandIK";
 
 const MOVE_SPEED = 4.5;
@@ -43,7 +43,8 @@ const CROUCH_BLEND = 4;
 const CROUCH_ANIM_THRESHOLD = 0.5;
 
 const MODEL_URL = modelFile("personagem");
-const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
+/** Escurece a textura do Bryce (Zacarias) para ele não brilhar mais que o cenário. */
+const MODEL_TINT = new Color3(0.62, 0.62, 0.66);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
 const WALK_CLIP_SPEED = 5.3;
@@ -56,6 +57,20 @@ const FALL_CLIP_START = 1.1;
 const SLIDE_CLIP_DURATION = 1.57;
 const SLIDE_CLIP_START = 0.15;
 const SLIDE_CLIP_LOW = 0.75;
+// Descida de rampa: Zacarias escorrega de pés por uma rampa íngreme (garagem, rampa de metal) usando o mesmo
+// "Running Slide": entra na pose deitada, segura enquanto desce e, no fim da rampa, toca o trecho em que o
+// clipe levanta e volta a correr. Escadas são rampas escondidas e não contam.
+const RAMP_MIN_SLOPE = (20 * Math.PI) / 180;
+const RAMP_FLAT_SLOPE = (8 * Math.PI) / 180;
+const RAMP_MIN_SPEED = 1.5;
+const RAMP_PROBE_UP = 0.25;
+const RAMP_PROBE_DOWN = 0.9;
+const RAMP_ENTER_CLIP_END = 0.5;
+const RAMP_ENTER_TIME = 0.28;
+const RAMP_GETUP_CLIP_START = 0.62;
+const RAMP_GETUP_CLIP_END = 1.3;
+const RAMP_GETUP_TIME = 0.55;
+const RAMP_TILT_SPEED = 6;
 
 // Apoio na parede: ao andar contra uma parede, as mãos encostam nela e o corpo amortece o impacto.
 const BRACE_HAND_HEIGHT = 1.3;
@@ -105,6 +120,12 @@ export class Player {
   private slideCooldown = 0;
   private slideSpeed = 0;
   private slideDir = 1;
+  private ramp: "nao" | "descendo" | "levantando" = "nao";
+  private rampTimer = 0;
+  private rampHeld = false;
+  private rampSlope = 0;
+  private rampSurfaceY = 0;
+  private rampTilt = 0;
   private readonly scene: Scene;
   private readonly ray = new PhysicsRaycastResult();
   meshes: AbstractMesh[] = [];
@@ -144,16 +165,8 @@ export class Player {
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
     const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("player-visual", scene);
-    const material = new StandardMaterial("player-mat", scene);
-    material.diffuseColor = MODEL_COLOR;
-    material.specularColor = Color3.Black();
-    for (const mesh of result.meshes) {
-      if (!mesh.parent) mesh.parent = visual;
-      if (mesh.material) {
-        mesh.material.dispose();
-        mesh.material = material;
-      }
-    }
+    for (const mesh of result.meshes) if (!mesh.parent) mesh.parent = visual;
+    dressCharacter(result.meshes, scene, "player", MODEL_TINT);
     const anims = new Map<AnimName, AnimationGroup>();
     for (const group of result.animationGroups) {
       group.stop();
@@ -173,8 +186,9 @@ export class Player {
     this.visual.position.set(x, y, 0);
   }
 
+  /** Deslizando (tecla) ou escorregando rampa abaixo: som de deslize e sem passos. */
   get isSliding(): boolean {
-    return this.sliding;
+    return this.sliding || this.ramp === "descendo";
   }
 
   get isGrounded(): boolean {
@@ -257,13 +271,19 @@ export class Player {
     } else {
       this.velocity.y = Math.max(current.y + GRAVITY.y * dt, -MAX_FALL_SPEED);
     }
+    this.updateRamp(dt, pushing);
+    // Escorregando, o corpo acompanha a rampa em vez de sair voando da borda e cair no meio dela.
+    if (this.ramp === "descendo") {
+      this.velocity.y = Math.min(this.velocity.y, -Math.tan(this.rampSlope) * Math.abs(this.velocity.x));
+    }
 
     let jumped = false;
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+    if (this.jumpBufferTimer > 0 && (this.coyoteTimer > 0 || this.ramp === "descendo")) {
       this.velocity.y = JUMP_SPEED;
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
       jumped = true;
+      this.endRamp(false);
     }
 
     this.velocity.z = 0;
@@ -299,7 +319,7 @@ export class Player {
   private updateBrace(dt: number, axis: number, pushing: boolean, speedBefore: number): void {
     const wasBracing = this.brace !== null;
     this.brace = null;
-    if (axis !== 0 && axis === this.facing && this.grounded && !this.sliding && !pushing && this.crouch < 0.3) {
+    if (axis !== 0 && axis === this.facing && this.grounded && !this.sliding && this.ramp === "nao" && !pushing && this.crouch < 0.3) {
       const engine = this.scene.getPhysicsEngine() as PhysicsEngine | null;
       if (engine) {
         const y = this.feetY + BRACE_HAND_HEIGHT;
@@ -351,9 +371,109 @@ export class Player {
     this.lean = 0;
     this.leanSpeed = 0;
     this.pushBack = 0;
+    this.ramp = "nao";
+    this.rampTilt = 0;
     this.current = "parado";
     for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
     this.syncVisual(0);
+  }
+
+  /** Superfície visível logo abaixo dos pés: inclinação e altura, ou nulo. */
+  private probeRamp(): { slope: number; downhill: number; y: number } | null {
+    const engine = this.scene.getPhysicsEngine() as PhysicsEngine | null;
+    if (!engine) return null;
+    this.rayFrom.set(this.position.x, this.feetY + RAMP_PROBE_UP, 0);
+    this.rayTo.set(this.position.x, this.feetY - RAMP_PROBE_DOWN, 0);
+    engine.raycastToRef(this.rayFrom, this.rayTo, this.ray);
+    if (!this.ray.hasHit) return null;
+    const node = this.ray.body?.transformNode as AbstractMesh | undefined;
+    if (node && node.isVisible === false) return null;
+    const n = this.ray.hitNormalWorld;
+    return { slope: Math.acos(Math.min(Math.max(n.y, -1), 1)), downhill: Math.sign(n.x), y: this.ray.hitPointWorld.y };
+  }
+
+  private updateRamp(dt: number, pushing: boolean): void {
+    const speed = Math.abs(this.velocity.x);
+    const dir = Math.sign(this.velocity.x);
+    const hit = this.ramp === "levantando" ? null : this.probeRamp();
+    const steepDown = hit !== null && hit.slope > RAMP_MIN_SLOPE && hit.downhill === dir && speed > RAMP_MIN_SPEED;
+    if (this.ramp === "nao") {
+      if (steepDown && !this.sliding && !pushing && this.crouch < 0.5 && hit) {
+        this.ramp = "descendo";
+        this.rampTimer = 0;
+        this.rampHeld = false;
+        this.rampSlope = hit.slope;
+        this.rampSurfaceY = hit.y;
+        this.facing = dir;
+        this.playRampEnter();
+      }
+      return;
+    }
+    this.rampTimer += dt;
+    if (this.ramp === "descendo") {
+      if (this.sliding || pushing || speed < 0.5) {
+        this.endRamp(false);
+        return;
+      }
+      if (!this.rampHeld) this.holdRampPose();
+      if (steepDown && hit) {
+        this.rampSlope = hit.slope;
+        this.rampSurfaceY = hit.y;
+      } else if (this.grounded && (!hit || hit.slope < RAMP_FLAT_SLOPE)) {
+        this.endRamp(true);
+      } else if (hit) {
+        this.rampSurfaceY = hit.y;
+      }
+    } else if (this.rampTimer >= RAMP_GETUP_TIME || this.sliding || pushing) {
+      this.ramp = "nao";
+    }
+  }
+
+  /** Fim da rampa: levanta com o fim do clipe (chão plano) ou só volta ao normal (pulo, parada, deslize). */
+  private endRamp(getUp: boolean): void {
+    if (this.ramp === "nao") return;
+    if (getUp && this.ramp === "descendo") {
+      this.ramp = "levantando";
+      this.rampTimer = 0;
+      this.playRampGetUp();
+    } else {
+      this.ramp = "nao";
+    }
+  }
+
+  private slideFrame(group: AnimationGroup, t: number): number {
+    return group.from + (t / SLIDE_CLIP_DURATION) * (group.to - group.from);
+  }
+
+  /** Congela a pose deitada quando o clipe chega nela (pelo quadro do clipe, para não depender do ritmo do jogo). */
+  private holdRampPose(): void {
+    const group = this.anims.get("deslizar");
+    if (!group) return;
+    const hold = this.slideFrame(group, RAMP_ENTER_CLIP_END);
+    const frame = group.animatables[0]?.masterFrame ?? hold;
+    if (frame < hold && this.rampTimer < RAMP_ENTER_TIME && group.isPlaying) return;
+    if (!group.isStarted) group.start(false, 1, hold, this.slideFrame(group, RAMP_GETUP_CLIP_END));
+    group.goToFrame(hold);
+    // Parado no quadro, mas ainda tocando: um grupo pausado deixa de entrar na mistura e o corpo volta à pose de bind.
+    group.speedRatio = 0;
+    this.rampHeld = true;
+  }
+
+  private playRampEnter(): void {
+    const group = this.anims.get("deslizar");
+    if (!group) return;
+    group.stop();
+    const ratio = (RAMP_ENTER_CLIP_END - SLIDE_CLIP_START) / RAMP_ENTER_TIME;
+    // Vai até o fim do clipe; `holdRampPose` congela a pose deitada enquanto a rampa durar.
+    group.start(false, ratio, this.slideFrame(group, SLIDE_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
+  }
+
+  private playRampGetUp(): void {
+    const group = this.anims.get("deslizar");
+    if (!group) return;
+    group.stop();
+    const ratio = (RAMP_GETUP_CLIP_END - RAMP_GETUP_CLIP_START) / RAMP_GETUP_TIME;
+    group.start(false, ratio, this.slideFrame(group, RAMP_GETUP_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
   }
 
   private startSlide(dir: number, currentSpeed: number): void {
@@ -397,7 +517,7 @@ export class Player {
     const speedX = this.brace ? 0 : Math.abs(this.velocity.x);
     const crouched = this.crouch > CROUCH_ANIM_THRESHOLD;
     let next: AnimName;
-    if (this.sliding) next = "deslizar";
+    if (this.sliding || this.ramp !== "nao") next = "deslizar";
     else if (jumped || !this.grounded) next = "pular";
     else if (pushing) next = "empurrar";
     else if (speedX > 0.2) next = crouched ? "agachado_andar" : "andar";
@@ -435,6 +555,7 @@ export class Player {
   private playSlide(): void {
     const group = this.anims.get("deslizar");
     if (!group) return;
+    group.stop();
     const toFrame = (t: number): number =>
       group.from + (t / SLIDE_CLIP_DURATION) * (group.to - group.from);
     const ratio = (SLIDE_CLIP_LOW - SLIDE_CLIP_START) / SLIDE_TIME;
@@ -446,8 +567,14 @@ export class Player {
     const t = dt > 0 ? 1 - Math.exp(-TURN_SPEED * dt) : 1;
     this.yaw += (targetYaw - this.yaw) * t;
     this.visual.rotation.y = this.yaw;
-    this.visual.rotation.x = this.lean;
-    this.visual.position.set(this.position.x - this.facing * this.pushBack, this.position.y - this.height / 2, 0);
+    // Na rampa o corpo deitado acompanha a inclinação e encosta na superfície.
+    const tiltTarget = this.ramp === "descendo" ? this.rampSlope : 0;
+    this.rampTilt = dt > 0 ? approach(this.rampTilt, tiltTarget, RAMP_TILT_SPEED * dt) : tiltTarget;
+    const tiltAmount = this.rampSlope > 0 ? this.rampTilt / this.rampSlope : 0;
+    this.visual.rotation.x = this.lean + this.rampTilt;
+    let y = this.position.y - this.height / 2;
+    if (this.ramp === "descendo") y += (Math.min(this.rampSurfaceY, y) - y) * tiltAmount;
+    this.visual.position.set(this.position.x - this.facing * this.pushBack, y, 0);
   }
 }
 

@@ -24,3 +24,10 @@ npm-debug.log*
 # Saídas de testes do navegador
 test-results
 playwright-report
+
+# Personagens do Mixamo em FBX (50 MB cada, com texturas 4K): baixar de novo no mixamo.com em pose T
+# (Bryce, Alex, Joe, David) e salvar com estes nomes antes de rodar ferramentas/converter_mixamo.py.
+assets-brutos/mixamo/Bryce.fbx
+assets-brutos/mixamo/Alex.fbx
+assets-brutos/mixamo/Joe.fbx
+assets-brutos/mixamo/David.fbx

@@ -174,6 +174,8 @@ export interface ElevatorData {
   topY: number;
   buttonX: number;
   buttonY: number;
+  /** Topo do poço (onde fica a viga e o cabo). */
+  shaftTop?: number;
 }
 
 export interface FinalDoorData {
@@ -216,15 +218,15 @@ export interface LevelData {
   vultos?: VultoData[];
 }
 
-/** Pessoa parada em cena (professor e colega no final), feita com os bonecos do Mixamo do jogo. */
+/** Pessoa parada em cena (professor e colega no final), feita com personagens do Mixamo. */
 export interface FiguranteData {
-  modelo: "personagem" | "vigia";
+  modelo: "personagem" | "vigia" | "professor" | "aluno";
   x: number;
   y: number;
   z: number;
   rotY?: number;
   pose: "em-pe" | "sentado";
-  /** Cor do boneco (um tom diferente do Zacarias e dos seguranças). */
+  /** Quanto escurece a textura do personagem (1 = textura original). */
   tom: [number, number, number];
   segura?: "lista" | "celular";
 }

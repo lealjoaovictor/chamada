@@ -6,6 +6,7 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { Scene } from "@babylonjs/core/scene";
 import { MODEL_OPTIONS, modelFile } from "../modelFile";
+import { dressCharacter } from "../characterLook";
 import type { FiguranteData } from "../../levels/types";
 
 /**
@@ -25,8 +26,8 @@ export const SEATED_DROP = 0.39;
 const HOLDING: [string, number][] = [["mixamorig:RightForeArm", 75]];
 
 /**
- * Pessoa parada em cena (o professor e o colega na sala do final): o mesmo boneco do Mixamo,
- * num tom diferente do Zacarias e dos seguranças, numa pose fixa.
+ * Pessoa parada em cena (o professor e o colega na sala do final): personagem do Mixamo
+ * (Joe = professor, David = colega), com a textura escurecida por `tom`, numa pose fixa.
  */
 export class Figurante {
   readonly root: TransformNode;
@@ -40,17 +41,11 @@ export class Figurante {
     const root = new TransformNode(name, scene);
     root.position.set(data.x, data.y - (data.pose === "sentado" ? SEATED_DROP : 0), data.z);
     root.rotation.y = ((data.rotY ?? 0) * Math.PI) / 180;
-    const material = new StandardMaterial(`${name}-mat`, scene);
-    material.diffuseColor = new Color3(...data.tom);
-    material.specularColor = Color3.Black();
     for (const mesh of result.meshes) {
       if (!mesh.parent) mesh.parent = root;
-      if (mesh.material) {
-        mesh.material.dispose();
-        mesh.material = material;
-      }
       mesh.isPickable = false;
     }
+    dressCharacter(result.meshes, scene, name, new Color3(...data.tom));
     // Pose de partida: um quadro da animação parada (braços abaixados), congelado.
     for (const group of result.animationGroups) group.stop();
     const idle = result.animationGroups.find((group) => group.name === "parado");

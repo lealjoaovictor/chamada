@@ -14,13 +14,15 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import { MODEL_OPTIONS, modelFile } from "../modelFile";
+import { dressCharacter } from "../characterLook";
 import type { VigiaData } from "../../levels/types";
 import { TUNING } from "../Tuning";
 import { Lanterna } from "./Lanterna";
 import { coverBlocks, type CoverBox } from "../sightCover";
 
 const MODEL_URL = modelFile("vigia");
-const MODEL_COLOR = new Color3(0.03, 0.03, 0.035);
+/** Escurece a textura do Alex (seguranças): a farda já é escura. */
+const MODEL_TINT = new Color3(0.7, 0.7, 0.74);
 const MODEL_SCALE = 1.1;
 const WALK_CLIP_SPEED = 1.68;
 const RUN_CLIP_SPEED = 5.33;
@@ -126,16 +128,8 @@ export class Vigia {
     const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("vigia-visual", scene);
     visual.scaling.setAll(MODEL_SCALE);
-    const material = new StandardMaterial("vigia-mat", scene);
-    material.diffuseColor = MODEL_COLOR;
-    material.specularColor = Color3.Black();
-    for (const mesh of result.meshes) {
-      if (!mesh.parent) mesh.parent = visual;
-      if (mesh.material) {
-        mesh.material.dispose();
-        mesh.material = material;
-      }
-    }
+    for (const mesh of result.meshes) if (!mesh.parent) mesh.parent = visual;
+    dressCharacter(result.meshes, scene, "vigia", MODEL_TINT);
     const anims = new Map<string, AnimationGroup>();
     for (const group of result.animationGroups) {
       group.stop();

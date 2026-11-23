@@ -96,6 +96,29 @@ export class Sfx {
     }
   }
 
+  /** "Plim" de elevador chegando: duas notas de sino sintetizadas, uma depois da outra. */
+  chime(volume = 0.4): void {
+    if (this.context.state !== "running") return;
+    const now = this.context.currentTime;
+    [
+      { freq: 1318.5, at: 0 },
+      { freq: 1046.5, at: 0.22 },
+    ].forEach(({ freq, at }) => {
+      for (const [ratio, level] of [[1, 1], [2.76, 0.25]]) {
+        const osc = this.context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq * ratio;
+        const gain = this.context.createGain();
+        gain.gain.setValueAtTime(0, now + at);
+        gain.gain.linearRampToValueAtTime(volume * level, now + at + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + at + 1.4);
+        osc.connect(gain).connect(this.master);
+        osc.start(now + at);
+        osc.stop(now + at + 1.5);
+      }
+    });
+  }
+
   play(name: SfxName, options: PlayOptions = {}): void {
     const buffer = this.buffers.get(name);
     if (!buffer || this.context.state !== "running") return;

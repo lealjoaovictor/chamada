@@ -33,7 +33,9 @@ const watchdog = setTimeout(() => showLoadingProblem("O jogo está demorando dem
 
 async function main(): Promise<void> {
   const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
-  const engine = new Engine(canvas, true, { stencil: true }, true);
+  // `?webgl1`: só para capturas em navegador sem GPU (SwiftShader não aguenta os blocos de uniform do WebGL2).
+  const webgl1 = new URLSearchParams(location.search).has("webgl1");
+  const engine = new Engine(canvas, true, { stencil: true, disableWebGL2Support: webgl1 }, true);
   // Erros de shader do Babylon (ex.: placa de vídeo com limites menores) entram no relatório da tela de erro.
   const originalError = console.error.bind(console);
   console.error = (...args: unknown[]) => {

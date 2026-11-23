@@ -7,6 +7,7 @@ import type { CallData, CallEntryData, Fala } from "./types";
 const professor = (id: string, texto: string, legenda?: string): Fala => ({ id, voz: "professor", texto, legenda });
 const colega = (id: string, texto: string, legenda = texto): Fala => ({ id, voz: "colega", texto, legenda });
 const seguranca = (id: string, texto: string): Fala => ({ id, voz: "seguranca", texto });
+const zacarias = (id: string, texto: string): Fala => ({ id, voz: "zacarias", texto, legenda: texto });
 
 // A turma: 48 colegas em ordem alfabética, e o Zacarias por último. F = faltou (8 faltas espalhadas).
 const TURMA: [string, "a" | "o", "F"?][] = [
@@ -145,6 +146,29 @@ export const CHAMADA: CallData = {
   ],
   atrasoComentario: 3,
 
+  // A 204 vazia: o projetor queimou e a aula mudou para o Lab. 3, e o Davi esqueceu de avisar.
+  salaVazia: [
+    zacarias("zac_sala_1", "Ué... cadê todo mundo?"),
+    zacarias("zac_sala_2", "Lab. 3? Bloco C?!"),
+    zacarias("zac_sala_3", "Davi?! Vocês trocaram de sala?!"),
+    colega("colega_sala_1", "Ih... esqueci de te falar, mano! É no Lab. 3! Corre!", "Esqueci de te falar! É no Lab. 3! Corre!"),
+    colega("colega_sala_2", "Sai pela janela e pega a passarela. A porta do bloco C eu deixei aberta.", "Sai pela janela, pega a passarela. Deixei a porta do bloco C aberta."),
+    colega("colega_sala_3", "Pode deixar que eu seguro o professor.", "Eu seguro o professor."),
+  ],
+  // Para compensar, o Davi faz pergunta atrás de pergunta e a chamada para.
+  enrola: {
+    duracao: 19,
+    falas: [
+      { em: 0, fala: colega("colega_enrola_1", "Professor! Professor, posso fazer uma pergunta?", "Professor! Posso fazer uma pergunta?") },
+      { em: 3, fala: professor("prof_enrola_1", "Rápido, Davi.", "Rápido, Davi.") },
+      { em: 4.8, fala: colega("colega_enrola_2", "A prova vai ser em dupla?", "A prova vai ser em dupla?") },
+      { em: 7.4, fala: professor("prof_enrola_2", "Não. Individual.", "Não. Individual.") },
+      { em: 9.4, fala: colega("colega_enrola_3", "E... pode levar calculadora?", "E... pode levar calculadora?") },
+      { em: 12.2, fala: professor("prof_enrola_3", "Pode, Davi. Posso continuar?", "Pode. Posso continuar?") },
+      { em: 16, fala: colega("colega_enrola_4", "Segurei o quanto deu, mano. Corre!", "Segurei o quanto deu. Corre!") },
+    ],
+  },
+
   falas: {
     nome: (indice, nome) => professor(nomeId(indice), `${nome}.`),
     nomeAluno: professor("nome_zacarias", "Zacarias Vieira."),
@@ -170,9 +194,17 @@ export const CHAMADA: CallData = {
       ],
       // Perseguição do subsolo: o segurança sai pela porta gritando.
       persegue: [seguranca("seg_persegue_1", "Ei! Parado aí!"), seguranca("seg_persegue_2", "Volta aqui, rapaz!")],
+      // Segurança da portaria do bloco C, vendo o jogo na TV.
+      lance: [seguranca("seg_lance_1", "Vai... vai... vai!"), seguranca("seg_lance_2", "Chuta, chuta!"), seguranca("seg_lance_3", "Olha o contra-ataque...")],
+      gol: [seguranca("seg_gol_1", "Gooool! É isso!"), seguranca("seg_gol_2", "Golaço! Golaço!")],
+      perdeu: [seguranca("seg_perdeu_1", "Não acredito... na trave!"), seguranca("seg_perdeu_2", "Ahh, como perde isso?!")],
+      reclama: [seguranca("seg_reclama_1", "Ô juiz, foi pênalti!"), seguranca("seg_reclama_2", "Juiz ladrão!")],
+      // Segurança cochilando no corredor do segundo andar.
+      acorda: [seguranca("seg_acorda_1", "Hã?! Quem tá aí?"), seguranca("seg_acorda_2", "Hein?! Que barulho foi esse?")],
+      voltaDormir: [seguranca("seg_volta_1", "Hm... devia ser o vento."), seguranca("seg_volta_2", "Tô ficando doido...")],
     },
   },
 
-  sinalPorArea: [1, 1, 1, 0.55, 1],
+  sinalPorArea: [1, 1, 1, 0.55, 1, 0.8],
   picotaNasAreas: [4],
 };

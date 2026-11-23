@@ -4,10 +4,11 @@ import { area2Level } from "./area2.ts";
 import { area3Level } from "./area3.ts";
 import { area4Level } from "./area4.ts";
 import { area5Level } from "./area5.ts";
+import { area6Level } from "./area6.ts";
 import { CHACOALHAR_POR_AREA, DICAS_POR_AREA, FOCOS_POR_AREA } from "./dicas.ts";
 import { shiftBeat, shiftHint, shiftLevel, shiftRattle } from "./shift.ts";
 
-const AREA_LEVELS = [area1Level, area2Level, area3Level, area4Level, area5Level];
+const AREA_LEVELS = [area1Level, area2Level, area3Level, area4Level, area5Level, area6Level];
 
 export interface World {
   level: LevelData;
@@ -17,7 +18,7 @@ export interface World {
   rattles: RattleData[];
 }
 
-// Junta as cinco áreas num mundo contínuo: cada área começa onde a anterior termina,
+// Junta as seis áreas num mundo contínuo: cada área começa onde a anterior termina,
 // então uma área que cresce empurra as seguintes para a direita sem precisar reescrevê-las.
 function buildWorld(levels: LevelData[]): World {
   const shifted: LevelData[] = [];
@@ -71,6 +72,7 @@ function buildWorld(levels: LevelData[]): World {
     vultos: shifted.flatMap((a) => a.vultos ?? []),
     figurantes: shifted.flatMap((a) => a.figurantes ?? []),
     finalDoor: shifted.find((a) => a.finalDoor)?.finalDoor,
+    salaVazia: shifted.find((a) => a.salaVazia)?.salaVazia,
   };
   return { level, areas, hints, beats, rattles };
 }

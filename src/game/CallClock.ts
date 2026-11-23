@@ -31,14 +31,25 @@ const SIGNAL_OFF = [0.35, 1.5];
 const SIGNAL_SMOOTH = 18;
 const GUARD_VOLUME = 0.95;
 const GUARD_DUCKED = 0.6;
-const GUARD_SILENT_CHANCE = { desconfia: 0.15, barulho: 0.1, pego: 0.3, persegue: 0 };
+const GUARD_SILENT_CHANCE: Record<GuardLine, number> = {
+  desconfia: 0.15,
+  barulho: 0.1,
+  pego: 0.3,
+  persegue: 0,
+  lance: 0.35,
+  gol: 0,
+  perdeu: 0.1,
+  reclama: 0.1,
+  acorda: 0,
+  voltaDormir: 0.2,
+};
 // Final ruim: depois do nome, um silêncio, "...ele chamou" e a caneta.
 const BAD_ELE_CHAMOU = 2.6;
 const BAD_PEN = 4.2;
 const LEGEND_MIN = 2.5;
 
 type Route = "professor" | "aluno" | "colega" | "ao-vivo";
-export type GuardLine = "desconfia" | "barulho" | "pego" | "persegue";
+export type GuardLine = keyof CallData["falas"]["seguranca"];
 
 // O relógio do jogo: o tempo de jogo decide o que está tocando na ligação.
 export class CallClock {
@@ -70,6 +81,10 @@ export class CallClock {
   private signalTimer = 0;
   private phoneLevel = 1;
   private readonly lastGuard = new Map<GuardLine, number>();
+  /** O Davi enrolando o professor: a chamada fica parada enquanto `stallLeft` > 0. */
+  private stallLeft = 0;
+  private stallTime = 0;
+  private stallNext = 0;
 
   constructor(data: CallData, sfx: Sfx, screen: CallScreen | null = null) {
     this.data = data;
@@ -258,6 +273,10 @@ export class CallClock {
     duck(this.guardIn, GUARD_VOLUME, GUARD_DUCKED);
 
     if (!running || this.studentCalled) return;
+    if (this.stallLeft > 0) {
+      this.updateStall(Math.min(dt, MAX_STEP));
+      return;
+    }
     const previous = this.time;
     this.time = Math.min(this.time + Math.min(dt, MAX_STEP), this.schedule.finalAt);
     for (const event of this.schedule.between(previous, this.time)) this.play(event);
@@ -305,6 +324,43 @@ export class CallClock {
     this.lastGuard.set(kind, pick);
     this.playFala(options[pick], "ao-vivo", 0, volume, this.guardIn);
     return true;
+  }
+
+  /** Uma fala fora da linha do tempo: o Zacarias ao vivo ou o Davi no celular (com legenda). Devolve a duração. */
+  talk(fala: Fala): number {
+    if (!this.started) return 0;
+    if (fala.voz === "colega") {
+      const duration = this.playFala(fala, "colega", 0);
+      this.screen?.colega(fala.legenda ?? fala.texto, Math.max(LEGEND_MIN, duration + 0.6));
+      return duration;
+    }
+    return this.playFala(fala, "ao-vivo", 0);
+  }
+
+  /** O Davi começa a enrolar o professor: a chamada para enquanto ele faz perguntas. */
+  stall(): void {
+    if (this.studentCalled) return;
+    this.stallLeft = this.data.enrola.duracao;
+    this.stallTime = 0;
+    this.stallNext = 0;
+  }
+
+  get stalling(): boolean {
+    return this.stallLeft > 0;
+  }
+
+  private updateStall(dt: number): void {
+    this.stallTime += dt;
+    this.stallLeft -= dt;
+    const falas = this.data.enrola.falas;
+    while (this.stallNext < falas.length && falas[this.stallNext].em <= this.stallTime) {
+      const { fala } = falas[this.stallNext++];
+      if (fala.voz === "colega") this.talk(fala);
+      else {
+        this.playFala(fala, "professor", 0);
+        this.screen?.professor(this.signalOn ? fala.legenda ?? fala.texto : "· · ·");
+      }
+    }
   }
 
   /** Sala de teste: o celular vibra e o colega fala a primeira fala. */

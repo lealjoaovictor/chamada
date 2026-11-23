@@ -133,6 +133,9 @@ export const area3Level: LevelData = {
   doors: [],
   vigias: [
     {
+      // Ronda distraída: anda olhando o celular, com a lanterna desligada; de vez em quando guarda o
+      // celular, liga a lanterna e olha em volta.
+      habito: { tipo: "celular" },
       x0: 86,
       x1: 100,
       y: 0,

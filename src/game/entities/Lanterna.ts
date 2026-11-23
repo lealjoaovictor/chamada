@@ -258,6 +258,11 @@ export class Lanterna {
     this.beamMaterial.setFloat("strength", Lanterna.beamStrength * strength);
   }
 
+  /** Mostra ou esconde o corpo da lanterna (guardada no cinto quando o segurança está de mãos ocupadas). */
+  setModelVisible(visible: boolean): void {
+    for (const mesh of this.meshes) mesh.setEnabled(visible);
+  }
+
   setEnabled(shown: boolean): void {
     this.beam.setEnabled(shown);
     this.glow.setEnabled(shown);

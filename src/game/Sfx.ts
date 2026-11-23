@@ -145,6 +145,11 @@ export class Sfx {
     return this.voices;
   }
 
+  /** Saída dos efeitos (TV, ronco, lanterna): passa pelo volume de efeitos. */
+  get effectsOutput(): AudioNode {
+    return this.effects;
+  }
+
   /** Saída da música: passa pelo volume de música. */
   get musicOutput(): AudioNode {
     return this.music;

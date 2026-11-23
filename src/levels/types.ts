@@ -164,6 +164,8 @@ export interface DoorData {
   height: number;
   openHeight: number;
   closeAfterX?: number;
+  /** Profundidade em z (padrão: a da fase). Mais rasa, a porta não tampa a câmera de quem está logo ao lado dela. */
+  depth?: number;
 }
 
 /**

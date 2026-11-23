@@ -34,6 +34,8 @@ export class CallSchedule {
   readonly finalAt: number;
   /** Instante em que começa cada interrupção. */
   readonly interruptionsAt: readonly number[];
+  /** Quando o Davi começa a enrolar o professor (se prometeu). */
+  readonly stallAt: number;
 
   constructor(data: CallData) {
     const events: CallEvent[] = [];
@@ -77,6 +79,10 @@ export class CallSchedule {
       } else t = names[names.length - 2].at + data.atrasoComentario;
       if (t !== undefined) events.push({ at: t, kind: "colega", fala });
     }
+
+    const letra = data.enrola.letra.toUpperCase();
+    const primeiro = names.find((n) => !n.aluno && n.nome.toUpperCase().startsWith(letra));
+    this.stallAt = primeiro ? primeiro.at + data.enrola.atraso : names[names.length - 2].at + data.enrola.atraso;
 
     events.sort((a, b) => a.at - b.at);
     this.events = events;

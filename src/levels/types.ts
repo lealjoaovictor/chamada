@@ -378,8 +378,11 @@ export interface CallData {
    * A chamada fica parada enquanto ela dura.
    */
   salaVazia: Fala[];
-  /** O Davi enrolando o professor: a chamada para por `duracao` segundos enquanto essas falas tocam. */
-  enrola: { duracao: number; falas: { em: number; fala: Fala }[] };
+  /**
+   * O Davi enrolando o professor: a chamada para por `duracao` segundos enquanto essas falas tocam.
+   * Ele começa `atraso` segundos depois do primeiro nome com a `letra` (ou na hora, se a chamada já passou dali).
+   */
+  enrola: { letra: string; atraso: number; duracao: number; falas: { em: number; fala: Fala }[] };
   falas: {
     nome: (indice: number, nome: string) => Fala;
     nomeAluno: Fala;

@@ -155,8 +155,11 @@ export const CHAMADA: CallData = {
     colega("colega_sala_2", "Sai pela janela e pega a passarela. A porta do bloco C eu deixei aberta.", "Sai pela janela, pega a passarela. Deixei a porta do bloco C aberta."),
     colega("colega_sala_3", "Pode deixar que eu seguro o professor.", "Eu seguro o professor."),
   ],
-  // Para compensar, o Davi faz pergunta atrás de pergunta e a chamada para.
+  // Para compensar, quando a chamada chega no V, o Davi faz pergunta atrás de pergunta e a chamada para.
+  // Começa logo depois do "Ele tá no V..." e antes do próximo nome.
   enrola: {
+    letra: "V",
+    atraso: 5.2,
     duracao: 19,
     falas: [
       { em: 0, fala: colega("colega_enrola_1", "Professor! Professor, posso fazer uma pergunta?", "Professor! Posso fazer uma pergunta?") },

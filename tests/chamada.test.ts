@@ -120,3 +120,11 @@ test("começar numa área usa o último checkpoint antes dela", () => {
   checkpoints.jumpTo(checkpoints.indexBefore(117));
   assert.equal(checkpoints.current.x, 110);
 });
+
+test("o Davi enrola o professor depois do \"Ele tá no V...\" e antes do próximo nome", () => {
+  const valentina = nomes.find((n) => n.nome.startsWith("V"))!;
+  const proximo = nomes[valentina.index + 1];
+  const comentarioV = schedule.events.find((e) => e.kind === "colega" && e.fala.id === "colega_12")!;
+  assert.ok(schedule.stallAt > comentarioV.at + 1.5, "depois do comentário do V");
+  assert.ok(schedule.stallAt < proximo.at, "antes do próximo nome");
+});

@@ -52,6 +52,7 @@ const DOOR_LOWPASS = 750;
 const RADIO_LOW = 450;
 const RADIO_HIGH = 2600;
 const RADIO_DRIVE = 4;
+const RADIO_DOOR_LOWPASS = 1900;
 // Final ruim: depois do nome, um silêncio, "...ele chamou" e a caneta.
 const BAD_ELE_CHAMOU = 2.6;
 const BAD_PEN = 4.2;
@@ -243,7 +244,14 @@ export class CallClock {
     radioLow.frequency.value = RADIO_HIGH;
     const radioDrive = context.createWaveShaper();
     radioDrive.curve = softClip(RADIO_DRIVE);
-    this.radioIn.connect(radioHigh).connect(radioLow).connect(radioDrive).connect(this.doorIn);
+    // A porta abafa o rádio menos que a voz (alto-falante agudo, perto da fresta): se passasse pelo mesmo
+    // passa-baixa da porta, sobraria só 450–750 Hz e a fala que explica a cena não se entenderia.
+    const radioDoor = context.createBiquadFilter();
+    radioDoor.type = "lowpass";
+    radioDoor.frequency.value = RADIO_DOOR_LOWPASS;
+    const radioOut = context.createGain();
+    radioOut.gain.value = DOOR_VOICE_VOLUME;
+    this.radioIn.connect(radioHigh).connect(radioLow).connect(radioDrive).connect(radioDoor).connect(radioOut).connect(this.guardIn);
 
     this.hiss = context.createBufferSource();
     this.hiss.buffer = noiseBuffer(context);

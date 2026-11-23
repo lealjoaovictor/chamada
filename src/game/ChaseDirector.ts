@@ -8,10 +8,11 @@ import type { CenaPerseguicao } from "../levels/types";
 // - apagão: as luzes apagam uma a uma, entra a luz vermelha de emergência e a lanterna acende lá atrás.
 
 /** Cena da porta: quando cada coisa acontece (s). */
-const RADIO_AT = 0.45;
+const RADIO_AT = 0.15;
 const TURN_AT = 0.9;
-const REPLY_GAP = 0.2;
-const BURST_GAP = 0.65;
+/** A resposta entra por cima do chiado final do rádio (negativo = sobrepõe). */
+const REPLY_GAP = -0.15;
+const BURST_GAP = 0.45;
 /** No fim da resposta ele vai até a porta: a sombra dos pés tapa a fresta. */
 const AT_DOOR = 0.55;
 /** Teto para a cena inteira, caso o áudio não diga a duração. */
@@ -22,6 +23,13 @@ const EMERGENCY_DELAY = 0.45;
 const FLASHLIGHT_DELAY = 0.35;
 /** Margem do trecho escuro além das lâmpadas que apagam. */
 const DARK_MARGIN = 4;
+/** Na segunda perseguição (sem porta), a lanterna acende no máximo a esta distância atrás do jogador. */
+const BLACKOUT_SPAWN_BEHIND = 6;
+/** Passou desta distância do fim da perseguição (checkpoint mais à frente): ela não acontece mais. */
+const PAST_END = 2;
+/** Batida na maçaneta e o flash da sala pelo vão no estrondo. */
+const HANDLE_LEAD = 0.45;
+const SLAM_FLASH = 0.12;
 
 export interface ChaseStage {
   /** Trava (0) ou devolve (null) o controle ao jogador. */
@@ -34,6 +42,8 @@ export interface ChaseStage {
   /** Fala atrás da porta; devolve a duração em segundos. */
   behindDoor(kind: "radio" | "responde"): number;
   doorSlam(): void;
+  /** Estalo da maçaneta, logo antes do estrondo. */
+  handle(): void;
   emergencyOn(): void;
 }
 
@@ -48,6 +58,9 @@ type DoorScene = {
   burstAt: number;
   replyStarted: boolean;
   radioStarted: boolean;
+  handle: boolean;
+  /** Depois do estrondo: o flash da luz da sala pelo vão (s restantes). */
+  flash: number;
 };
 
 type Blackout = {
@@ -71,7 +84,7 @@ export class ChaseDirector {
       if (!vigia.chases || !cena) continue;
       vigia.held = true;
       if (cena.tipo === "porta") {
-        this.scenes.push({ tipo: "porta", vigia, cena, state: "espera", t: 0, replyAt: SCENE_MAX, burstAt: SCENE_MAX, replyStarted: false, radioStarted: false });
+        this.scenes.push({ tipo: "porta", vigia, cena, state: "espera", t: 0, replyAt: SCENE_MAX, burstAt: SCENE_MAX, replyStarted: false, radioStarted: false, handle: false, flash: 0 });
       } else {
         const inside = lamps.filter((lamp) => lamp.positionX >= cena.de && lamp.positionX <= cena.ate);
         inside.sort((a, b) => a.positionX - b.positionX);
@@ -85,12 +98,20 @@ export class ChaseDirector {
     return this.scenes.some((scene) => scene.tipo === "porta" && scene.state === "cena");
   }
 
-  /** O jogador foi pego: a porta volta a esperar (sem a cena, que só toca uma vez) e o apagão desfaz. */
-  reset(): void {
+  /**
+   * O jogador foi pego (ou voltou ao checkpoint pelo menu): a porta volta a esperar (sem a cena, que só toca
+   * uma vez) e o apagão desfaz. Se a cena estava no meio, devolve o controle e a câmera.
+   */
+  reset(stage: ChaseStage): void {
     for (const scene of this.scenes) {
       if (scene.tipo === "porta") {
+        if (scene.state === "cena") {
+          scene.state = "espera";
+          stage.autopilot(null);
+          stage.focus(scene.cena.focusX, 0);
+        }
         scene.vigia.held = scene.state !== "feita";
-        if (scene.state === "cena") scene.state = "espera";
+        scene.flash = 0;
         scene.vigia.setDoorLight(1);
         continue;
       }
@@ -123,8 +144,20 @@ export class ChaseDirector {
 
   private updateDoor(scene: DoorScene, dt: number, playerX: number, stage: ChaseStage): void {
     const vigia = scene.vigia;
-    if (scene.state === "feita") return;
+    if (scene.state === "feita") {
+      if (scene.flash > 0) {
+        scene.flash = Math.max(0, scene.flash - dt);
+        vigia.setDoorLight(scene.flash > 0 ? 3 : 0);
+      }
+      return;
+    }
     if (scene.state === "espera") {
+      // Começou depois desta perseguição (checkpoint ou ?area=): a cena não toca, e a perseguição segue a regra normal.
+      if (playerX > vigia.settings.x1 + PAST_END) {
+        scene.state = "feita";
+        vigia.held = false;
+        return;
+      }
       // Alguém anda do outro lado: de vez em quando a sombra dos pés passa pela fresta.
       const pass = Math.max(0, Math.sin(this.time * 0.9) - 0.7) / 0.3;
       vigia.setDoorLight(1 - 0.55 * pass * (0.6 + 0.4 * Math.sin(this.time * 9)));
@@ -133,6 +166,7 @@ export class ChaseDirector {
       scene.t = 0;
       scene.radioStarted = false;
       scene.replyStarted = false;
+      scene.handle = false;
       scene.replyAt = SCENE_MAX;
       scene.burstAt = SCENE_MAX;
       stage.autopilot(0);
@@ -158,10 +192,16 @@ export class ChaseDirector {
     if (scene.replyStarted) light = 0.55 + 0.45 * Math.abs(Math.sin(t * 5.5));
     if (t > scene.burstAt - AT_DOOR) light = 0.12;
     vigia.setDoorLight(light);
+    // Um estalo na maçaneta avisa que é agora (sem tirar o susto).
+    if (scene.replyStarted && !scene.handle && t >= scene.burstAt - HANDLE_LEAD) {
+      scene.handle = true;
+      stage.handle();
+    }
     if (t < scene.burstAt) return;
     scene.state = "feita";
+    scene.flash = SLAM_FLASH;
     vigia.burst();
-    vigia.setDoorLight(0);
+    vigia.setDoorLight(3);
     stage.doorSlam();
     stage.punch(1);
     stage.focus(scene.cena.focusX, 0);
@@ -171,6 +211,8 @@ export class ChaseDirector {
   private updateBlackout(scene: Blackout, dt: number, playerX: number, stage: ChaseStage): void {
     if (scene.state === "espera") {
       if (playerX < (scene.vigia.settings.triggerX ?? scene.cena.de)) return;
+      // Voltou num checkpoint depois desta perseguição: nada de apagão nem segurança lá atrás.
+      if (playerX > scene.vigia.settings.x1 + PAST_END) return;
       scene.state = "apagando";
       scene.t = 0;
       scene.cut = 0;
@@ -190,7 +232,8 @@ export class ChaseDirector {
     }
     if (scene.t >= allOut + EMERGENCY_DELAY + FLASHLIGHT_DELAY) {
       scene.state = "escuro";
-      scene.vigia.burst();
+      // Sem porta: ele aparece logo atrás do jogador (na tela), não lá no portão se o jogador já correu muito.
+      scene.vigia.burst(Math.max(scene.vigia.settings.x0, playerX - BLACKOUT_SPAWN_BEHIND));
     }
   }
 }

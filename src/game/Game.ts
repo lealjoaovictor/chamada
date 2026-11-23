@@ -215,6 +215,7 @@ export class Game {
     face: (dir) => this.player.face(dir),
     behindDoor: (kind) => this.clock.behindDoor(kind),
     doorSlam: () => this.chaseSounds.doorSlam(),
+    handle: () => this.chaseSounds.handle(),
     emergencyOn: () => this.chaseSounds.emergencyOn(),
   };
   private airTime = 0;
@@ -998,7 +999,7 @@ export class Game {
       for (const box of this.boxes) box.reset();
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
-      this.chaseDirector?.reset();
+      this.chaseDirector?.reset(this.chaseStage);
       this.music.reset();
       this.musicCalm = MUSIC_RESPAWN_CALM;
       this.chasesAnnounced.clear();

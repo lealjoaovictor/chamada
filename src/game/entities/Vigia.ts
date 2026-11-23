@@ -197,6 +197,8 @@ export class Vigia {
   private chaseTargetX: number | null = null;
   private aimX = 0;
   private gateTimer = -1;
+  /** O facho começa neste x e corre até o jogador (o "ele me achou" do apagão). */
+  private sweepFrom: number | null = null;
   private timer = 0;
   private pause = 0;
 
@@ -345,11 +347,15 @@ export class Vigia {
   }
 
   /** A perseguição começa agora (a deixa da cena): a porta abre de supetão, ou a lanterna acende no escuro. */
-  burst(): void {
+  burst(fromX?: number): void {
     if (this.phase !== "escondido") return;
     this.held = false;
     this.slam = true;
+    // Sem porta (apagão), ele pode surgir mais perto do jogador do que o ponto de partida.
+    if (fromX !== undefined && !this.data.porta) this.x = Math.min(fromX, this.data.x1);
     this.startChase();
+    // Apagão: o facho começa lá atrás e corre pelo chão até achar o jogador.
+    if (!this.data.porta) this.sweepFrom = this.x;
   }
 
   private startChase(): void {
@@ -452,6 +458,7 @@ export class Vigia {
     this.slam = this.data.cena?.tipo === "porta";
     this.chaseTargetX = null;
     this.gateTimer = -1;
+    this.sweepFrom = null;
     this.setDoorLight(1);
     this.events.length = 0;
     this.resetHabit();
@@ -913,8 +920,9 @@ export class Vigia {
     }
     // O facho corre no chão um pouco à frente do jogador.
     const target = playerX + CHASE_AIM_AHEAD;
-    if (this.chaseTargetX === null) this.aimX = target;
+    if (this.chaseTargetX === null) this.aimX = this.sweepFrom ?? target;
     else this.aimX += (target - this.aimX) * Math.min(1, CHASE_AIM_SHARPNESS * dt);
+    this.sweepFrom = null;
     this.chaseTargetX = this.phase === "andando" ? this.aimX : null;
     const running = this.phase === "andando" || this.phase === "entrando";
     let clip = running ? "correr" : "parado";

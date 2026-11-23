@@ -38,6 +38,15 @@ export class ChaseSounds {
     this.ring(t + 0.01, [233, 397, 611, 947, 1381], 0.9, 0.16 * volume);
   }
 
+  /** Maçaneta de metal girando: dois estalos secos, baixos (do outro lado da porta). */
+  handle(volume = 1): void {
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    this.crack(t, 1400, 0.04, 0.25 * volume);
+    this.crack(t + 0.11, 1100, 0.05, 0.3 * volume);
+    this.ring(t + 0.11, [611, 947], 0.2, 0.05 * volume);
+  }
+
   /** O segurança bate as mãos na grade: duas pancadas e a grade sacudindo. */
   gateBang(volume = 1): void {
     if (!this.ready || volume <= 0) return;

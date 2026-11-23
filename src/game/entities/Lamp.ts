@@ -40,6 +40,9 @@ const HUM_LEVEL = 0.6;
 /** Luz de emergência (apagão do subsolo): vermelha e fraca, no lugar do tubo que apagou. */
 const EMERGENCY_COLOR = new Color3(1, 0.08, 0.04);
 const EMERGENCY_LEVEL = 0.45;
+/** A luz de emergência pulsa devagar (±25%): o trecho vermelho respira e a lanterna é a única luz firme. */
+const EMERGENCY_PULSE = 0.25;
+const EMERGENCY_PULSE_SPEED = 2.4;
 
 function between(range: number[]): number {
   return range[0] + Math.random() * (range[1] - range[0]);
@@ -62,6 +65,7 @@ export class Lamp {
   private readonly y: number;
   private readonly buzzes: boolean;
   private dead = false;
+  private emergencyTime = -1;
   private on = true;
   private timer = 0;
   private level = 1;
@@ -136,6 +140,7 @@ export class Lamp {
     this.color = EMERGENCY_COLOR;
     this.light.diffuse = EMERGENCY_COLOR.clone();
     this.setLevel(EMERGENCY_LEVEL);
+    this.emergencyTime = Math.random() * 3;
     // A lâmpada em si brilha forte (é ela que o jogador vê no escuro); a poça pintada no chão era do tubo.
     this.bulbMaterial.emissiveColor = EMERGENCY_COLOR.clone();
     for (const glow of this.glows) glow.alpha = 0;
@@ -147,6 +152,7 @@ export class Lamp {
   restore(): void {
     this.color = this.baseColor;
     this.light.diffuse = this.baseColor;
+    this.emergencyTime = -1;
     this.flicker = this.startsFlicker;
     this.dark = this.startsDark;
     this.dead = this.startsDead;
@@ -160,6 +166,12 @@ export class Lamp {
   }
 
   update(dt: number, playerX: number): void {
+    if (this.emergencyTime >= 0) {
+      this.emergencyTime += dt;
+      const pulse = 1 + EMERGENCY_PULSE * Math.sin(this.emergencyTime * EMERGENCY_PULSE_SPEED);
+      this.light.intensity = this.intensity * EMERGENCY_LEVEL * pulse;
+      return;
+    }
     if (this.dead) return;
     if (this.diesWhenPassed && playerX > this.x) {
       this.dead = true;

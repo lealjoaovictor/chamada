@@ -189,6 +189,14 @@ export const area5Level: LevelData = {
     { model: "SchoolChair_01", x: NAP_X, y: FLOOR, z: 1.6, rotY: 180 },
     { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)|metal_trash_can_lid", x: 185.6, y: FLOOR, z: 1.8, scale: 0.8 },
     { model: "WetFloorSign_01", x: 207.5, y: FLOOR, z: 1.4, rotY: 160 },
+    // Trechos que eram parede lisa: extintor e quadro de luz no começo, mudança de carteiras e caixas antes da 204.
+    { model: "fire_hydrant", x: 174.3, y: FLOOR, z: 1.9, fitHeight: 0.6 },
+    { model: "power_box_01", x: 176.2, y: FLOOR + 1.5, z: BACK_Z - 0.02, rotY: 180 },
+    ...deskWithChairUp(220.2, 1.55, 0.5),
+    ...deskWithChairUp(221.3, 1.6, -0.4),
+    { model: "cardboard_box_01", x: 222.6, y: FLOOR, z: 1.75, rotY: 12, fitWidth: 0.5 },
+    { model: "cardboard_box_01", x: 222.65, y: FLOOR + 0.36, z: 1.78, rotY: -8, fitWidth: 0.45 },
+    { model: "plastic_crate_01", x: 223.5, y: FLOOR, z: 1.7, rotY: 4, fitWidth: 0.55 },
     { model: "security_camera_01", x: 190, y: CEILING - 0.05, z: BACK_Z - 0.05, rotY: 200 },
     ...lamps.filter((lamp) => !lamp.moonlight).map((lamp) => fluorescent(lamp.x, CEILING - 0.01)),
     // A 204 no fim do dia: cadeiras em cima das carteiras, mesa do professor vazia, porta do fundo aberta.

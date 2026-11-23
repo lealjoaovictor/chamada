@@ -186,6 +186,8 @@ export const area6Level: LevelData = {
     { kind: "rachadura", x: 288.5, y: FLOOR + 2.3, z: BACK_Z - 0.06, width: 1.5, height: 0.5 },
     { kind: "mancha", x: 284, y: FLOOR + 0.02, z: -0.2, width: 2.2, height: 1.3, chao: true },
   ],
+  // Da passarela se vê a cidade atrás do pátio (a mesma silhueta do pátio de entrada).
+  cidade: [{ minX: START, maxX: ENTRY_X }],
   // Só o bloco C: a passarela é suspensa, e embaixo dela fica o pátio.
   primeiroPlano: [
     { x0: ENTRY_X, x1: STAIR_X0, y0: FLOOR },

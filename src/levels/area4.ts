@@ -261,6 +261,9 @@ export const area4Level: LevelData = {
     { x: (START + RAMP_END) / 2, y: HALL_CEILING / 2, z: BACK_Z + 0.03, width: RAMP_END - START + 0.2, height: HALL_CEILING, depth: 0.1, material: "parede" },
     { x: (START + RAMP_END) / 2, y: 0.45, z: BACK_Z, width: RAMP_END - START + 0.2, height: 0.9, depth: 0.1, material: "concreto" },
     ...[125, 130, 135, 140, 145, 150, 155, 160].flatMap(column),
+    // Teto da garagem: eletrocalha de cabos e um cano correndo junto da laje (era um plano preto liso).
+    { x: (RAMP_END + END) / 2, y: CEILING - 0.12, z: 0.5, width: END - RAMP_END, height: 0.07, depth: 0.32, material: "metal" },
+    { x: (RAMP_END + END) / 2, y: CEILING - 0.22, z: 1.55, width: END - RAMP_END, height: 0.14, depth: 0.14, shape: "box", material: "carrinho" },
     ...[132.5, 147.5].flatMap(cobogo),
 
     ...[127, 131, 137, 141, 146, 150, 155, 159].map((x): DecorData => ({

@@ -222,6 +222,8 @@ export interface LevelData {
   fios?: WireData[];
   /** Grades baixas de ferro (barras verticais com corrimão), só decoração. */
   grades?: RailData[];
+  /** Cartazes, pichação, placas, manchas, folhas e rachaduras (desenhados na hora de carregar). */
+  adesivos?: StickerData[];
   figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];
@@ -368,4 +370,25 @@ export interface RailData {
   x1: number;
   z: number;
   height: number;
+}
+
+/** Adesivo plano encostado numa parede (virado para a câmera) ou deitado no chão. */
+export interface StickerData {
+  kind: "cartaz" | "pichacao" | "placa" | "mancha" | "umidade" | "folhas" | "rachadura";
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  /** Linhas de texto (cartaz: a primeira é o título). */
+  text?: string[];
+  /** Cor de fundo (cartaz, placa), da tinta (pichação) ou "r,g,b" da mancha. */
+  color?: string;
+  /** Cor do texto ou do contorno. */
+  ink?: string;
+  /** Giro em radianos (no plano da parede, ou em volta do eixo vertical quando no chão). */
+  rot?: number;
+  chao?: boolean;
+  /** Brilho próprio (0 a 1), para placas iluminadas. */
+  glow?: number;
 }

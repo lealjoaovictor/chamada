@@ -38,6 +38,7 @@ import { Kit } from "./Kit";
 import { createBackdrop } from "./Backdrop";
 import { createSkyline } from "./Skyline";
 import { createRails, createWires } from "./Wiring";
+import { createStickers } from "./Stickers";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Music, type MusicScene } from "./Music";
@@ -386,6 +387,7 @@ export class Game {
     for (const trecho of level.cidade ?? []) createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW);
     createWires(scene, level.fios ?? []);
     createRails(scene, level.grades ?? []);
+    createStickers(scene, level.adesivos ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);

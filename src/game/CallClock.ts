@@ -86,6 +86,11 @@ export class CallClock {
     return this.schedule.calledAt(this.time);
   }
 
+  /** O colega está falando na ligação (a música baixa para a voz passar). */
+  get colegaSpeaking(): boolean {
+    return this.sfx.audio.currentTime < this.colegaUntil;
+  }
+
   get studentNameReached(): boolean {
     return this.time >= this.schedule.finalAt;
   }

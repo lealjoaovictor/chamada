@@ -238,6 +238,11 @@ export class Vigia {
     return this.data.mode === "perseguicao";
   }
 
+  /** Perseguição em andamento: saindo pela porta ou correndo (não antes de aparecer, nem depois de parar). */
+  get chasing(): boolean {
+    return this.chases && (this.phase === "andando" || this.phase === "entrando");
+  }
+
   reset(): void {
     this.alert = 0;
     this.investigate = null;

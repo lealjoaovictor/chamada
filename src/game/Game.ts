@@ -37,6 +37,7 @@ import { Kit } from "./Kit";
 import { createBackdrop } from "./Backdrop";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
+import { Music, type MusicScene } from "./Music";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
@@ -78,6 +79,10 @@ const CAUGHT_HOLD = 0.5;
 const CAUGHT_FADE_IN = 0.4;
 const SUSPICION_LINE_COOLDOWN = 6;
 const GUARD_VOICE_RANGE = 22;
+// Música: até onde a proximidade de um segurança já pesa (m) e quanto ela pesa sem ele ter visto nada.
+const MUSIC_TENSION_RANGE = 14;
+const MUSIC_TENSION_NEAR = 0.55;
+const MUSIC_CHASE_RANGE = 12;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -135,6 +140,7 @@ export class Game {
   private focusLock = false;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
+  private readonly music = new Music(this.sfx);
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -182,7 +188,7 @@ export class Game {
     const clockStart = Number(params.get("chamada"));
     if (clockStart > 0) game.clock.setTime(clockStart);
     game.telemetry = new Telemetry(game.startArea);
-    await Promise.all([game.load(level), game.sfx.load()]);
+    await Promise.all([game.load(level), game.sfx.load(), game.music.load()]);
     await game.clock.load();
     if (params.get("telemetria") === "1") {
       (window as unknown as { chamadaDebug: () => unknown }).chamadaDebug = () => ({
@@ -381,6 +387,7 @@ export class Game {
     for (const vigia of this.vigias) vigia.update(dt, this.player.position.x);
     this.announceChases();
     this.updateElevators(dt);
+    this.music.update(realDt, this.musicState(area));
     if (this.state === "menu") {
       this.updateMenu(dt);
       this.input.endFrame();
@@ -535,6 +542,40 @@ export class Game {
     this.finalDoor?.open();
   }
 
+  private musicState(area: number) {
+    const px = this.player.position.x;
+    let tension = 0;
+    let chase = 0;
+    let suspicious = false;
+    for (const vigia of this.vigias) {
+      if (!vigia.shown) continue;
+      const distance = Math.abs(vigia.positionX - px);
+      if (vigia.chasing) {
+        chase = Math.max(chase, 0.05, 1 - distance / MUSIC_CHASE_RANGE);
+        continue;
+      }
+      if (vigia.chases) continue;
+      tension = Math.max(tension, MUSIC_TENSION_NEAR * Math.max(0, 1 - distance / MUSIC_TENSION_RANGE), vigia.alertLevel);
+      if (vigia.suspicious) suspicious = true;
+    }
+    const scenes: Record<GameState, MusicScene> = {
+      menu: "menu",
+      jogando: "jogo",
+      morto: "pego",
+      chegada: "chegada",
+      fim: "fim",
+      atrasado: "atrasado",
+    };
+    return {
+      scene: scenes[this.state],
+      area,
+      tension,
+      suspicious,
+      chase,
+      colegaSpeaking: this.clock.colegaSpeaking,
+    };
+  }
+
   private soundState() {
     return {
       playerX: this.player.position.x,
@@ -592,8 +633,9 @@ export class Game {
         this.cutAt = this.arrivalTimer + hold;
       }
     } else if (this.arrivalTimer >= this.cutAt) {
-      // Corte seco para preto.
+      // Corte seco para preto; o tema volta, quente.
       this.fade.set(1);
+      this.music.playFinal();
       this.roomCaption.hide();
       this.clock.silence();
       this.updateEndScreen(this.endScreen, this.cutAt + END_FADE);

@@ -152,7 +152,7 @@ export const CHAMADA: CallData = {
     zacarias("zac_sala_2", "Lab. 3? Bloco C?!"),
     zacarias("zac_sala_3", "Davi?! Vocês trocaram de sala?!"),
     colega("colega_sala_1", "Ih... esqueci de te falar, mano! É no Lab. 3! Corre!", "Esqueci de te falar! É no Lab. 3! Corre!"),
-    colega("colega_sala_2", "Sai pela janela e pega a passarela. A porta do bloco C eu deixei aberta.", "Sai pela janela, pega a passarela. Deixei a porta do bloco C aberta."),
+    colega("colega_sala_2", "A porta do bloco C eu deixei aberta.", "Deixei a porta do bloco C aberta."),
     colega("colega_sala_3", "Pode deixar que eu seguro o professor.", "Eu seguro o professor."),
   ],
   // Para compensar, quando a chamada chega no V, o Davi faz pergunta atrás de pergunta e a chamada para.

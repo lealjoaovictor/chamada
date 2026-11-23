@@ -159,6 +159,9 @@ export class Game {
   /** Porta da 204 (a sala de sempre, vazia hoje) e o andamento da conversa com o Davi. */
   private emptyRoomDoor: FinalDoor | null = null;
   private emptyRoomDone = false;
+  private tvScreen: StandardMaterial | null = null;
+  private tvTime = 0;
+  private tvFlash = 0;
   private emptyRoomLine = 0;
   private emptyRoomNextAt = -1;
   private arrivalTimer = 0;
@@ -440,6 +443,12 @@ export class Game {
     this.life = new Life(scene, level.vida ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
+    // A TV da portaria: a tela ganha material próprio para piscar com o jogo.
+    const tv = scene.getMeshByName("tv-tela");
+    if (tv?.material instanceof StandardMaterial) {
+      this.tvScreen = tv.material.clone("tv-tela-mat");
+      tv.material = this.tvScreen;
+    }
     if (VISUAL.dust) createDust(scene, level.lamps);
     // Preenchimento por trecho (scene.ambientColor): cada material soma a própria cor vezes esse valor. Começa em 0;
     // o loop puxa para o valor do trecho. Materiais sem luz própria (horizonte, fios, luz pintada) não mudam.
@@ -952,6 +961,7 @@ export class Game {
   /** Sons e falas dos hábitos: TV, ronco, lanterna, celular e as reações de cada segurança. */
   private updateGuardHabits(dt: number): void {
     const px = this.player.position.x;
+    this.updateTvScreen(dt);
     let tv = 0;
     for (const vigia of this.vigias) {
       const near = Math.max(0, 1 - Math.abs(vigia.positionX - px) / HABIT_SOUND_RANGE);
@@ -970,11 +980,16 @@ export class Game {
           case "ronco":
             this.guardSounds.snore(near);
             break;
+          case "remexe":
+            this.guardSounds.snore(Math.min(1, near * 1.6));
+            break;
           case "lance":
+            this.tvFlash = Math.max(this.tvFlash, 0.5);
             this.guardSounds.swell();
             this.habitLine(vigia, "lance");
             break;
           case "gol":
+            this.tvFlash = 1;
             this.guardSounds.roar();
             this.habitLine(vigia, "gol");
             break;
@@ -995,6 +1010,18 @@ export class Game {
       }
     }
     this.guardSounds.updateTv(dt, this.state === "menu" || this.state === "atrasado" || this.state === "fim" ? 0 : tv);
+  }
+
+  /** Tela da TV da portaria: o verde do gramado piscando com as imagens, e um clarão no lance e no gol. */
+  private updateTvScreen(dt: number): void {
+    const screen = this.tvScreen;
+    if (!screen) return;
+    this.tvTime += dt;
+    this.tvFlash = Math.max(0, this.tvFlash - dt * 0.8);
+    const t = this.tvTime;
+    const flicker = 0.78 + 0.12 * Math.sin(t * 7.3) + 0.1 * Math.sin(t * 17.9 + 1.3) * Math.sin(t * 2.1);
+    const k = Math.min(1, flicker + this.tvFlash * 0.6);
+    screen.emissiveColor.set((0.22 + 0.6 * this.tvFlash) * k, (0.62 + 0.3 * this.tvFlash) * k, (0.32 + 0.5 * this.tvFlash) * k);
   }
 
   private habitLine(vigia: Vigia, kind: "lance" | "gol" | "perdeu" | "reclama" | "acorda" | "voltaDormir"): void {

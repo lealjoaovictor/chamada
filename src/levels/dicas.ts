@@ -169,6 +169,10 @@ export const FOCOS_POR_AREA: Record<number, CameraBeatData[]> = {
     { triggerX: 82, focusX: 93, seconds: 2.4, seguranca: true },
     { triggerX: 141.8, focusX: 155.5, seconds: 2.6 },
   ],
+  // No corredor da 204, a câmera mostra o segurança cochilando na cadeira (o "z Z" em cima da cabeça).
+  5: [{ triggerX: 186, focusX: 196, seconds: 2.4 }],
+  // Ao entrar no bloco C, a câmera mostra a portaria: o segurança dividido entre a entrada e a TV.
+  6: [{ triggerX: 268.6, focusX: 275.5, seconds: 2.6 }],
 };
 
 export const CHACOALHAR_POR_AREA: Record<number, RattleData[]> = {

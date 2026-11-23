@@ -2,7 +2,7 @@ import type { BlockData, DecorData, LampData, LevelData, PropData } from "./type
 import { CARDBOARD_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 // Área 6: do bloco B ao bloco C. A aula de hoje está no Lab. 3 (o projetor da 204 queimou).
-// O Zacarias sai pela janela da 204 para a passarela coberta (meio fechada pelo zelador), entra no bloco C
+// O Zacarias sai pela porta do fundo da 204 para a passarela coberta (meio fechada pelo zelador), entra no bloco C
 // pela porta que o Davi deixou encostada com o tênis, passa pela portaria (o segurança vê o jogo na TV)
 // e chega ao Lab. 3, onde o professor ainda está fazendo a chamada.
 

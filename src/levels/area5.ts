@@ -14,10 +14,8 @@ const DOOR_X = 207 + SHIFT;
 const DOOR_HEIGHT = 2.6;
 const END = 219 + SHIFT;
 const BACK_Z = 2.1;
-// Saída da 204: a janela do fundo dá para a passarela coberta que liga ao bloco C (área 6).
-// O peitoril fica na altura da carteira encostada embaixo: sobe na carteira e sai andando pela janela.
-const WINDOW_SILL = FLOOR + 0.77;
-const WINDOW_TOP = FLOOR + 2.75;
+// Saída da 204: a porta do fundo, aberta, dá para a passarela coberta que liga ao bloco C (área 6).
+const BACK_DOOR_TOP = FLOOR + 2.6;
 /** Segurança cochilando no banco do corredor (no meio do trecho agachado). */
 const NAP_X = 196;
 const NAP_SEAT = FLOOR + 0.02;
@@ -72,7 +70,7 @@ const lamps: LampData[] = [
   ...CORRIDOR_LAMPS.map((x, i): LampData => ({
     x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i === 2, diesWhenPassed: true,
   })),
-  // A 204: luzes apagadas (a aula não foi aqui). Só o luar da janela do fundo.
+  // A 204: luzes apagadas (a aula não foi aqui). Só o luar da janela.
   { x: 210.3 + SHIFT, y: FLOOR + 2.8, tom: "sala", desligada: true },
   { x: 215.2 + SHIFT, y: FLOOR + 2.6, moonlight: true, forca: 0.55 },
 ];
@@ -94,13 +92,12 @@ export const area5Level: LevelData = {
   depth: 4,
   ground: [{ x: (STAIRS_END + END + 1) / 2, y: (FLOOR - 1) / 2, width: END + 1 - STAIRS_END, height: FLOOR + 1, material: "piso" }],
   walls: [
-    // Parede do fundo da 204, com o vão da janela (a saída para a passarela).
-    { x: END + 0.5, y: WINDOW_SILL / 2, width: 1, height: WINDOW_SILL, material: "parede" },
-    { x: END + 0.5, y: (WINDOW_TOP + 8) / 2, width: 1, height: 8 - WINDOW_TOP, material: "pedra" },
+    // Parede do fundo da 204, com a porta dos fundos (a saída para a passarela).
+    { x: END + 0.5, y: FLOOR / 2, width: 1, height: FLOOR, material: "parede" },
+    { x: END + 0.5, y: (BACK_DOOR_TOP + 8) / 2, width: 1, height: 8 - BACK_DOOR_TOP, material: "pedra" },
     { x: (START + END) / 2, y: CEILING + 0.2, width: END - START, height: 0.4, material: "concreto" },
   ],
-  // Carteira encostada na parede, embaixo da janela: o degrau para sair.
-  platforms: [{ x: END - 0.75, y: FLOOR + DESK_TOP / 2, width: 0.7, height: DESK_TOP, z: 0, depth: 1.4, hidden: true }],
+  platforms: [],
   obstacles: [],
   ramps: [{ x0: STAIRS_START, y0: 0, x1: STAIRS_END, y1: FLOOR, steps: STEPS, stepDepth: 4 }],
   boxes: [],
@@ -155,9 +152,12 @@ export const area5Level: LevelData = {
       material: "quadro",
       giz: "Turma de quinta:\nHOJE A AULA É NO\nLAB. 3 - BLOCO C\n(projetor queimado)",
     },
-    // Vão da janela de saída: moldura e o luar lá fora.
-    { x: END + 0.5, y: WINDOW_TOP + 0.06, z: 0, width: 1.04, height: 0.12, depth: 1.6, material: "moldura" },
-    { x: END + 0.5, y: WINDOW_SILL - 0.04, z: 0, width: 1.1, height: 0.08, depth: 1.6, material: "moldura" },
+    // Porta dos fundos: batente, a folha aberta para dentro da sala e a placa de saída para a passarela.
+    { x: END + 0.5, y: BACK_DOOR_TOP + 0.06, z: 0, width: 1.04, height: 0.12, depth: 1.7, material: "moldura" },
+    { x: END + 0.5, y: FLOOR + 1.3, z: -0.85, width: 1.04, height: 2.6, depth: 0.1, material: "moldura" },
+    { x: END + 0.5, y: FLOOR + 1.3, z: 0.85, width: 1.04, height: 2.6, depth: 0.1, material: "moldura" },
+    { x: END - 0.48, y: FLOOR + 1.2, z: 0.95, width: 0.92, height: 2.4, depth: 0.05, material: "madeira" },
+    { x: END - 0.6, y: BACK_DOOR_TOP + 0.3, z: BACK_Z - 0.06, width: 0.42, height: 0.16, depth: 0.04, material: "saida" },
     { x: 213.5 + SHIFT, y: FLOOR + 1.3, z: BACK_Z - 0.12, width: 3.3, height: 0.06, depth: 0.12, material: "moldura" },
     { x: 217.6 + SHIFT, y: FLOOR + 2.06, z: BACK_Z - 0.04, width: 0.95, height: 1.6, depth: 0.02, material: "luar" },
   ],
@@ -171,9 +171,8 @@ export const area5Level: LevelData = {
     { model: "WetFloorSign_01", x: 207.5, y: FLOOR, z: 1.4, rotY: 160 },
     { model: "security_camera_01", x: 190, y: CEILING - 0.05, z: BACK_Z - 0.05, rotY: 200 },
     ...lamps.filter((lamp) => !lamp.moonlight).map((lamp) => fluorescent(lamp.x, CEILING - 0.01)),
-    // A 204 no fim do dia: cadeiras em cima das carteiras, mesa do professor vazia, janela do fundo aberta.
+    // A 204 no fim do dia: cadeiras em cima das carteiras, mesa do professor vazia, porta do fundo aberta.
     ...[209.8, 212.2, 214.6].map((x) => x + SHIFT).flatMap((x, i) => [...deskWithChairUp(x, -1.45, i - 1), ...deskWithChairUp(x, 1.0, 1 - i)]),
-    { model: "SchoolDesk_01", x: END - 0.75, y: FLOOR, z: 0, rotY: 90 },
     { model: "metal_office_desk", x: 216.8 + SHIFT, y: FLOOR, z: 1.45, rotY: 180, scale: 0.8 },
     { model: "SchoolChair_01", x: 217.7 + SHIFT, y: FLOOR, z: 1.85, rotY: 35 },
     ...moonWindow(217.6 + SHIFT, FLOOR + 1.2, BACK_Z),

@@ -196,6 +196,21 @@ export const area1Level: LevelData = {
       .filter((lamp) => !lamp.flicker && lamp.y < 4)
       .map((lamp): StickerData => ({ kind: "luz", x: lamp.x, y: 0.018, z: LAMP_Z - 1, width: 5, height: 3.5, chao: true })),
     { kind: "luz", x: 36, y: 2.238, z: 0, width: 4, height: 3.6, chao: true },
+    // Chão molhado: poças com brilho especular de verdade e o rastro do reflexo dos postes no asfalto.
+    ...[
+      [6.6, -0.6, 2.2, 1.4],
+      [14.1, -0.9, 1.8, 1.2],
+      [25.9, -0.5, 2, 1.3],
+      [44.5, 0.3, 2.6, 1.6],
+      [61.5, -0.8, 2.4, 1.4],
+      [70.6, -0.9, 2, 1.3],
+      [85.6, -0.7, 2.2, 1.4],
+      [12, -3.2, 1.6, 0.9],
+      [66, -3.4, 1.4, 0.8],
+    ].map(([x, z, width, height]): StickerData => ({ kind: "poca", x, y: 0.02, z, width, height, chao: true })),
+    ...lamps
+      .filter((lamp) => !lamp.flicker && lamp.y < 4 && lamp.x !== 52)
+      .map((lamp): StickerData => ({ kind: "reflexo", x: lamp.x, y: 0.022, z: LAMP_Z - 1.9, width: 0.7, height: 2.6, chao: true })),
     // Sem poça branca nos refletores: no chão ela se confunde com o facho da lanterna do Vigia.
   ],
   // Grade baixa na beira da calçada da frente, onde não há esconderijo.

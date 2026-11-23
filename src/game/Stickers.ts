@@ -236,6 +236,45 @@ function wallFoot(ctx: Ctx, w: number, h: number, strength: number): void {
   ctx.globalCompositeOperation = "source-over";
 }
 
+/** Poça d'água: contorno irregular (a cor é a do asfalto molhado; o brilho vem do material). */
+function puddle(ctx: Ctx, w: number, h: number, rand: () => number): void {
+  ctx.save();
+  ctx.scale(w / 2, h / 2);
+  ctx.translate(1, 1);
+  const lobes = 4 + Math.floor(rand() * 3);
+  for (let i = 0; i < lobes; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = 0.25 + rand() * 0.35;
+    const x = Math.cos(a) * (0.9 - r) * 0.8;
+    const y = Math.sin(a) * (0.9 - r) * 0.8;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(14,15,18,0.5)");
+    g.addColorStop(0.6, "rgba(14,15,18,0.42)");
+    g.addColorStop(1, "rgba(14,15,18,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Reflexo de um poste na água: faixa comprida, mais forte perto do poste, quebrada em ondinhas. */
+function reflection(ctx: Ctx, w: number, h: number, rgb: string, strength: number, rand: () => number): void {
+  for (let y = 0; y < h; y += 3) {
+    // Topo da textura = lado do poste (+z); vai sumindo em direção à câmera.
+    const t = y / h;
+    const fade = (1 - t) ** 1.5 * (0.6 + rand() * 0.4);
+    const half = (w / 2) * (0.35 + 0.65 * Math.sin(t * Math.PI) ** 0.5) * (0.7 + rand() * 0.3);
+    const g = ctx.createLinearGradient(w / 2 - half, 0, w / 2 + half, 0);
+    g.addColorStop(0, `rgba(${rgb},0)`);
+    g.addColorStop(0.5, `rgba(${rgb},${strength * fade})`);
+    g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(w / 2 - half + (rand() - 0.5) * 4, y, half * 2, 2);
+  }
+}
+
 function draw(ctx: Ctx, w: number, h: number, data: StickerData): void {
   const rand = rng(hashOf(data));
   switch (data.kind) {
@@ -257,6 +296,10 @@ function draw(ctx: Ctx, w: number, h: number, data: StickerData): void {
       return blob(ctx, w, h, "0,0,0", data.strength ?? 0.6);
     case "pe-de-parede":
       return wallFoot(ctx, w, h, data.strength ?? 0.5);
+    case "poca":
+      return puddle(ctx, w, h, rand);
+    case "reflexo":
+      return reflection(ctx, w, h, data.color ?? "255,170,85", data.strength ?? 0.45, rand);
     case "luz":
       return blob(ctx, w, h, data.color ?? "255,176,92", data.strength ?? 0.35);
   }
@@ -268,7 +311,7 @@ const DEFAULT_GLOW: Partial<Record<StickerData["kind"], number>> = {
   placa: 0.12,
 };
 
-const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade", "sombra", "pe-de-parede"]);
+const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade", "sombra", "pe-de-parede", "poca"]);
 
 export function createStickers(scene: Scene, stickers: StickerData[]): void {
   stickers.forEach((data, i) => {
@@ -283,7 +326,19 @@ export function createStickers(scene: Scene, stickers: StickerData[]): void {
     texture.update(true);
 
     const material = new StandardMaterial(`adesivo-${i}-mat`, scene);
-    if (data.kind === "luz") {
+    if (data.kind === "poca") {
+      // Água parada: escura e muito lisa. O brilho é especular de verdade, então os postes e a lanterna do Vigia
+      // acendem pontos de reflexo nela conforme a câmera anda (sem renderizar a cena duas vezes).
+      material.diffuseTexture = texture;
+      material.useAlphaFromDiffuseTexture = true;
+      material.specularColor = new Color3(0.9, 0.85, 0.75);
+      material.specularPower = 96;
+      material.zOffset = -2;
+      material.transparencyMode = Material.MATERIAL_ALPHABLEND;
+      finishPlane(scene, data, i, material);
+      return;
+    }
+    if (data.kind === "luz" || data.kind === "reflexo") {
       // Poça de luz pintada: soma cor à cena (como luz), sem ser uma luz de verdade (não conta no limite da GPU).
       material.disableLighting = true;
       material.emissiveTexture = texture;

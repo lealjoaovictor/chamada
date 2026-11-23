@@ -133,7 +133,7 @@ export class CallClock {
     if (this.started) return;
     this.started = true;
     const context = this.sfx.audio;
-    const out = this.sfx.output;
+    const out = this.sfx.voiceOutput;
 
     // Cadeia do telefone: passa-faixa, distorção leve e compressão.
     const phoneIn = context.createGain();
@@ -412,7 +412,7 @@ export class CallClock {
       gain.gain.linearRampToValueAtTime(0.18, t0 + start + 0.03);
       gain.gain.setValueAtTime(0.18, t0 + start + 0.38);
       gain.gain.linearRampToValueAtTime(0, t0 + start + 0.42);
-      osc.connect(lowpass).connect(gain).connect(this.sfx.output);
+      osc.connect(lowpass).connect(gain).connect(this.sfx.voiceOutput);
       osc.start(t0 + start);
       osc.stop(t0 + start + 0.45);
     }

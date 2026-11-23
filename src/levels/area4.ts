@@ -117,13 +117,13 @@ function stripes(x: number, y: number, height: number, width: number): DecorData
 // Subsolo: tubos fluorescentes velhos, esverdeados; o primeiro é o poste de sódio da rampa.
 const lamps: LampData[] = ([
   { x: 126, y: 2.75, tom: "sodio" },
-  { x: 133, y: 2.75, flicker: true },
+  { x: 133, y: 2.75 },
   { x: 140, y: 2.75 },
-  { x: 147, y: 2.75, flicker: true },
+  { x: 147, y: 2.75 },
   { x: 156, y: 2.75 },
   { x: 162, y: 2.75, flicker: true },
   { x: 172, y: 2.75 },
-  { x: 180, y: 2.75, flicker: true },
+  { x: 180, y: 2.75 },
   { x: 188, y: 2.75 },
   { x: 196, y: 2.75 },
 ] as LampData[]).map((lamp) => ({ tom: "subsolo", ...lamp }));

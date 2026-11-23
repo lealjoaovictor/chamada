@@ -40,6 +40,7 @@ import { Soundscape } from "./Soundscape";
 import { Music, type MusicScene } from "./Music";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
+import { PauseMenu, pauseButton } from "../ui/PauseMenu";
 import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
 import { CallScreen } from "../ui/CallScreen";
 import { CallClock } from "./CallClock";
@@ -115,6 +116,7 @@ export class Game {
   private finalDoor: FinalDoor | null = null;
   private arrivalTimer = 0;
   private readonly menu = new MenuScreen();
+  private pauseMenu!: PauseMenu;
   private readonly endScreen = new EndScreen();
   private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
@@ -171,6 +173,40 @@ export class Game {
       }
     };
     for (const type of ["pointerdown", "touchend", "keydown"]) window.addEventListener(type, unlock, { capture: true });
+    if (mode) pauseButton(() => this.togglePause());
+    // Trocar de aba ou de janela no meio da partida pausa (o relógio da chamada não corre sozinho).
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && !this.pauseMenu?.isOpen) this.togglePause();
+    });
+  }
+
+  /** Abre ou fecha o menu de pausa; só pausa no meio da partida. */
+  private togglePause(): void {
+    if (!this.pauseMenu) return;
+    if (this.pauseMenu.isOpen) {
+      this.pauseMenu.close();
+      this.sfx.setPaused(false);
+      this.input.releaseAll();
+      if (!this.gym) document.body.style.cursor = "none";
+      return;
+    }
+    if (this.state !== "jogando") return;
+    this.input.releaseAll();
+    this.sfx.setPaused(true);
+    this.pauseMenu.open();
+  }
+
+  /** Volta ao último checkpoint pelo menu de pausa: mesmo caminho de ser pego, sem contar como morte. */
+  private returnToCheckpoint(): void {
+    if (this.state !== "jogando") return;
+    this.fadeOut = DEATH_FADE_OUT;
+    this.fadeIn = DEATH_FADE_IN;
+    this.hold = 0;
+    this.soundscape.forget();
+    this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.state = "morto";
+    this.deathTimer = 0;
+    this.respawned = false;
   }
 
   static async create(engine: AbstractEngine): Promise<Game> {
@@ -199,6 +235,14 @@ export class Game {
       });
     }
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
+    game.pauseMenu = new PauseMenu(game.sfx, {
+      resume: () => game.togglePause(),
+      checkpoint: () => {
+        game.togglePause();
+        game.returnToCheckpoint();
+      },
+      restart: () => location.reload(),
+    });
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     if (gym && game.vigias[0]) {
       const { GymPanel } = await import("../dev/GymPanel");
@@ -223,6 +267,12 @@ export class Game {
   }
 
   render(): void {
+    // Pausado, a cena não é desenhada (física, animações e luzes ficam paradas); só o teclado e o controle são
+    // lidos, para despausar com Esc ou Start.
+    if (this.pauseMenu?.isOpen) {
+      this.update();
+      return;
+    }
     this.scene.render();
   }
 
@@ -374,6 +424,13 @@ export class Game {
     const realDt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
     const dt = Math.min(realDt, MAX_DT);
     this.input.update();
+    if (this.input.pausePressed()) this.togglePause();
+    if (this.pauseMenu.isOpen) {
+      // Tudo parado: relógio da chamada, seguranças, física e animações.
+      this.input.consumeAnyPress();
+      this.input.endFrame();
+      return;
+    }
     const area = areaAt(this.player.position.x);
     const running = this.state === "jogando" || this.state === "morto";
     this.clock.update(realDt, area, running, this.salaProximity(area));

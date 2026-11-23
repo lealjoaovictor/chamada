@@ -65,11 +65,11 @@ function archiveShelf(x: number, i: number, floorY: number): BlockData {
 
 const lamps: LampData[] = [
   { x: 82, y: 2.7, forca: 0.85 },
-  { x: 111, y: 5.6, flicker: true, forca: 0.8 },
+  { x: 111, y: 5.6, forca: 0.8 },
   { x: 89, y: 5, moonlight: true },
   { x: 98, y: 5, moonlight: true },
   { x: 127, y: 7.4, forca: 0.8 },
-  { x: 137, y: 7.4, flicker: true, forca: 0.8 },
+  { x: 137, y: 7.4, forca: 0.8 },
   { x: 122, y: 7.6, moonlight: true },
   // Acervo: só metade das luzes ainda acesa.
   { x: 147.5, y: 7.4, forca: 0.7 },

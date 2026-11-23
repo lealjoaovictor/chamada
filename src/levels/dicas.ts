@@ -62,6 +62,19 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       doneWhen: { platePressed: 1 },
     },
   ],
+  // Bloco C, segundo andar: a mudança do Lab. 3 é alta demais; o carrinho do zelador vira degrau.
+  // Brilho e ícone saem mais cedo que nas outras áreas: aqui a chamada já está no fim.
+  6: [
+    {
+      zone: { minX: 296, maxX: 304 },
+      trigger: "tempo",
+      glowAfter: 15,
+      iconAfter: 30,
+      glow: { box: 0 },
+      icon: { action: "empurrar", x: 0, y: 0.9, followBox: 0 },
+      doneWhen: { passedX: 306.6 },
+    },
+  ],
   3: [
     {
       zone: { minX: 98, maxX: 105.5 },

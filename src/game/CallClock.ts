@@ -19,8 +19,8 @@ const PROFESSOR_DUCKED = 0.22;
 const ROOM_WET = 0.45;
 const STUDENT_VOLUME = 0.7;
 const COLEGA_VOLUME = 1.15;
-const HISS_VOLUME = 0.018;
-const HISS_DROPOUT = 0.07;
+const HISS_VOLUME = 0.007;
+const HISS_DROPOUT = 0.045;
 const DUCK_RELEASE = 0.4;
 // Área 5: a voz real do professor, sem filtro, vindo do fim do corredor; a do celular baixa.
 const SALA_VOLUME = 0.9;

@@ -1,4 +1,5 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Constants } from "@babylonjs/core/Engines/constants";
 import { Material } from "@babylonjs/core/Materials/material";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
@@ -201,6 +202,40 @@ function crack(ctx: Ctx, w: number, h: number, rand: () => number): void {
   branch(w * 0.05, h * (0.3 + rand() * 0.4), (rand() - 0.5) * 0.4, w * 0.95, 3);
 }
 
+/** Mancha elíptica suave (sombra de contato ou poça de luz): forte no centro, some na borda. */
+function blob(ctx: Ctx, w: number, h: number, rgb: string, strength: number): void {
+  ctx.save();
+  ctx.scale(w / 2, h / 2);
+  ctx.translate(1, 1);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, `rgba(${rgb},${strength})`);
+  g.addColorStop(0.45, `rgba(${rgb},${strength * 0.7})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(-1, -1, 2, 2);
+  ctx.restore();
+}
+
+/** Faixa escura no pé de uma parede: forte do lado da parede (topo da textura, que no chão aponta para +z). */
+function wallFoot(ctx: Ctx, w: number, h: number, strength: number): void {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, `rgba(0,0,0,${strength})`);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  // Pontas suaves, para a faixa não terminar num corte reto.
+  ctx.globalCompositeOperation = "destination-in";
+  const edge = ctx.createLinearGradient(0, 0, w, 0);
+  const fade = Math.min(0.2, h / w);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(fade, "rgba(0,0,0,1)");
+  edge.addColorStop(1 - fade, "rgba(0,0,0,1)");
+  edge.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+}
+
 function draw(ctx: Ctx, w: number, h: number, data: StickerData): void {
   const rand = rng(hashOf(data));
   switch (data.kind) {
@@ -218,6 +253,12 @@ function draw(ctx: Ctx, w: number, h: number, data: StickerData): void {
       return leaves(ctx, w, h, rand);
     case "rachadura":
       return crack(ctx, w, h, rand);
+    case "sombra":
+      return blob(ctx, w, h, "0,0,0", data.strength ?? 0.6);
+    case "pe-de-parede":
+      return wallFoot(ctx, w, h, data.strength ?? 0.5);
+    case "luz":
+      return blob(ctx, w, h, data.color ?? "255,176,92", data.strength ?? 0.35);
   }
 }
 
@@ -227,7 +268,7 @@ const DEFAULT_GLOW: Partial<Record<StickerData["kind"], number>> = {
   placa: 0.12,
 };
 
-const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade"]);
+const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade", "sombra", "pe-de-parede"]);
 
 export function createStickers(scene: Scene, stickers: StickerData[]): void {
   stickers.forEach((data, i) => {
@@ -242,6 +283,18 @@ export function createStickers(scene: Scene, stickers: StickerData[]): void {
     texture.update(true);
 
     const material = new StandardMaterial(`adesivo-${i}-mat`, scene);
+    if (data.kind === "luz") {
+      // Poça de luz pintada: soma cor à cena (como luz), sem ser uma luz de verdade (não conta no limite da GPU).
+      material.disableLighting = true;
+      material.emissiveTexture = texture;
+      material.opacityTexture = texture;
+      material.alphaMode = Constants.ALPHA_ADD;
+      material.transparencyMode = Material.MATERIAL_ALPHABLEND;
+      material.zOffset = -2;
+      material.fogEnabled = true;
+      finishPlane(scene, data, i, material);
+      return;
+    }
     material.diffuseTexture = texture;
     material.useAlphaFromDiffuseTexture = true;
     material.specularColor = Color3.Black();
@@ -257,18 +310,22 @@ export function createStickers(scene: Scene, stickers: StickerData[]): void {
       material.emissiveTexture.level = glow;
     }
 
-    const plane = CreatePlane(`adesivo-${i}`, { width: data.width, height: data.height }, scene);
-    plane.material = material;
-    plane.position.set(data.x, data.y, data.z);
-    if (data.chao) {
-      // Deitado no chão, virado para cima.
-      plane.rotation.x = Math.PI / 2;
-      plane.rotation.y = data.rot ?? 0;
-    } else {
-      // Em pé, virado para a câmera (que olha para +z).
-      plane.rotation.z = data.rot ?? 0;
-    }
-    plane.isPickable = false;
-    plane.freezeWorldMatrix();
+    finishPlane(scene, data, i, material);
   });
+}
+
+function finishPlane(scene: Scene, data: StickerData, i: number, material: StandardMaterial): void {
+  const plane = CreatePlane(`adesivo-${i}`, { width: data.width, height: data.height }, scene);
+  plane.material = material;
+  plane.position.set(data.x, data.y, data.z);
+  if (data.chao) {
+    // Deitado no chão, virado para cima.
+    plane.rotation.x = Math.PI / 2;
+    plane.rotation.y = data.rot ?? 0;
+  } else {
+    // Em pé, virado para a câmera (que olha para +z).
+    plane.rotation.z = data.rot ?? 0;
+  }
+  plane.isPickable = false;
+  plane.freezeWorldMatrix();
 }

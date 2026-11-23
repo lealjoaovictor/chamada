@@ -404,6 +404,7 @@ export class Game {
     if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
     // Começando depois da 204 (área ou checkpoint de teste), a conversa com o Davi já aconteceu.
     if (this.emptyRoomDoor && this.checkpoints.current.x >= this.emptyRoomDoor.data.triggerX) this.emptyRoomDone = true;
+    if (this.emptyRoomDone) this.clock.promiseStall();
     const checkpoint = Number(new URLSearchParams(location.search).get("checkpoint"));
     if (level === worldLevel && Number.isInteger(checkpoint) && checkpoint > 0) this.checkpoints.jumpTo(checkpoint);
     this.killY = level.killY;
@@ -738,7 +739,7 @@ export class Game {
       } else {
         this.cameraRig.focus(this.player.position.x, 0);
         this.roomCaption.hide();
-        this.clock.stall();
+        this.clock.promiseStall();
         this.input.setAutopilot(null);
         this.state = "jogando";
       }

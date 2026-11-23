@@ -85,6 +85,8 @@ export class CallClock {
   private stallLeft = 0;
   private stallTime = 0;
   private stallNext = 0;
+  /** O Davi prometeu segurar o professor: começa quando a chamada chegar na letra combinada. */
+  private stallPromised = false;
 
   constructor(data: CallData, sfx: Sfx, screen: CallScreen | null = null) {
     this.data = data;
@@ -278,8 +280,12 @@ export class CallClock {
       return;
     }
     const previous = this.time;
-    this.time = Math.min(this.time + Math.min(dt, MAX_STEP), this.schedule.finalAt);
+    const goal = Math.min(this.time + Math.min(dt, MAX_STEP), this.schedule.finalAt);
+    // A chamada chegou no ponto combinado: para ali e o Davi começa a enrolar.
+    const stallHere = this.stallPromised && goal >= this.schedule.stallAt;
+    this.time = stallHere ? Math.max(previous, this.schedule.stallAt) : goal;
     for (const event of this.schedule.between(previous, this.time)) this.play(event);
+    if (stallHere) this.stall();
   }
 
   /** Final ruim: o nome já foi lido; vem o silêncio, o colega e a caneta riscando. */
@@ -337,9 +343,23 @@ export class CallClock {
     return this.playFala(fala, "ao-vivo", 0);
   }
 
+  /**
+   * O Davi promete segurar o professor. Ele enrola quando a chamada chegar no V;
+   * se já passou do V, começa na hora.
+   */
+  promiseStall(): void {
+    if (this.studentCalled || this.stallPromised) return;
+    this.stallPromised = true;
+  }
+
+  get stallPending(): boolean {
+    return this.stallPromised;
+  }
+
   /** O Davi começa a enrolar o professor: a chamada para enquanto ele faz perguntas. */
-  stall(): void {
+  private stall(): void {
     if (this.studentCalled) return;
+    this.stallPromised = false;
     this.stallLeft = this.data.enrola.duracao;
     this.stallTime = 0;
     this.stallNext = 0;

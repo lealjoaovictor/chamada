@@ -248,6 +248,8 @@ export interface LevelData {
   grades?: RailData[];
   /** Cartazes, pichação, placas, manchas, folhas e rachaduras (desenhados na hora de carregar). */
   adesivos?: StickerData[];
+  /** Trechos com vida no fundo: janelas que acendem e apagam, TVs, antenas pulsando e folhas ao vento. */
+  vida?: LifeData[];
   figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];
@@ -437,4 +439,13 @@ export interface StickerData {
   glow?: number;
   /** Força da sombra ou da poça de luz (0 a 1). */
   strength?: number;
+}
+
+export interface LifeData {
+  minX: number;
+  maxX: number;
+  /** Folhas secas levadas pelo vento rente ao chão. */
+  folhas?: boolean;
+  /** Janelas com TV ligada (luz azul que muda em cortes). */
+  tvs?: { x: number; y: number; z: number }[];
 }

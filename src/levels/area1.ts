@@ -110,6 +110,8 @@ export const area1Level: LevelData = {
     { a: [47, 8.4, 9.9], b: [50, 5.8, 4.4], sag: 0.3 },
     { a: [64, 5.8, 4.3], b: [70, 9.6, 16], sag: 0.6, thickness: 0.03 },
   ],
+  // Vida no fundo: janelas que acendem e apagam, uma TV ligada num apartamento e folhas ao vento.
+  vida: [{ minX: -10, maxX: END, folhas: true, tvs: [{ x: 8.5, y: 7.5, z: 17.3 }, { x: 74.5, y: 4.5, z: 16.3 }] }],
   // Sujeira e identidade: cartazes do DCE, placas da universidade, pichação, umidade, folhas, óleo e rachaduras.
   adesivos: [
     // Muro com passarela: mural de cartazes e pichação.

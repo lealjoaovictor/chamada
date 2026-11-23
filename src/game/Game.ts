@@ -41,6 +41,7 @@ import { createBackdrop } from "./Backdrop";
 import { createSkyline } from "./Skyline";
 import { createRails, createWires } from "./Wiring";
 import { createStickers } from "./Stickers";
+import { Life } from "./Vida";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Music, type MusicScene } from "./Music";
@@ -140,6 +141,7 @@ export class Game {
   private ambient: HemisphericLight | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
   private vultos: Vultos | null = null;
+  private life: Life | null = null;
   private readonly lamps: Lamp[] = [];
   private readonly doors: Door[] = [];
   private readonly plates: PressurePlate[] = [];
@@ -419,6 +421,7 @@ export class Game {
     createWires(scene, level.fios ?? []);
     createRails(scene, level.grades ?? []);
     createStickers(scene, level.adesivos ?? []);
+    this.life = new Life(scene, level.vida ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
@@ -576,6 +579,7 @@ export class Game {
     this.player.setGrip(this.pushTimer > 0 ? this.gripPoint() : null);
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.vultos?.update(dt, this.player.position.x);
+    this.life?.update(dt);
     this.updateNoise();
     this.updatePlayerNoise(dt);
     this.cameraRig.update(dt, {

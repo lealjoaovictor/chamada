@@ -85,6 +85,11 @@ export const area5Level: LevelData = {
   furtivo: [{ minX: FURTIVO_MIN, maxX: FURTIVO_MAX }],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  primeiroPlano: [
+    { x0: START, x1: STAIRS_START, y0: 0, material: "asfalto" },
+    { x0: STAIRS_START, x1: STAIRS_END, y0: 0, y1: FLOOR, material: "concreto" },
+    { x0: STAIRS_END, x1: END, y0: FLOOR },
+  ],
   ambiente: [
     { minX: START, maxX: DOOR_X - 1.5, intensidade: 0.28, cor: [0.5, 0.55, 0.6] },
     { minX: DOOR_X - 1.5, maxX: END + 1, intensidade: 0.2, cor: [0.42, 0.5, 0.66] },

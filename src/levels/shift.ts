@@ -59,6 +59,7 @@ export function shiftLevel(level: LevelData, dx: number): LevelData {
     vida: level.vida?.map((v) => ({ ...v, minX: v.minX + dx, maxX: v.maxX + dx, tvs: v.tvs?.map((t) => ({ ...t, x: t.x + dx })) })),
     vultos: level.vultos && sx(level.vultos, dx),
     figurantes: level.figurantes && sx(level.figurantes, dx),
+    primeiroPlano: level.primeiroPlano?.map((a) => ({ ...a, x0: a.x0 + dx, x1: a.x1 + dx })),
   };
 }
 

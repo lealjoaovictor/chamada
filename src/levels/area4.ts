@@ -149,6 +149,10 @@ export const area4Level: LevelData = {
   ],
   killY: -5,
   bounds: { minX: START, maxX: END },
+  primeiroPlano: [
+    { x0: START, x1: RAMP_END, y0: GALLERY_Y, y1: 0, material: "concreto" },
+    { x0: RAMP_END, x1: END, y0: 0, material: "asfalto" },
+  ],
   ambiente: [{ minX: START, maxX: END, intensidade: 0.36, cor: [0.56, 0.62, 0.44] }],
   vultos: [],
   depth: 4,

@@ -266,6 +266,20 @@ export interface LevelData {
   figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];
+  /**
+   * Piso de primeiro plano nos interiores: continua o chão da faixa de jogo até a câmera, escurecendo aos poucos,
+   * para a parte de baixo da tela não mostrar a lateral da laje, os rebaixos e o vazio. Só visual, sem colisão.
+   */
+  primeiroPlano?: ApronData[];
+}
+
+/** Trecho do piso de primeiro plano, de x0 a x1, com o topo em `y0` (ou subindo de `y0` a `y1`, numa rampa ou escada). */
+export interface ApronData {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1?: number;
+  material?: MaterialName;
 }
 
 /** Pessoa parada em cena (professor e colega no final), feita com personagens do Mixamo. */

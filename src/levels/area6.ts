@@ -135,6 +135,8 @@ export const area6Level: LevelData = {
   checkpoints: [{ x: 241, y: FLOOR + 1.2 }],
   killY: -6,
   bounds: { minX: START, maxX: END },
+  // Só o bloco C: a passarela é suspensa, e embaixo dela fica o pátio.
+  primeiroPlano: [{ x0: ENTRY_X, x1: END, y0: FLOOR }],
   depth: 4,
   ambiente: [
     { minX: START, maxX: ENTRY_X, intensidade: 0.34, cor: [0.55, 0.5, 0.45] },

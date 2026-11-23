@@ -313,11 +313,33 @@ const DEFAULT_GLOW: Partial<Record<StickerData["kind"], number>> = {
 
 const SOFT_KINDS = new Set<StickerData["kind"]>(["mancha", "umidade", "sombra", "pe-de-parede", "poca"]);
 
+// Manchas genéricas (sem desenho próprio): adesivos iguais no tamanho e na cor dividem a mesma textura e o mesmo
+// material, em vez de um de cada. Na área 1 eram ~60 cópias da mesma mancha ocupando memória de vídeo.
+const SHARED_KINDS = new Set<StickerData["kind"]>(["sombra", "pe-de-parede", "luz", "reflexo"]);
+
+function sharedKey(data: StickerData): string | null {
+  if (!SHARED_KINDS.has(data.kind)) return null;
+  // A mancha redonda é a mesma em qualquer tamanho (o plano estica a textura); as outras dependem da proporção.
+  const size = STRETCH_KINDS.has(data.kind) ? "" : `${data.width.toFixed(2)}x${data.height.toFixed(2)}`;
+  return [data.kind, size, data.color ?? "", data.strength ?? "", data.glow ?? ""].join("|");
+}
+
+const STRETCH_KINDS = new Set<StickerData["kind"]>(["sombra", "luz"]);
+const STRETCH_SIZE = 128;
+
 export function createStickers(scene: Scene, stickers: StickerData[]): void {
+  const shared = new Map<string, StandardMaterial>();
   stickers.forEach((data, i) => {
+    const key = sharedKey(data);
+    const cached = key ? shared.get(key) : undefined;
+    if (cached) {
+      finishPlane(scene, data, i, cached);
+      return;
+    }
     const scale = Math.min(PX_PER_M, MAX_SIDE / Math.max(data.width, data.height));
-    const w = Math.max(16, Math.round(data.width * scale));
-    const h = Math.max(16, Math.round(data.height * scale));
+    const stretch = STRETCH_KINDS.has(data.kind);
+    const w = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.width * scale));
+    const h = stretch ? STRETCH_SIZE : Math.max(16, Math.round(data.height * scale));
     const texture = new DynamicTexture(`adesivo-${i}`, { width: w, height: h }, scene, true);
     const ctx = texture.getContext() as unknown as Ctx;
     ctx.clearRect(0, 0, w, h);
@@ -326,6 +348,7 @@ export function createStickers(scene: Scene, stickers: StickerData[]): void {
     texture.update(true);
 
     const material = new StandardMaterial(`adesivo-${i}-mat`, scene);
+    if (key) shared.set(key, material);
     if (data.kind === "poca") {
       // Água parada: escura e muito lisa. O brilho é especular de verdade, então os postes e a lanterna do Vigia
       // acendem pontos de reflexo nela conforme a câmera anda (sem renderizar a cena duas vezes).
@@ -381,6 +404,8 @@ function finishPlane(scene: Scene, data: StickerData, i: number, material: Stand
     // Em pé, virado para a câmera (que olha para +z).
     plane.rotation.z = data.rot ?? 0;
   }
+  // Recebe a sombra da lanterna e dos postes como o chão embaixo dele; a luz pintada soma cor e não precisa.
+  plane.receiveShadows = !material.disableLighting;
   plane.isPickable = false;
   plane.freezeWorldMatrix();
 }

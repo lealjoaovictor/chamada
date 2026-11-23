@@ -80,3 +80,22 @@ test("contrapeso puxa uma porta que existe", () => {
 test("vultos ficam dentro do mundo", () => {
   for (const v of level.vultos ?? []) assert.ok(v.x > level.bounds.minX && v.x < level.bounds.maxX);
 });
+
+test("o deslocamento das áreas move também o cenário (horizonte, fios, grades, adesivos e vida)", async () => {
+  const { shiftLevel } = await import("../src/levels/shift.ts");
+  const { area1Level: base } = await import("../src/levels/area1.ts");
+  const moved = shiftLevel(base, 100);
+  const pairs: [number | undefined, number | undefined][] = [
+    [base.cidade?.[0]?.minX, moved.cidade?.[0]?.minX],
+    [base.fios?.[0]?.a[0], moved.fios?.[0]?.a[0]],
+    [base.fios?.[0]?.b[0], moved.fios?.[0]?.b[0]],
+    [base.grades?.[0]?.x0, moved.grades?.[0]?.x0],
+    [base.adesivos?.[0]?.x, moved.adesivos?.[0]?.x],
+    [base.vida?.[0]?.minX, moved.vida?.[0]?.minX],
+    [base.vida?.[0]?.tvs?.[0]?.x, moved.vida?.[0]?.tvs?.[0]?.x],
+  ];
+  for (const [before, after] of pairs) {
+    assert.notEqual(before, undefined, "o mundo deve ter esse tipo de cenário");
+    assert.equal(after, before! + 100);
+  }
+});

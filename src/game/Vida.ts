@@ -29,8 +29,7 @@ interface Toggle {
 export class Life {
   private readonly toggles: Toggle[] = [];
   private readonly tvs: StandardMaterial[] = [];
-  private beacon: StandardMaterial | null = null;
-  private readonly beaconBase = new Color3();
+  private readonly beacons: { material: StandardMaterial; base: Color3; phase: number }[] = [];
   private time = 0;
   private seed = 11;
 
@@ -44,11 +43,12 @@ export class Life {
       if (p.z < BACKGROUND_Z || !inZone(p.x)) continue;
       this.toggles.push({ mesh, timer: this.wait() });
     }
-    // Luz vermelha das antenas: o material é um só, então pulsar ele pulsa todas.
-    const beacon = scene.getMaterialByName("mat-sinal");
-    if (beacon instanceof StandardMaterial) {
-      this.beacon = beacon;
-      this.beaconBase.copyFrom(beacon.emissiveColor);
+    // Luz vermelha das antenas (as de perto e as do horizonte): um material por grupo, então pulsar ele pulsa todas.
+    // O horizonte pulsa fora de fase, para não piscar tudo junto.
+    for (const material of scene.materials) {
+      if (!(material instanceof StandardMaterial)) continue;
+      if (material.name === "mat-sinal") this.beacons.push({ material, base: material.emissiveColor.clone(), phase: 0 });
+      if (material.name === "cidade-antenas-mat") this.beacons.push({ material, base: material.emissiveColor.clone(), phase: 0.4 });
     }
     for (const zone of zones) {
       for (const tv of zone.tvs ?? []) this.tvs.push(this.createTv(scene, tv));
@@ -64,10 +64,10 @@ export class Life {
       toggle.timer = this.wait();
       toggle.mesh.isVisible = toggle.mesh.isVisible ? this.random() > WINDOW_OFF_CHANCE : true;
     }
-    if (this.beacon) {
+    for (const beacon of this.beacons) {
       // Acende e apaga devagar, como balizamento de prédio.
-      const k = 0.15 + 0.85 * Math.max(0, Math.sin((this.time / BEACON_PERIOD) * Math.PI * 2)) ** 2;
-      this.beacon.emissiveColor.copyFrom(this.beaconBase).scaleInPlace(k);
+      const k = 0.15 + 0.85 * Math.max(0, Math.sin((this.time / BEACON_PERIOD + beacon.phase) * Math.PI * 2)) ** 2;
+      beacon.material.emissiveColor.copyFrom(beacon.base).scaleInPlace(k);
     }
     // TV: troca de brilho e de tom em cortes, como cenas de um filme.
     for (let i = 0; i < this.tvs.length; i++) {

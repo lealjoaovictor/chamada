@@ -247,6 +247,11 @@ export class Player {
     this.crouchWanted = on;
   }
 
+  /** Vira o boneco para um lado sem andar (cenas). */
+  face(dir: 1 | -1): void {
+    this.facing = dir;
+  }
+
   get facingDirection(): number {
     return this.facing;
   }

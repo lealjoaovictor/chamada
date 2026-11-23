@@ -196,7 +196,20 @@ export interface VigiaData {
   reacao?: number;
   /** Perseguição: o segurança entra por uma porta na parede do fundo (em x0), em vez de surgir do nada. */
   porta?: { z: number; largura?: number; altura?: number };
+  /** Perseguição: o que acontece antes de ele sair (uma cena na porta ou um apagão). */
+  cena?: CenaPerseguicao;
 }
+
+/**
+ * Abertura de uma perseguição:
+ * - porta: na primeira vez, o Zacarias para, a câmera mostra a porta com luz por baixo, ouve-se o rádio do
+ *   segurança do outro lado, e a porta abre de supetão (o controle volta no estrondo);
+ * - apagao: as luzes do trecho apagam uma a uma (de `ate` até `de`), sobra a luz vermelha de emergência e só
+ *   então a lanterna do segurança acende lá atrás. O jogador não perde o controle.
+ */
+export type CenaPerseguicao =
+  | { tipo: "porta"; triggerX: number; focusX: number }
+  | { tipo: "apagao"; de: number; ate: number; ambiente: { intensidade: number; cor: [number, number, number] } };
 
 export interface ElevatorData {
   x: number;
@@ -420,6 +433,10 @@ export interface CallData {
       /** Cochilo: acorda assustado; não vê ninguém e volta a sentar. */
       acorda: Fala[];
       voltaDormir: Fala[];
+      /** Perseguição do subsolo: a portaria chama pelo rádio, ele responde atrás da porta e grita na grade. */
+      radio: Fala[];
+      responde: Fala[];
+      grade: Fala[];
     };
   };
   /** Força do sinal da ligação por área (1 a 5); no subsolo ela picota. */

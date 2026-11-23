@@ -1,10 +1,12 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { CARDBOARD_VISUAL, fluorescent, moonWindow } from "./kits.ts";
+import { CARDBOARD_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 // Área 6: do bloco B ao bloco C. A aula de hoje está no Lab. 3 (o projetor da 204 queimou).
 // O Zacarias sai pela porta do fundo da 204 para a passarela coberta (meio fechada pelo zelador), entra no bloco C
 // pela porta que o Davi deixou encostada com o tênis, passa pela portaria (o segurança vê o jogo na TV)
-// e chega ao Lab. 3, onde o professor ainda está fazendo a chamada.
+// sobe a escada para o segundo andar (o Lab. 3 é a janela acesa lá de cima), passa pela mudança do laboratório
+// empilhada no corredor (usa o carrinho do zelador como degrau) e chega ao Lab. 3, onde o professor ainda está
+// fazendo a chamada.
 
 const START = 238;
 const FLOOR = 1.5;
@@ -34,9 +36,24 @@ const COVER_X = 279;
 const COVER_Z = 0.95;
 const COVER_DEPTH = 0.6;
 const COVER_HEIGHT = 1.45;
-const LAB_DOOR_X = 296;
+/** Escada para o segundo andar, no fim do corredor do térreo. */
+const STAIR_X0 = 287.5;
+const STAIR_X1 = 295;
+const STAIR_STEPS = 15;
+const FLOOR2 = FLOOR + 3;
+/** O teto do térreo acaba no começo da escada (o vão da escada é aberto até o teto do segundo andar). */
+const CEILING_END = STAIR_X0 + 2.5;
+const CEILING2 = FLOOR2 + 3.8;
+/** A mudança do Lab. 3 empilhada no corredor de cima: alta demais para o pulo, passa subindo no carrinho. */
+const CART_X = 299.5;
+const PILE_X0 = 304;
+const PILE_X1 = 306.5;
+const PILE_HEIGHT = 1.9;
+/** O laboratório inteiro foi para o segundo andar: tudo o que era do Lab. 3 anda junto. */
+const LAB_DX = 17;
+const LAB_DOOR_X = 296 + LAB_DX;
 const DOOR_HEIGHT = 2.6;
-const END = 308;
+const END = 308 + LAB_DX;
 const DESK_TOP = 0.77;
 
 const lamps: LampData[] = [
@@ -48,11 +65,15 @@ const lamps: LampData[] = [
   { x: 271, y: CEILING - 0.4, tom: "fluorescente", forca: 0.5 },
   // Corredor do bloco C: fluorescente fraco, apagando atrás do jogador.
   { x: 285, y: CEILING - 0.4, tom: "fluorescente", forca: 0.6, diesWhenPassed: true },
-  { x: 291, y: CEILING - 0.4, tom: "fluorescente", forca: 0.5, flicker: true, diesWhenPassed: true },
+  // Vão da escada: uma luminária de parede piscando no patamar.
+  { x: 291.5, y: FLOOR2 + 1.4, tom: "fluorescente", forca: 0.45, flicker: true, diesWhenPassed: true },
+  // Corredor do segundo andar: as duas lâmpadas que sobraram apagam quando ele passa.
+  { x: 298.5, y: CEILING2 - 0.4, tom: "fluorescente", forca: 0.55, diesWhenPassed: true },
+  { x: 305, y: CEILING2 - 0.4, tom: "fluorescente", forca: 0.5, flicker: true, diesWhenPassed: true },
   // O Lab. 3: a única luz quente do jogo, vazando pela porta.
-  { x: 298.4, y: FLOOR + 2.6, tom: "sala", forca: 1.25 },
-  { x: 302.3, y: FLOOR + 2.8, tom: "sala", forca: 1.1 },
-  { x: 306.4, y: FLOOR + 2.8, tom: "sala", forca: 1.1 },
+  { x: 298.4 + LAB_DX, y: FLOOR2 + 2.6, tom: "sala", forca: 1.25 },
+  { x: 302.3 + LAB_DX, y: FLOOR2 + 2.8, tom: "sala", forca: 1.1 },
+  { x: 306.4 + LAB_DX, y: FLOOR2 + 2.8, tom: "sala", forca: 1.1 },
 ];
 
 /** Guarda-corpo da passarela: corrimão, travessa do meio e montantes a cada 1,5 m. */
@@ -85,15 +106,15 @@ function farBuilding(): DecorData[] {
 /** Carteira do laboratório com o computador desligado em cima. */
 function labDesk(x: number, z: number): PropData[] {
   return [
-    { model: "SchoolDesk_01", x, y: FLOOR, z, rotY: 180 },
-    { model: "SchoolChair_01", x: x + 0.04, y: FLOOR, z: z - 0.55, rotY: 180 },
+    { model: "SchoolDesk_01", x, y: FLOOR2, z, rotY: 180 },
+    { model: "SchoolChair_01", x: x + 0.04, y: FLOOR2, z: z - 0.55, rotY: 180 },
   ];
 }
 
 function monitor(x: number, z: number): DecorData[] {
   return [
-    { x, y: FLOOR + DESK_TOP + 0.2, z: z + 0.12, width: 0.42, height: 0.28, depth: 0.04, material: "tela" },
-    { x, y: FLOOR + DESK_TOP + 0.04, z: z + 0.16, width: 0.08, height: 0.08, depth: 0.08, material: "metal" },
+    { x, y: FLOOR2 + DESK_TOP + 0.2, z: z + 0.12, width: 0.42, height: 0.28, depth: 0.04, material: "tela" },
+    { x, y: FLOOR2 + DESK_TOP + 0.04, z: z + 0.16, width: 0.08, height: 0.08, depth: 0.08, material: "metal" },
   ];
 }
 
@@ -130,13 +151,39 @@ function scaffolding(): DecorData[] {
 }
 
 const cover: BlockData = { x: COVER_X, y: FLOOR + COVER_HEIGHT / 2, width: 1, height: COVER_HEIGHT, z: COVER_Z, depth: COVER_DEPTH, hidden: true };
+const pile: BlockData = { x: (PILE_X0 + PILE_X1) / 2, y: FLOOR2 + PILE_HEIGHT / 2, width: PILE_X1 - PILE_X0, height: PILE_HEIGHT, z: 0, depth: 4, hidden: true };
+
+/** A mudança do Lab. 3 no corredor de cima: carteiras e armário deitados, caixas e cadeiras por cima. */
+function movingPile(): { decor: DecorData[]; props: PropData[] } {
+  const mid = (PILE_X0 + PILE_X1) / 2;
+  const top = FLOOR2 + PILE_HEIGHT;
+  return {
+    decor: [
+      // Armário de aço deitado na base e o tampo de uma bancada por cima: a face lisa diz "não dá para escalar".
+      { x: mid, y: FLOOR2 + 0.55, z: 0, width: PILE_X1 - PILE_X0, height: 1.1, depth: 3.4, material: "metal" },
+      { x: mid, y: FLOOR2 + 1.5, z: 0, width: PILE_X1 - PILE_X0 + 0.1, height: 0.8, depth: 3.2, material: "madeira" },
+      { x: mid, y: top - 0.02, z: 0, width: PILE_X1 - PILE_X0 + 0.15, height: 0.05, depth: 3.3, material: "madeira" },
+      // Etiqueta da mudança.
+      { x: PILE_X0 - 0.01, y: FLOOR2 + 1.5, z: -0.6, width: 0.02, height: 0.28, depth: 0.7, material: "quadro", giz: "LAB. 3" },
+    ],
+    props: [
+      { model: "SchoolChair_01", x: PILE_X0 + 0.5, y: top, z: 1.1, rotY: 70 },
+      { model: "plastic_crate_01", x: PILE_X1 - 0.5, y: top, z: 1.0, rotY: -10, fitWidth: 0.55 },
+      { model: "cardboard_box_01", x: mid, y: top, z: 1.3, rotY: 25, fitWidth: 0.5 },
+    ],
+  };
+}
+const PILE = movingPile();
 
 export const area6Level: LevelData = {
-  checkpoints: [{ x: 241, y: FLOOR + 1.2 }],
+  checkpoints: [{ x: 241, y: FLOOR + 1.2 }, { x: 296.5, y: FLOOR2 + 1.2 }],
   killY: -6,
   bounds: { minX: START, maxX: END },
   // Só o bloco C: a passarela é suspensa, e embaixo dela fica o pátio.
-  primeiroPlano: [{ x0: ENTRY_X, x1: END, y0: FLOOR }],
+  primeiroPlano: [
+    { x0: ENTRY_X, x1: STAIR_X0, y0: FLOOR },
+    { x0: STAIR_X1, x1: END, y0: FLOOR2 },
+  ],
   depth: 4,
   ambiente: [
     { minX: START, maxX: ENTRY_X, intensidade: 0.34, cor: [0.55, 0.5, 0.45] },
@@ -145,22 +192,28 @@ export const area6Level: LevelData = {
   ],
   // O professor em pé na mesa, com a lista, e o Davi sentado numa carteira com o celular na mão.
   figurantes: [
-    { modelo: "professor", x: 306.4, y: FLOOR, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.75, 0.72, 0.68], segura: "lista" },
-    { modelo: "aluno", x: 302.25, y: FLOOR, z: 0.42, rotY: 0, pose: "sentado", tom: [0.7, 0.7, 0.74], segura: "celular" },
+    { modelo: "professor", x: 306.4 + LAB_DX, y: FLOOR2, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.75, 0.72, 0.68], segura: "lista" },
+    { modelo: "aluno", x: 302.25 + LAB_DX, y: FLOOR2, z: 0.42, rotY: 0, pose: "sentado", tom: [0.7, 0.7, 0.74], segura: "celular" },
   ],
   ground: [
     // Passarela (laje fina, com o vão do pátio embaixo) e o piso do bloco C.
     { x: (START + PASS_END) / 2, y: FLOOR - 0.2, width: PASS_END - START, height: 0.4, material: "concreto" },
-    { x: (PASS_END + END + 1) / 2, y: (FLOOR - 1) / 2, width: END + 1 - PASS_END, height: FLOOR + 1, material: "piso" },
+    { x: (PASS_END + STAIR_X1) / 2, y: (FLOOR - 1) / 2, width: STAIR_X1 - PASS_END, height: FLOOR + 1, material: "piso" },
+    // O segundo andar, do alto da escada até o fim do Lab. 3.
+    { x: (STAIR_X1 + END + 1) / 2, y: (FLOOR2 - 1) / 2, width: END + 1 - STAIR_X1, height: FLOOR2 + 1, material: "piso" },
   ],
   walls: [
-    { x: END + 0.5, y: 4, width: 1, height: 8, material: "pedra" },
-    { x: (ENTRY_X + END) / 2, y: CEILING + 0.2, width: END - ENTRY_X, height: 0.4, material: "concreto" },
+    { x: END + 0.5, y: 6, width: 1, height: 12, material: "pedra" },
+    // Teto do térreo, grosso como a laje do segundo andar, até o vão da escada.
+    { x: (ENTRY_X + CEILING_END) / 2, y: (CEILING + CEILING2 + 0.4) / 2, width: CEILING_END - ENTRY_X, height: CEILING2 + 0.4 - CEILING, material: "concreto" },
+    // Teto do segundo andar, do vão da escada ao Lab. 3.
+    { x: (CEILING_END + END) / 2, y: CEILING2 + 0.2, width: END - CEILING_END, height: 0.4, material: "concreto" },
   ],
   platforms: [],
-  obstacles: [scaffold, stack, cover],
-  ramps: [],
-  boxes: [],
+  obstacles: [scaffold, stack, cover, pile],
+  ramps: [{ x0: STAIR_X0, y0: FLOOR, x1: STAIR_X1, y1: FLOOR2, steps: STAIR_STEPS, stepDepth: 4 }],
+  // O carrinho do zelador, largo e baixo, esquecido no corredor de cima.
+  boxes: [{ x: CART_X, y: FLOOR2 + 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP }],
   lamps,
   plates: [],
   doors: [],
@@ -183,7 +236,7 @@ export const area6Level: LevelData = {
     },
   ],
   elevators: [],
-  finalDoor: { x: LAB_DOOR_X, floorY: FLOOR, height: DOOR_HEIGHT, depth: 1.6, triggerX: LAB_DOOR_X - 0.6, walkToX: 301.5 },
+  finalDoor: { x: LAB_DOOR_X, floorY: FLOOR2, height: DOOR_HEIGHT, depth: 1.6, triggerX: LAB_DOOR_X - 0.6, walkToX: 301.5 + LAB_DX },
   decor: [
     // Passarela: cobertura, pilares do lado de trás, guarda-corpos e o pátio escuro lá embaixo.
     { x: (PASS_START + PASS_END) / 2, y: ROOF + 0.08, z: 0, width: PASS_END - PASS_START + 0.6, height: 0.16, depth: 4.2, material: "concreto" },
@@ -208,7 +261,7 @@ export const area6Level: LevelData = {
     { x: ENTRY_X - 0.22, y: FLOOR + DOOR_HEIGHT + 0.35, z: -0.3, width: 1.1, height: 0.32, depth: 0.04, material: "moldura", giz: "BLOCO C" },
 
     // Portaria: balcão, a TV pequena e o quadro de chaves.
-    { x: (ENTRY_X + END) / 2, y: (FLOOR + CEILING) / 2 + 0.3, z: BACK_Z + 0.05, width: END - ENTRY_X, height: CEILING - FLOOR, depth: 0.1, material: "parede" },
+    { x: (ENTRY_X + END) / 2, y: (FLOOR + CEILING2) / 2, z: BACK_Z + 0.05, width: END - ENTRY_X, height: CEILING2 - FLOOR, depth: 0.1, material: "parede" },
     { x: DESK_X + 0.3, y: FLOOR + 0.42, z: 0.95, width: 2.6, height: 0.84, depth: 0.12, material: "madeira" },
     { x: DESK_X + 0.3, y: FLOOR + 0.86, z: 1.2, width: 2.7, height: 0.05, depth: 0.6, material: "madeira" },
     { x: TV_X, y: FLOOR + 1.08, z: 1.35, width: 0.5, height: 0.34, depth: 0.12, material: "metal" },
@@ -216,26 +269,30 @@ export const area6Level: LevelData = {
     { x: DESK_X - 1.4, y: FLOOR + 1.6, z: BACK_Z - 0.03, width: 0.5, height: 0.6, depth: 0.04, material: "madeira" },
     { x: 272, y: FLOOR + 1.9, z: BACK_Z - 0.04, width: 1.2, height: 0.5, depth: 0.03, material: "quadro", giz: "Portaria\nBloco C" },
 
-    // Corredor do bloco C: portas de outras salas fechadas e um mural.
-    ...[285.5, 290.5].flatMap((x): DecorData[] => [
-      { x, y: FLOOR + 1.1, z: BACK_Z - 0.03, width: 1.0, height: 2.2, depth: 0.05, material: "madeira" },
-      { x: x + 0.18, y: FLOOR + 1.55, z: BACK_Z - 0.06, width: 0.3, height: 0.5, depth: 0.02, material: "janela" },
+    // Corredor do bloco C: portas de outras salas fechadas, nos dois andares.
+    ...([[285.5, FLOOR], [300.5, FLOOR2]] as const).flatMap(([x, floor]): DecorData[] => [
+      { x, y: floor + 1.1, z: BACK_Z - 0.03, width: 1.0, height: 2.2, depth: 0.05, material: "madeira" },
+      { x: x + 0.18, y: floor + 1.55, z: BACK_Z - 0.06, width: 0.3, height: 0.5, depth: 0.02, material: "janela" },
     ]),
-    { x: 293.5, y: CEILING - 0.35, z: BACK_Z - 0.06, width: 0.42, height: 0.16, depth: 0.04, material: "saida" },
-    { x: 294.6, y: FLOOR + 1.85, z: BACK_Z - 0.05, width: 0.6, height: 0.22, depth: 0.03, material: "quadro", giz: "LAB. 3" },
+    // Pé da escada: a placa com a seta para cima diz onde fica o laboratório.
+    { x: STAIR_X0 - 0.6, y: FLOOR + 1.85, z: BACK_Z - 0.05, width: 0.8, height: 0.42, depth: 0.03, material: "quadro", giz: "LAB. 3\n2º andar" },
+    { x: 309.5, y: CEILING2 - 0.35, z: BACK_Z - 0.06, width: 0.42, height: 0.16, depth: 0.04, material: "saida" },
+    { x: 311.6, y: FLOOR2 + 1.85, z: BACK_Z - 0.05, width: 0.6, height: 0.22, depth: 0.03, material: "quadro", giz: "LAB. 3" },
+    // A mudança empilhada.
+    ...PILE.decor,
 
     // Porta do Lab. 3 e o laboratório.
-    { x: LAB_DOOR_X, y: (FLOOR + DOOR_HEIGHT + CEILING) / 2, z: 0, width: 0.3, height: CEILING - FLOOR - DOOR_HEIGHT, depth: 4, material: "parede" },
-    { x: LAB_DOOR_X, y: FLOOR + DOOR_HEIGHT / 2, z: -1.85, width: 0.35, height: DOOR_HEIGHT, depth: 0.5, material: "moldura" },
-    { x: LAB_DOOR_X, y: FLOOR + DOOR_HEIGHT / 2, z: 1.2, width: 0.35, height: DOOR_HEIGHT, depth: 1.8, material: "parede" },
-    { x: (LAB_DOOR_X + END) / 2, y: FLOOR + 0.6, z: BACK_Z, width: END - LAB_DOOR_X, height: 1.2, depth: 0.1, material: "madeira" },
-    { x: 303.5, y: FLOOR + 2, z: BACK_Z - 0.06, width: 3.2, height: 1.3, depth: 0.05, material: "quadro" },
-    { x: 303.5, y: FLOOR + 1.3, z: BACK_Z - 0.12, width: 3.3, height: 0.06, depth: 0.12, material: "moldura" },
-    { x: 307.6, y: FLOOR + 2.06, z: BACK_Z - 0.04, width: 0.95, height: 1.6, depth: 0.02, material: "luar" },
+    { x: LAB_DOOR_X, y: (FLOOR2 + DOOR_HEIGHT + CEILING2) / 2, z: 0, width: 0.3, height: CEILING2 - FLOOR2 - DOOR_HEIGHT, depth: 4, material: "parede" },
+    { x: LAB_DOOR_X, y: FLOOR2 + DOOR_HEIGHT / 2, z: -1.85, width: 0.35, height: DOOR_HEIGHT, depth: 0.5, material: "moldura" },
+    { x: LAB_DOOR_X, y: FLOOR2 + DOOR_HEIGHT / 2, z: 1.2, width: 0.35, height: DOOR_HEIGHT, depth: 1.8, material: "parede" },
+    { x: (LAB_DOOR_X + END) / 2, y: FLOOR2 + 0.6, z: BACK_Z, width: END - LAB_DOOR_X, height: 1.2, depth: 0.1, material: "madeira" },
+    { x: 303.5 + LAB_DX, y: FLOOR2 + 2, z: BACK_Z - 0.06, width: 3.2, height: 1.3, depth: 0.05, material: "quadro" },
+    { x: 303.5 + LAB_DX, y: FLOOR2 + 1.3, z: BACK_Z - 0.12, width: 3.3, height: 0.06, depth: 0.12, material: "moldura" },
+    { x: 307.6 + LAB_DX, y: FLOOR2 + 2.06, z: BACK_Z - 0.04, width: 0.95, height: 1.6, depth: 0.02, material: "luar" },
     // Narrativa: a prova esperando na carteira vazia do Zacarias, e a mochila do Davi.
-    { x: 302.2, y: FLOOR + DESK_TOP, z: -1.45, width: 0.3, height: 0.005, depth: 0.22, material: "papel" },
-    { x: 302.62, y: FLOOR + 0.21, z: -1.95, width: 0.34, height: 0.42, depth: 0.2, material: "tecido" },
-    ...[299.8, 302.2, 304.6].flatMap((x) => [...monitor(x, -1.45), ...monitor(x, 1.0)]),
+    { x: 302.2 + LAB_DX, y: FLOOR2 + DESK_TOP, z: -1.45, width: 0.3, height: 0.005, depth: 0.22, material: "papel" },
+    { x: 302.62 + LAB_DX, y: FLOOR2 + 0.21, z: -1.95, width: 0.34, height: 0.42, depth: 0.2, material: "tecido" },
+    ...[299.8, 302.2, 304.6].flatMap((x) => [...monitor(x + LAB_DX, -1.45), ...monitor(x + LAB_DX, 1.0)]),
   ],
   props: [
     // Passarela: as carteiras empilhadas e as caixas da mudança.
@@ -250,11 +307,14 @@ export const area6Level: LevelData = {
     { model: "SchoolChair_01", x: DESK_X, y: FLOOR, z: GUARD_Z + 0.08, rotY: 0 },
     ...CARDBOARD_VISUAL.map((prop): PropData => ({ ...prop, x: COVER_X + prop.x * 2, z: COVER_Z + prop.z, fitWidth: (prop.fitWidth ?? 0.48) * 1.0, y: FLOOR + prop.y * 1.45 })),
     { model: "fire_hydrant", x: 283, y: FLOOR, z: 1.85, fitHeight: 0.6 },
-    ...[271, 285, 291].map((x) => fluorescent(x, CEILING - 0.01)),
+    ...[271, 285].map((x) => fluorescent(x, CEILING - 0.01)),
+    ...[298.5, 305].map((x) => fluorescent(x, CEILING2 - 0.01)),
+    // A mudança empilhada no corredor de cima.
+    ...PILE.props,
     // Lab. 3: carteiras com computador, mesa do professor e a janela do fundo.
-    ...[299.8, 302.2, 304.6].flatMap((x) => [...labDesk(x, -1.45), ...labDesk(x, 1.0)]),
-    { model: "metal_office_desk", x: 306.8, y: FLOOR, z: 1.45, rotY: 180, scale: 0.8 },
-    { model: "SchoolChair_01", x: 307.7, y: FLOOR, z: 1.85, rotY: 35 },
-    ...moonWindow(307.6, FLOOR + 1.2, BACK_Z),
+    ...[299.8, 302.2, 304.6].flatMap((x) => [...labDesk(x + LAB_DX, -1.45), ...labDesk(x + LAB_DX, 1.0)]),
+    { model: "metal_office_desk", x: 306.8 + LAB_DX, y: FLOOR2, z: 1.45, rotY: 180, scale: 0.8 },
+    { model: "SchoolChair_01", x: 307.7 + LAB_DX, y: FLOOR2, z: 1.85, rotY: 35 },
+    ...moonWindow(307.6 + LAB_DX, FLOOR2 + 1.2, BACK_Z),
   ],
 };

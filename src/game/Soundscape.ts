@@ -128,7 +128,7 @@ export class Soundscape {
     if (this.stepTimer > 0) return;
     this.stepTimer = STEP_INTERVAL;
     this.stepIndex = (this.stepIndex + 1) % STEPS.length;
-    this.sfx.play(STEPS[this.stepIndex], { volume: 0.45, pitchJitter: 0.06 });
+    this.sfx.play(STEPS[this.stepIndex], { volume: 0.6, pitchJitter: 0.06 });
   }
 
   private updatePush(dt: number, pushing: boolean): void {

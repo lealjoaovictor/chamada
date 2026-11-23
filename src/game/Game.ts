@@ -65,8 +65,9 @@ const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
-// Final bom: depois de o professor chamar, o jogador tem ~4 s para responder "presente" (contados do fim da fala).
-const ANSWER_WINDOW = 4;
+// Final bom: depois de o professor chamar, o jogador pode responder "presente" com qualquer botão;
+// se não apertar em ~2 s (contados do fim da fala), o Zacarias responde sozinho.
+const ANSWER_WINDOW = 2;
 const ANSWER_EARLIEST = 0.5;
 const CUT_AFTER_ANSWER = 1.3;
 // Final ruim: o nome, o silêncio, "...ele chamou" e a caneta, depois escurece.
@@ -582,14 +583,13 @@ export class Game {
         this.telemetry.finish("bom");
       }
     } else if (this.cutAt < 0) {
-      // Qualquer botão: "presente". Sem resposta em ~4 s, corta em silêncio.
+      // Qualquer botão: "presente". Sem botão em ~2 s, ele responde sozinho.
       const pressed = this.input.consumeAnyPress();
-      if (this.arrivalTimer >= this.answerFrom && pressed) {
-        this.clock.answer();
-        this.roomCaption.show(CHAMADA.falas.zacariasPresente.texto, CUT_AFTER_ANSWER);
-        this.cutAt = this.arrivalTimer + CUT_AFTER_ANSWER;
-      } else if (this.arrivalTimer > this.answerUntil) {
-        this.cutAt = this.arrivalTimer;
+      if ((this.arrivalTimer >= this.answerFrom && pressed) || this.arrivalTimer > this.answerUntil) {
+        // O corte espera a fala acabar, para o "Presente!" não sumir no preto.
+        const hold = Math.max(CUT_AFTER_ANSWER, this.clock.answer() + 0.3);
+        this.roomCaption.show(CHAMADA.falas.zacariasPresente.texto, hold);
+        this.cutAt = this.arrivalTimer + hold;
       }
     } else if (this.arrivalTimer >= this.cutAt) {
       // Corte seco para preto.

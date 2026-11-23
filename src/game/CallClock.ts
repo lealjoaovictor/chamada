@@ -276,9 +276,9 @@ export class CallClock {
     return this.clips.get(fala.id)?.duration ?? 1.4;
   }
 
-  /** O jogador respondeu: "presente". */
-  answer(): void {
-    this.playFala(this.data.falas.zacariasPresente, "ao-vivo", 0.05, 1);
+  /** O jogador respondeu: "presente". Devolve quando a fala termina, contando o atraso. */
+  answer(): number {
+    return 0.05 + this.playFala(this.data.falas.zacariasPresente, "ao-vivo", 0.05, 1);
   }
 
   /** Corte para preto: tudo em silêncio. */

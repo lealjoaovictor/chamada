@@ -5,6 +5,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { SpotLight } from "@babylonjs/core/Lights/spotLight";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { Material } from "@babylonjs/core/Materials/material";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
@@ -37,10 +38,14 @@ import { applyWorldUVs } from "./WorldUV";
 import { Props } from "./Props";
 import { Kit } from "./Kit";
 import { createBackdrop } from "./Backdrop";
+import { createSkyline } from "./Skyline";
+import { createRails, createWires } from "./Wiring";
 import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
+import { Music, type MusicScene } from "./Music";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
+import { PauseMenu, pauseButton } from "../ui/PauseMenu";
 import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
 import { CallScreen } from "../ui/CallScreen";
 import { CallClock } from "./CallClock";
@@ -65,7 +70,20 @@ const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
 const LIGHT_CULL_DISTANCE = 17;
+// Brilho alaranjado de cidade grande no horizonte (iluminação pública de vapor de sódio).
+const CITY_GLOW = new Color3(0.2, 0.15, 0.14);
+const DEFAULT_FOG: [number, number, number] = [VISUAL.background.r, VISUAL.background.g, VISUAL.background.b];
 const MAX_LIGHTS_PER_MATERIAL = 8;
+// Blocos de uniforms que o material usa além das luzes (cena, malha, material e um de folga).
+const NON_LIGHT_UNIFORM_BLOCKS = 4;
+
+/** Quantas luzes cabem num material nesta placa de vídeo, pelo limite de blocos de uniforms do vertex shader. */
+function lightBudget(engine: AbstractEngine): number {
+  const gl = (engine as AbstractEngine & { _gl?: WebGL2RenderingContext })._gl;
+  const blocks = gl && "MAX_VERTEX_UNIFORM_BLOCKS" in gl ? Number(gl.getParameter(gl.MAX_VERTEX_UNIFORM_BLOCKS)) : 0;
+  if (!blocks) return MAX_LIGHTS_PER_MATERIAL;
+  return Math.max(1, blocks - NON_LIGHT_UNIFORM_BLOCKS);
+}
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
 // Letra de giz dos quadros e placas (Caveat, licença OFL, em `public/fonts`).
@@ -99,6 +117,10 @@ const GUARD_VOICE_RANGE = 22;
 const HABIT_SOUND_RANGE = 16;
 /** Pulo que cai depois de tanto tempo no ar faz barulho (o segurança do cochilo ouve). */
 const LANDING_NOISE_AIR = 0.28;
+// Música: até onde a proximidade de um segurança já pesa (m) e quanto ela pesa sem ele ter visto nada.
+const MUSIC_TENSION_RANGE = 14;
+const MUSIC_TENSION_NEAR = 0.55;
+const MUSIC_CHASE_RANGE = 12;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -136,6 +158,7 @@ export class Game {
   private emptyRoomNextAt = -1;
   private arrivalTimer = 0;
   private readonly menu = new MenuScreen();
+  private pauseMenu!: PauseMenu;
   private readonly endScreen = new EndScreen();
   private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
@@ -164,6 +187,7 @@ export class Game {
   private readonly guardSounds = new GuardSounds(this.sfx);
   private airTime = 0;
   private wasSliding = false;
+  private readonly music = new Music(this.sfx);
   private player!: Player;
   private cameraRig!: CameraRig;
   private checkpoints!: Checkpoints;
@@ -194,6 +218,40 @@ export class Game {
       }
     };
     for (const type of ["pointerdown", "touchend", "keydown"]) window.addEventListener(type, unlock, { capture: true });
+    if (mode) pauseButton(() => this.togglePause());
+    // Trocar de aba ou de janela no meio da partida pausa (o relógio da chamada não corre sozinho).
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && !this.pauseMenu?.isOpen) this.togglePause();
+    });
+  }
+
+  /** Abre ou fecha o menu de pausa; só pausa no meio da partida. */
+  private togglePause(): void {
+    if (!this.pauseMenu) return;
+    if (this.pauseMenu.isOpen) {
+      this.pauseMenu.close();
+      this.sfx.setPaused(false);
+      this.input.releaseAll();
+      if (!this.gym) document.body.style.cursor = "none";
+      return;
+    }
+    if (this.state !== "jogando") return;
+    this.input.releaseAll();
+    this.sfx.setPaused(true);
+    this.pauseMenu.open();
+  }
+
+  /** Volta ao último checkpoint pelo menu de pausa: mesmo caminho de ser pego, sem contar como morte. */
+  private returnToCheckpoint(): void {
+    if (this.state !== "jogando") return;
+    this.fadeOut = DEATH_FADE_OUT;
+    this.fadeIn = DEATH_FADE_IN;
+    this.hold = 0;
+    this.soundscape.forget();
+    this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.state = "morto";
+    this.deathTimer = 0;
+    this.respawned = false;
   }
 
   static async create(engine: AbstractEngine): Promise<Game> {
@@ -211,7 +269,7 @@ export class Game {
     const clockStart = Number(params.get("chamada"));
     if (clockStart > 0) game.clock.setTime(clockStart);
     game.telemetry = new Telemetry(game.startArea);
-    await Promise.all([game.load(level), game.sfx.load()]);
+    await Promise.all([game.load(level), game.sfx.load(), game.music.load()]);
     await game.clock.load();
     if (params.get("telemetria") === "1") {
       (window as unknown as { chamadaDebug: () => unknown }).chamadaDebug = () => ({
@@ -222,6 +280,14 @@ export class Game {
       });
     }
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
+    game.pauseMenu = new PauseMenu(game.sfx, {
+      resume: () => game.togglePause(),
+      checkpoint: () => {
+        game.togglePause();
+        game.returnToCheckpoint();
+      },
+      restart: () => location.reload(),
+    });
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
     if (gym && game.vigias[0]) {
       const { GymPanel } = await import("../dev/GymPanel");
@@ -246,6 +312,12 @@ export class Game {
   }
 
   render(): void {
+    // Pausado, a cena não é desenhada (física, animações e luzes ficam paradas); só o teclado e o controle são
+    // lidos, para despausar com Esc ou Start.
+    if (this.pauseMenu?.isOpen) {
+      this.update();
+      return;
+    }
     this.scene.render();
   }
 
@@ -342,6 +414,9 @@ export class Game {
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
     PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
+    for (const trecho of level.cidade ?? []) createSkyline(scene, trecho.minX, trecho.maxX, VISUAL.background.scale(0.55), CITY_GLOW);
+    createWires(scene, level.fios ?? []);
+    createRails(scene, level.grades ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
     if (VISUAL.dust) createDust(scene, level.lamps);
@@ -357,9 +432,18 @@ export class Game {
       }
     }
 
-    for (const material of scene.materials) {
-      if (material instanceof StandardMaterial) material.maxSimultaneousLights = MAX_LIGHTS_PER_MATERIAL;
-    }
+    // Cada luz ocupa um bloco de uniforms no shader. Placas que aceitam menos blocos (comum no Windows, onde o
+    // navegador traduz o WebGL para DirectX) não compilam o material com luzes demais, e o carregamento travava
+    // esperando um shader que nunca fica pronto. Por isso o limite de luzes por material segue o limite da placa.
+    const lightCap = lightBudget(scene.getEngine());
+    const capLights = (material: Material): void => {
+      const lit = material as Material & { maxSimultaneousLights?: number };
+      if (typeof lit.maxSimultaneousLights !== "number") return;
+      if (material instanceof StandardMaterial) lit.maxSimultaneousLights = Math.min(MAX_LIGHTS_PER_MATERIAL, lightCap);
+      else if (lit.maxSimultaneousLights > lightCap) lit.maxSimultaneousLights = lightCap;
+    };
+    scene.materials.forEach(capLights);
+    scene.onNewMaterialAddedObservable.add(capLights);
 
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
@@ -399,6 +483,13 @@ export class Game {
     const realDt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
     const dt = Math.min(realDt, MAX_DT);
     this.input.update();
+    if (this.input.pausePressed()) this.togglePause();
+    if (this.pauseMenu.isOpen) {
+      // Tudo parado: relógio da chamada, seguranças, física e animações.
+      this.input.consumeAnyPress();
+      this.input.endFrame();
+      return;
+    }
     const area = areaAt(this.player.position.x);
     const running = this.state === "jogando" || this.state === "morto";
     this.clock.update(realDt, area, running, this.salaProximity(area));
@@ -414,6 +505,7 @@ export class Game {
     this.updateGuardHabits(dt);
     this.announceChases();
     this.updateElevators(dt);
+    this.music.update(realDt, this.musicState(area));
     if (this.state === "menu") {
       this.updateMenu(dt);
       this.input.endFrame();
@@ -471,6 +563,12 @@ export class Game {
         c.g += (zone.cor[1] - c.g) * k;
         c.b += (zone.cor[2] - c.b) * k;
       }
+      // Névoa por trecho: lá fora puxa para o brilho da cidade; nas outras áreas volta ao tom padrão.
+      const fog = zone?.nevoa ?? DEFAULT_FOG;
+      const f = this.scene.fogColor;
+      f.r += (fog[0] - f.r) * k;
+      f.g += (fog[1] - f.g) * k;
+      f.b += (fog[2] - f.b) * k;
     }
     this.player.setCrouch((this.level.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.setGrip(this.pushTimer > 0 ? this.gripPoint() : null);
@@ -621,6 +719,41 @@ export class Game {
     this.cullLights();
   }
 
+  private musicState(area: number) {
+    const px = this.player.position.x;
+    let tension = 0;
+    let chase = 0;
+    let suspicious = false;
+    for (const vigia of this.vigias) {
+      if (!vigia.shown) continue;
+      const distance = Math.abs(vigia.positionX - px);
+      if (vigia.chasing) {
+        chase = Math.max(chase, 0.05, 1 - distance / MUSIC_CHASE_RANGE);
+        continue;
+      }
+      if (vigia.chases) continue;
+      tension = Math.max(tension, MUSIC_TENSION_NEAR * Math.max(0, 1 - distance / MUSIC_TENSION_RANGE), vigia.alertLevel);
+      if (vigia.suspicious) suspicious = true;
+    }
+    const scenes: Record<GameState, MusicScene> = {
+      menu: "menu",
+      jogando: "jogo",
+      morto: "pego",
+      chegada: "chegada",
+      fim: "fim",
+      atrasado: "atrasado",
+      "sala-vazia": "jogo",
+    };
+    return {
+      scene: scenes[this.state],
+      area,
+      tension,
+      suspicious,
+      chase,
+      colegaSpeaking: this.clock.colegaSpeaking,
+    };
+  }
+
   private soundState() {
     return {
       playerX: this.player.position.x,
@@ -678,8 +811,9 @@ export class Game {
         this.cutAt = this.arrivalTimer + hold;
       }
     } else if (this.arrivalTimer >= this.cutAt) {
-      // Corte seco para preto.
+      // Corte seco para preto; o tema volta, quente.
       this.fade.set(1);
+      this.music.playFinal();
       this.roomCaption.hide();
       this.clock.silence();
       this.updateEndScreen(this.endScreen, this.cutAt + END_FADE);

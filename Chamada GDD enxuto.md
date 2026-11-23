@@ -1,14 +1,14 @@
 # Chamada: GDD enxuto
 
-Versão 3.1 · Nov 23, 2026 (v3 de 22/11: faculdade noturna realista, chamada ouvida por uma ligação do colega, seguranças no lugar do Vigia; corredor em laço e vultos removidos. v3.1: uma ordem de corte só, congelamento em 24/11, vozes no ElevenLabs, legenda do nome lido, modelos do final e plano B da apresentação)
+Versão 3.1 (v3: faculdade noturna realista, chamada ouvida por uma ligação do colega, seguranças no lugar do Vigia; corredor em laço e vultos removidos. v3.1: uma ordem de corte só, congelamento de features, vozes no ElevenLabs, legenda do nome lido, modelos do final e plano B da apresentação)
 
 ## Visão geral
 
 Chamada é um jogo de plataforma e puzzle 2.5D de no máximo 8 minutos em que um aluno atravessa à noite uma faculdade que está fechando para chegar à sala antes que o professor leia o nome dele na chamada.
 
 - **Gênero:** plataforma e puzzle 2.5D (mundo 3D, câmera lateral), um jogador.
-- **Plataforma:** navegador, rodando localmente no MacBook Air (M1) da apresentação, com Babylon.js. Teclado ou controle conectado ao computador. Decisão de 2026-11-23: o alvo é o computador; o celular deixou de ser plataforma.
-- **Duração:** no máximo 8 minutos (decisão de 2026-11-22). O relógio termina em 7min50; a primeira partida deve levar de 5 a 6 minutos, com cerca de 2 minutos de folga para quem joga bem (a calibrar nos testes com a telemetria).
+- **Plataforma:** navegador, rodando localmente no MacBook Air (M1) da apresentação, com Babylon.js. Teclado ou controle conectado ao computador. O alvo é o computador; o celular deixou de ser plataforma.
+- **Duração:** no máximo 8 minutos. O relógio termina em 7min50; a primeira partida deve levar de 5 a 6 minutos, com cerca de 2 minutos de folga para quem joga bem (a calibrar nos testes com a telemetria).
 - **Referências:** INSIDE (clima, perseguição, narrativa pelo cenário) e SpeedRunners (pressão que empurra o jogador para frente, movimento fluido).
 
 Pilares:
@@ -88,7 +88,7 @@ Cada tipo tem 3 variações sorteadas, sem repetir a anterior, e às vezes nenhu
 | Área | Comportamento | Regra |
 | --- | --- | --- |
 | 1 (guarita) | Segurança na guarita, primeiro encontro. | Ser visto é ser pego. Vans e a guarita servem de cobertura. |
-| 2 (corredor) | Segurança fazendo a ronda num recuo do corredor, que já apagou metade das luzes (decisão de 2026-11-23, para alongar a fase). | Ser visto é ser pego, e ele reage rápido: quem passa correndo na frente dele é pego. Dois pilares servem de cobertura. |
+| 2 (corredor) | Segurança fazendo a ronda num recuo do corredor, que já apagou metade das luzes (para alongar a fase). | Ser visto é ser pego, e ele reage rápido: quem passa correndo na frente dele é pego. Dois pilares servem de cobertura. |
 | 3 (biblioteca) | Ronda em linha reta entre dois pontos, com cone de luz da lanterna; na sala de leitura, um de guarda que vai ver de onde veio o barulho; no acervo, dois em rondas que se cruzam. | Ficar no cone é ser pego. O jogador passa quando o segurança está de costas ou atrás das estantes. |
 | 4 (subsolo) | Um segurança corre atrás do jogador por um corredor longo, em velocidade elástica: acelera quando o jogador abre distância e alivia quando ele erra. | Ser alcançado é ser pego. Duas perseguições com obstáculos em ritmo irregular, separadas por um depósito com sensor e valeta. |
 
@@ -121,7 +121,7 @@ O visual vem da atmosfera, não da quantidade de detalhe: formas simples, escuri
 
 ## Direção de áudio
 
-O som carrega metade do clima. **Decisão (2026-11-23): todas as vozes são geradas no ElevenLabs** (professor, colega, seguranças, alunos e o "presente" do Zacarias), porque dá para regravar uma fala em minutos se o tempo da chamada mudar e as vozes ficam consistentes.
+O som carrega metade do clima. **Decisão: todas as vozes são geradas no ElevenLabs** (professor, colega, seguranças, alunos e o "presente" do Zacarias), porque dá para regravar uma fala em minutos se o tempo da chamada mudar e as vozes ficam consistentes.
 
 - **Voz da chamada:** text-to-speech gravado limpo. O jogo aplica o filtro de telefone (faixa de 300 a 3.400 Hz, compressão e leve distorção). Dentro da ligação há dois planos: o colega perto do microfone, sussurrado e seco, e o professor ao fundo, mais baixo, com eco de sala. No subsolo, picotes e chiado; na área 5, a voz real do professor sem filtro. É a faixa que serve de relógio.
 - **Falas do colega:** 13 falas sussurradas (ElevenLabs v3 com marcação de sussurro), mais "...ele chamou" do final ruim e o "presente" do Zacarias no final bom.
@@ -133,11 +133,9 @@ O som carrega metade do clima. **Decisão (2026-11-23): todas as vozes são gera
 
 ## Escopo, cronograma e ordem de corte
 
-Sete dias, uma pessoa com IA, e a semana termina com uma fase curta e polida em vez de um jogo grande e incompleto.
+Prazo curto e equipe pequena com IA: melhor uma fase curta e polida do que um jogo grande e incompleto.
 
-&#91;embedded content: cronograma · 7 dias, 3 marcos\]
-
-**Congelamento (decisão de 2026-11-23):** features congeladas na noite de 24/11; o dia 25/11 é só para corrigir bugs e entregar.
+**Congelamento:** features congeladas antes da entrega; a reta final é só para corrigir bugs e entregar.
 
 **Mínimo da v3 (entra de qualquer jeito):** relógio novo pela ligação do colega, seguranças no lugar do Vigia e os dois finais. A conversa de fundo dos alunos e o sinal picotando no subsolo são os primeiros a sair se faltar tempo.
 
@@ -160,8 +158,8 @@ O jogo está pronto quando uma pessoa de fora consegue jogá-lo do menu ao final
 - [ ] Os finais bom e ruim funcionam, e o jogo reinicia depois de ambos.
 - [ ] A voz da chamada acompanha o tempo real e o nome final chega na hora certa.
 - [ ] Roda a 60 quadros por segundo estáveis no Mac da apresentação.
-- [ ] Plano B: vídeo de uma partida completa gravado na véspera da apresentação (23 ou 24/11).
-- [ ] Pelo menos duas pessoas de fora jogaram uma vez, sem ajuda, a partir do dia 6, com anotações de onde morreram demais ou se perderam.
+- [ ] Plano B: vídeo de uma partida completa gravado na véspera da apresentação.
+- [ ] Pelo menos duas pessoas de fora jogaram uma vez, sem ajuda, na reta final, com anotações de onde morreram demais ou se perderam.
 - [ ] A tabela de licenças cobre todos os assets e áudios.
 
-Marcos de controle: **protótipo pronto** (feito em 21/11), **congelamento de features** na noite de 24/11 e **versão final** em 25/11.
+Marcos de controle: **protótipo pronto**, **congelamento de features** e **versão final**.

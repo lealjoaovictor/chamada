@@ -34,9 +34,9 @@ PERFIS = {
             ("sentado", "Sitting Idle.fbx", False),
             ("torcer", "Cheering While Sitting.fbx", False),
             ("reclamar", "Sitting Yell.fbx", False),
+            ("mao_na_cabeca", "Sitting Hands On Head.fbx", False),
             ("celular_andar", "Walking While Texting.fbx", True),
             ("celular_parado", "Texting While Standing.fbx", False),
-            ("mao_na_cabeca", "Sitting Hands On Head.fbx", False),
             ("cochilando", "Sitting Head In Hands.fbx", False),
             ("susto", "Sitting Yell Up.fbx", False),
             ("levantar", "Stand Up.fbx", False),
@@ -49,6 +49,7 @@ PERFIS = {
         "Joe.fbx",
         [
             ("parado", "Idle.fbx", False),
+            ("andar", "Walking.fbx", True),
         ],
         [],
     ),
@@ -57,6 +58,7 @@ PERFIS = {
         "David.fbx",
         [
             ("parado", "Idle.fbx", False),
+            ("andar", "Walking.fbx", True),
         ],
         [],
     ),
@@ -86,6 +88,14 @@ def travar_no_lugar(acao, slot):
                 chave.co[1] = inicio
                 chave.handle_left[1] = inicio
                 chave.handle_right[1] = inicio
+
+
+def padronizar_ossos(armature):
+    """Alguns personagens do Mixamo vêm com "mixamorig7:" ou "mixamorig10:"; o jogo e as animações usam "mixamorig:"."""
+    for osso in armature.data.bones:
+        prefixo, _, nome = osso.name.partition(":")
+        if nome and prefixo.startswith("mixamorig") and prefixo != "mixamorig":
+            osso.name = "mixamorig:" + nome
 
 
 def simplificar_materiais(objetos):
@@ -209,6 +219,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     personagem, objetos = importar(PERSONAGEM)
     malhas = [o for o in objetos if o.type == "MESH"]
+    padronizar_ossos(personagem)
     simplificar_materiais(objetos)
     if "mochila" in ACESSORIOS:
         mochila(personagem, malhas)

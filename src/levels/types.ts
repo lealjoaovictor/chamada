@@ -22,7 +22,8 @@ export type MaterialName =
   | "tecido"
   | "tela"
   | "interior"
-  | "janela-acesa" | "saida";
+  | "janela-acesa" | "saida"
+  | "sinal";
 
 export type ModelName = "estante-1" | "estante-2" | "estante-3";
 
@@ -124,6 +125,8 @@ export interface AmbientZone {
   maxX: number;
   intensidade: number;
   cor: [number, number, number];
+  /** Cor da névoa no trecho (ex.: brilho alaranjado de cidade à noite). Fora das zonas, vale a do visual. */
+  nevoa?: [number, number, number];
 }
 
 export interface PlateData {
@@ -237,20 +240,26 @@ export interface LevelData {
   escuro?: { minX: number; maxX: number }[];
   /** Luz ambiente por trecho (o prédio apagando aos poucos). Fora de todas, vale o padrão do visual. */
   ambiente?: AmbientZone[];
+  /** Trechos ao ar livre com silhueta de cidade no horizonte. */
+  cidade?: { minX: number; maxX: number }[];
+  /** Fios elétricos (curva pendurada entre dois pontos). */
+  fios?: WireData[];
+  /** Grades baixas de ferro (barras verticais com corrimão), só decoração. */
+  grades?: RailData[];
   figurantes?: FiguranteData[];
   /** Silhuetas de outros alunos que somem quando o jogador se aproxima. */
   vultos?: VultoData[];
 }
 
-/** Pessoa parada em cena (professor e colega no final), feita com os bonecos do Mixamo do jogo. */
+/** Pessoa parada em cena (professor e colega no final), feita com personagens do Mixamo. */
 export interface FiguranteData {
-  modelo: "personagem" | "vigia";
+  modelo: "personagem" | "vigia" | "professor" | "aluno";
   x: number;
   y: number;
   z: number;
   rotY?: number;
   pose: "em-pe" | "sentado";
-  /** Cor do boneco (um tom diferente do Zacarias e dos seguranças). */
+  /** Quanto escurece a textura do personagem (1 = textura original). */
   tom: [number, number, number];
   segura?: "lista" | "celular";
 }
@@ -386,4 +395,21 @@ export interface CallData {
 export interface AreaData {
   numero: number;
   inicioX: number;
+}
+
+/** Fio elétrico pendurado entre `a` e `b` (x, y, z), com a barriga no meio descendo `sag` metros. */
+export interface WireData {
+  a: [number, number, number];
+  b: [number, number, number];
+  sag: number;
+  /** Espessura do fio (m). Mais grosso no primeiro plano, para não sumir na tela. */
+  thickness?: number;
+}
+
+/** Grade baixa de ferro de x0 a x1, no plano z. */
+export interface RailData {
+  x0: number;
+  x1: number;
+  z: number;
+  height: number;
 }

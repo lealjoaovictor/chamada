@@ -1,7 +1,6 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
 import {
   CharacterSupportedState,
@@ -18,6 +17,7 @@ import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
 import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
+import { dressCharacter } from "./characterLook";
 import { HandIK, type HandTarget } from "./HandIK";
 
 const MOVE_SPEED = 4.5;
@@ -43,7 +43,8 @@ const CROUCH_BLEND = 4;
 const CROUCH_ANIM_THRESHOLD = 0.5;
 
 const MODEL_URL = modelFile("personagem");
-const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
+/** Escurece a textura do Bryce (Zacarias) para ele não brilhar mais que o cenário. */
+const MODEL_TINT = new Color3(0.62, 0.62, 0.66);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
 const WALK_CLIP_SPEED = 5.3;
@@ -56,6 +57,8 @@ const FALL_CLIP_START = 1.1;
 const SLIDE_CLIP_DURATION = 1.57;
 const SLIDE_CLIP_START = 0.15;
 const SLIDE_CLIP_LOW = 0.75;
+// Quadros antes do fim em que pulo e deslize ficam parados (o grupo nunca chega a terminar).
+const CLIP_HOLD_MARGIN = 0.5;
 // Descida de rampa: Zacarias escorrega de pés por uma rampa íngreme (garagem, rampa de metal) usando o mesmo
 // "Running Slide": entra na pose deitada, segura enquanto desce e, no fim da rampa, toca o trecho em que o
 // clipe levanta e volta a correr. Escadas são rampas escondidas e não contam.
@@ -125,6 +128,8 @@ export class Player {
   private rampSlope = 0;
   private rampSurfaceY = 0;
   private rampTilt = 0;
+  // Quadro final de cada clipe de uma vez só (pulo e deslize), para segurar a pose quando ele acaba.
+  private readonly clipEnds = new Map<AnimName, number>();
   private readonly scene: Scene;
   private readonly ray = new PhysicsRaycastResult();
   meshes: AbstractMesh[] = [];
@@ -164,16 +169,8 @@ export class Player {
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
     const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("player-visual", scene);
-    const material = new StandardMaterial("player-mat", scene);
-    material.diffuseColor = MODEL_COLOR;
-    material.specularColor = Color3.Black();
-    for (const mesh of result.meshes) {
-      if (!mesh.parent) mesh.parent = visual;
-      if (mesh.material) {
-        mesh.material.dispose();
-        mesh.material = material;
-      }
-    }
+    for (const mesh of result.meshes) if (!mesh.parent) mesh.parent = visual;
+    dressCharacter(result.meshes, scene, "player", MODEL_TINT);
     const anims = new Map<AnimName, AnimationGroup>();
     for (const group of result.animationGroups) {
       group.stop();
@@ -459,7 +456,7 @@ export class Player {
     const hold = this.slideFrame(group, RAMP_ENTER_CLIP_END);
     const frame = group.animatables[0]?.masterFrame ?? hold;
     if (frame < hold && this.rampTimer < RAMP_ENTER_TIME && group.isPlaying) return;
-    if (!group.isStarted) group.start(false, 1, hold, this.slideFrame(group, RAMP_GETUP_CLIP_END));
+    if (!group.isStarted) this.playOnce("deslizar", group, 1, hold, this.slideFrame(group, RAMP_GETUP_CLIP_END));
     group.goToFrame(hold);
     // Parado no quadro, mas ainda tocando: um grupo pausado deixa de entrar na mistura e o corpo volta à pose de bind.
     group.speedRatio = 0;
@@ -469,18 +466,16 @@ export class Player {
   private playRampEnter(): void {
     const group = this.anims.get("deslizar");
     if (!group) return;
-    group.stop();
     const ratio = (RAMP_ENTER_CLIP_END - SLIDE_CLIP_START) / RAMP_ENTER_TIME;
     // Vai até o fim do clipe; `holdRampPose` congela a pose deitada enquanto a rampa durar.
-    group.start(false, ratio, this.slideFrame(group, SLIDE_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
+    this.playOnce("deslizar", group, ratio, this.slideFrame(group, SLIDE_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
   }
 
   private playRampGetUp(): void {
     const group = this.anims.get("deslizar");
     if (!group) return;
-    group.stop();
     const ratio = (RAMP_GETUP_CLIP_END - RAMP_GETUP_CLIP_START) / RAMP_GETUP_TIME;
-    group.start(false, ratio, this.slideFrame(group, RAMP_GETUP_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
+    this.playOnce("deslizar", group, ratio, this.slideFrame(group, RAMP_GETUP_CLIP_START), this.slideFrame(group, RAMP_GETUP_CLIP_END));
   }
 
   private startSlide(dir: number, currentSpeed: number): void {
@@ -542,10 +537,41 @@ export class Player {
     const push = this.anims.get("empurrar");
     if (push) push.speedRatio = PUSH_ANIM_RATIO;
 
+    this.holdClipEnds();
     const step = dt / BLEND_TIME;
     for (const [name, group] of this.anims) {
       const target = name === this.current ? 1 : 0;
       group.weight = approach(group.weight, target, step);
+    }
+  }
+
+  /** Toca um trecho de clipe uma vez. `stop` antes: `start` num grupo que ainda está tocando é ignorado. */
+  private playOnce(name: AnimName, group: AnimationGroup, ratio: number, from: number, to: number): void {
+    group.stop();
+    group.start(false, ratio, from, to);
+    this.clipEnds.set(name, to);
+  }
+
+  /**
+   * Pulo e deslize tocam uma vez só. Um grupo que termina sai da mistura e, se ainda tem peso (queda mais longa
+   * que o pulo, deslize que não pode levantar embaixo de algo, ou o fade de saída), o corpo volta à pose de bind.
+   * Por isso, perto do fim, o grupo fica parado no último quadro, ainda tocando, até outro clipe o reiniciar.
+   */
+  private holdClipEnds(): void {
+    for (const [name, end] of this.clipEnds) {
+      const group = this.anims.get(name);
+      if (!group) continue;
+      const hold = end - CLIP_HOLD_MARGIN;
+      const frame = group.animatables[0]?.masterFrame ?? hold;
+      if (!group.isStarted) {
+        if (group.weight <= 0.001) continue;
+        group.start(true, 1, hold, end);
+        group.goToFrame(hold);
+        group.speedRatio = 0;
+      } else if (group.speedRatio !== 0 && frame >= hold) {
+        group.goToFrame(hold);
+        group.speedRatio = 0;
+      }
     }
   }
 
@@ -556,17 +582,16 @@ export class Player {
       group.from + (t / JUMP_CLIP_DURATION) * (group.to - group.from);
     const start = fromGround ? JUMP_AIR_START : FALL_CLIP_START;
     const ratio = (JUMP_AIR_END - JUMP_AIR_START) / AIR_TIME;
-    group.start(false, ratio, toFrame(start), toFrame(JUMP_AIR_END));
+    this.playOnce("pular", group, ratio, toFrame(start), toFrame(JUMP_AIR_END));
   }
 
   private playSlide(): void {
     const group = this.anims.get("deslizar");
     if (!group) return;
-    group.stop();
     const toFrame = (t: number): number =>
       group.from + (t / SLIDE_CLIP_DURATION) * (group.to - group.from);
     const ratio = (SLIDE_CLIP_LOW - SLIDE_CLIP_START) / SLIDE_TIME;
-    group.start(false, ratio, toFrame(SLIDE_CLIP_START), toFrame(SLIDE_CLIP_LOW));
+    this.playOnce("deslizar", group, ratio, toFrame(SLIDE_CLIP_START), toFrame(SLIDE_CLIP_LOW));
   }
 
   private syncVisual(dt: number): void {

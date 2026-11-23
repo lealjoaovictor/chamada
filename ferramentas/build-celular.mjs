@@ -14,12 +14,14 @@ for (const dir of [join(root, "models"), join(root, "models", "kit")]) {
 }
 for (const dir of ["audio", "textures"]) rmSync(join(root, dir, ".gitkeep"), { force: true });
 
-// Cópia em MP3 dos sons (o iPhone não toca Ogg Vorbis). Precisa do ffmpeg instalado.
-const sfxDir = join(root, "audio", "sfx");
+// Cópia em MP3 dos sons e da música (o iPhone não toca Ogg Vorbis). Precisa do ffmpeg instalado.
 try {
-  for (const file of readdirSync(sfxDir).filter((f) => f.endsWith(".ogg"))) {
-    const mp3 = join(sfxDir, file.replace(/\.ogg$/, ".mp3"));
-    execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-i", join(sfxDir, file), "-b:a", "128k", mp3]);
+  for (const sub of ["sfx", "musica"]) {
+    const dir = join(root, "audio", sub);
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".ogg"))) {
+      const mp3 = join(dir, file.replace(/\.ogg$/, ".mp3"));
+      execFileSync("ffmpeg", ["-loglevel", "error", "-y", "-i", join(dir, file), "-b:a", "128k", mp3]);
+    }
   }
 } catch (error) {
   console.warn("ffmpeg indisponível: a build para celular fica sem som no iPhone", error.message);

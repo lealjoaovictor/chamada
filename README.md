@@ -4,6 +4,8 @@
 
 *Chegue à sala antes que o professor chame o seu nome.*
 
+**[Apresentação do projeto](APRESENTACAO.md)** · a ideia, o Babylon.js, o uso de IA e o processo em uma página
+
 ![Babylon.js](https://img.shields.io/badge/Babylon.js-9.37-BB464B?style=flat-square&logo=babylondotjs&logoColor=white)
 ![Havok](https://img.shields.io/badge/física-Havok-1f1f1f?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -54,14 +56,18 @@ Não há barra de tempo. **O relógio é a própria chamada:** um colega da turm
 
 ## Como rodar
 
-Você precisa do [Node.js](https://nodejs.org) 20 ou mais recente.
+Você precisa do [Git](https://git-scm.com) e do [Node.js](https://nodejs.org) **22 LTS** (ou 20.19 em diante; versões mais antigas do Node 20 não rodam o Vite). Confira com `node -v`.
 
 ```bash
+git clone https://github.com/lealjoaovictor/chamada.git
+cd chamada
 npm install
 npm run dev
 ```
 
-Abra `http://localhost:5173` e pressione qualquer botão. O servidor também escuta na rede local, então dá para abrir no celular pelo IP do computador (com um controle bluetooth).
+Abra `http://localhost:5173` no navegador (Chrome, Edge ou Firefox) e pressione qualquer botão. Para parar o servidor, use `Ctrl+C` no terminal. O servidor também escuta na rede local, então dá para abrir no celular pelo IP do computador (com um controle bluetooth).
+
+**Versão publicada.** A cada atualização do `main`, o GitHub publica o jogo sozinho em https://lealjoaovictor.github.io/chamada/ (veja a aba Actions). Para testar, basta abrir o link no Chrome, Edge ou Firefox, sem instalar nada.
 
 <details>
 <summary><b>Versão final, testes e fase de teste</b></summary>
@@ -77,7 +83,7 @@ npx vite preview --port 4173
 
 O `index.html` da build não abre com duplo clique, porque o navegador bloqueia o carregamento de modelos e sons fora de um servidor local.
 
-Rodar os testes automáticos da lógica:
+Rodar os testes automáticos da lógica (precisa do Node 22.18 ou mais recente):
 
 ```bash
 npm test

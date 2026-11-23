@@ -31,16 +31,80 @@ export interface PlayOptions {
 }
 
 const MASTER_VOLUME = 0.8;
+const VOLUME_KEY = "chamada-volumes";
+
+export type VolumeChannel = "geral" | "musica" | "vozes" | "efeitos";
+type VolumeLevels = Record<VolumeChannel, number>;
+
+function loadLevels(): VolumeLevels {
+  const levels: VolumeLevels = { geral: 1, musica: 1, vozes: 1, efeitos: 1 };
+  try {
+    const saved = JSON.parse(localStorage.getItem(VOLUME_KEY) ?? "{}") as Partial<VolumeLevels>;
+    for (const channel of Object.keys(levels) as VolumeChannel[]) {
+      const value = saved[channel];
+      if (typeof value === "number" && value >= 0 && value <= 1) levels[channel] = value;
+    }
+  } catch {
+    /* sem armazenamento ou valor estragado: volumes padrão */
+  }
+  return levels;
+}
 
 export class Sfx {
   private readonly context = new AudioContext();
   private readonly master: GainNode;
+  // Volumes do menu de pausa: geral (master), música, vozes (ligação, sala, seguranças) e efeitos (passos, portas, sustos).
+  private readonly effects: GainNode;
+  private readonly voices: GainNode;
+  private readonly music: GainNode;
+  private readonly levels: VolumeLevels = loadLevels();
   private readonly buffers = new Map<SfxName, AudioBuffer>();
 
   constructor() {
     this.master = this.context.createGain();
-    this.master.gain.value = MASTER_VOLUME;
+    this.master.gain.value = MASTER_VOLUME * this.levels.geral;
     this.master.connect(this.context.destination);
+    this.effects = this.context.createGain();
+    this.effects.gain.value = this.levels.efeitos;
+    this.effects.connect(this.master);
+    this.voices = this.context.createGain();
+    this.voices.gain.value = this.levels.vozes;
+    this.voices.connect(this.master);
+    this.music = this.context.createGain();
+    this.music.gain.value = this.levels.musica;
+    this.music.connect(this.master);
+  }
+
+  volume(channel: VolumeChannel): number {
+    return this.levels[channel];
+  }
+
+  setVolume(channel: VolumeChannel, value: number): void {
+    this.levels[channel] = Math.min(Math.max(value, 0), 1);
+    const now = this.context.currentTime;
+    if (channel === "geral") {
+      if (!this.mutedState) this.master.gain.setTargetAtTime(MASTER_VOLUME * this.levels.geral, now, 0.02);
+    } else {
+      const bus = channel === "efeitos" ? this.effects : channel === "vozes" ? this.voices : this.music;
+      bus.gain.setTargetAtTime(this.levels[channel], now, 0.02);
+    }
+    try {
+      localStorage.setItem(VOLUME_KEY, JSON.stringify(this.levels));
+    } catch {
+      /* sem armazenamento: vale só nesta partida */
+    }
+  }
+
+  /** Pausa: congela todo o áudio (vozes da ligação no meio da frase incluídas) e volta de onde parou. */
+  setPaused(paused: boolean): void {
+    this.pausedState = paused;
+    if (paused) {
+      if (this.context.state === "running") void this.context.suspend();
+      if (typeof speechSynthesis !== "undefined") speechSynthesis.pause();
+    } else {
+      if (this.context.state === "suspended") void this.context.resume();
+      if (typeof speechSynthesis !== "undefined") speechSynthesis.resume();
+    }
   }
 
   async load(): Promise<void> {
@@ -54,6 +118,7 @@ export class Sfx {
   }
 
   private mutedState = false;
+  private pausedState = false;
 
   /** Silencia todo o jogo (efeitos, ambiente e vozes passam por este volume geral). */
   get muted(): boolean {
@@ -62,7 +127,7 @@ export class Sfx {
 
   set muted(value: boolean) {
     this.mutedState = value;
-    this.master.gain.setTargetAtTime(value ? 0 : MASTER_VOLUME, this.context.currentTime, 0.02);
+    this.master.gain.setTargetAtTime(value ? 0 : MASTER_VOLUME * this.levels.geral, this.context.currentTime, 0.02);
     if (value && typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
   }
 
@@ -70,14 +135,31 @@ export class Sfx {
     return this.context;
   }
 
+  /** Saída geral (só o volume geral e o mudo). */
   get output(): AudioNode {
     return this.master;
+  }
+
+  /** Saída das vozes (ligação, sala de aula, seguranças): passa pelo volume de vozes. */
+  get voiceOutput(): AudioNode {
+    return this.voices;
+  }
+
+  /** Saída dos efeitos (TV, ronco, lanterna): passa pelo volume de efeitos. */
+  get effectsOutput(): AudioNode {
+    return this.effects;
+  }
+
+  /** Saída da música: passa pelo volume de música. */
+  get musicOutput(): AudioNode {
+    return this.music;
   }
 
   // Celulares só liberam o áudio dentro do próprio toque: chamar direto do evento.
   unlock(): void {
     const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
     if (session) session.type = "playback";
+    if (this.pausedState) return;
     if (this.context.state !== "running") void this.context.resume();
     const silence = this.context.createBufferSource();
     silence.buffer = this.context.createBuffer(1, 1, this.context.sampleRate);
@@ -112,7 +194,7 @@ export class Sfx {
         gain.gain.setValueAtTime(0, now + at);
         gain.gain.linearRampToValueAtTime(volume * level, now + at + 0.008);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + at + 1.4);
-        osc.connect(gain).connect(this.master);
+        osc.connect(gain).connect(this.effects);
         osc.start(now + at);
         osc.stop(now + at + 1.5);
       }
@@ -128,7 +210,7 @@ export class Sfx {
     source.playbackRate.value = (options.pitch ?? 1) * (1 + (Math.random() * 2 - 1) * jitter);
     const gain = this.context.createGain();
     gain.gain.value = options.volume ?? 1;
-    source.connect(gain).connect(this.master);
+    source.connect(gain).connect(this.effects);
     source.start();
   }
 }

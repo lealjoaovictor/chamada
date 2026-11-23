@@ -59,7 +59,7 @@ export class GuardSounds {
     band.Q.value = 0.7;
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    source.connect(band).connect(gain).connect(this.sfx.output);
+    source.connect(band).connect(gain).connect(this.sfx.effectsOutput);
     source.start();
     this.crowd = { gain, band, level: CROWD_BASE, target: CROWD_BASE, source };
   }
@@ -109,7 +109,7 @@ export class GuardSounds {
     gain.gain.setValueAtTime(0, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(peak, ctx.currentTime + 0.25);
     gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.3);
-    osc.connect(low).connect(gain).connect(this.sfx.output);
+    osc.connect(low).connect(gain).connect(this.sfx.effectsOutput);
     osc.start();
     osc.stop(ctx.currentTime + 1.4);
   }
@@ -130,7 +130,7 @@ export class GuardSounds {
       gain.gain.setValueAtTime(0, t + at);
       gain.gain.linearRampToValueAtTime(0.5 * near, t + at + 0.002);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.03);
-      src.connect(band).connect(gain).connect(this.sfx.output);
+      src.connect(band).connect(gain).connect(this.sfx.effectsOutput);
       src.start(t + at, Math.random() * 2);
       src.stop(t + at + 0.05);
     }
@@ -152,7 +152,7 @@ export class GuardSounds {
       gain.gain.setValueAtTime(0, t + at);
       gain.gain.linearRampToValueAtTime(0.1 * near, t + at + 0.005);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.18);
-      osc.connect(gain).connect(this.sfx.output);
+      osc.connect(gain).connect(this.sfx.effectsOutput);
       osc.start(t + at);
       osc.stop(t + at + 0.2);
     });
@@ -185,7 +185,7 @@ export class GuardSounds {
     gain.gain.linearRampToValueAtTime(0, t + 1.15);
     gain.gain.linearRampToValueAtTime(level * 0.22, t + 1.45);
     gain.gain.linearRampToValueAtTime(0, t + 2.1);
-    src.connect(low).connect(flutter).connect(gain).connect(this.sfx.output);
+    src.connect(low).connect(flutter).connect(gain).connect(this.sfx.effectsOutput);
     src.start(t, Math.random() * 2);
     src.stop(t + 2.2);
     lfo.start(t);

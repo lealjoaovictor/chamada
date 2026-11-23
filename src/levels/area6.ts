@@ -143,8 +143,8 @@ export const area6Level: LevelData = {
   ],
   // O professor em pé na mesa, com a lista, e o Davi sentado numa carteira com o celular na mão.
   figurantes: [
-    { modelo: "vigia", x: 306.4, y: FLOOR, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.75, 0.72, 0.68], segura: "lista" },
-    { modelo: "personagem", x: 302.25, y: FLOOR, z: 0.42, rotY: 0, pose: "sentado", tom: [0.7, 0.7, 0.74], segura: "celular" },
+    { modelo: "professor", x: 306.4, y: FLOOR, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.75, 0.72, 0.68], segura: "lista" },
+    { modelo: "aluno", x: 302.25, y: FLOOR, z: 0.42, rotY: 0, pose: "sentado", tom: [0.7, 0.7, 0.74], segura: "celular" },
   ],
   ground: [
     // Passarela (laje fina, com o vão do pátio embaixo) e o piso do bloco C.

@@ -70,7 +70,7 @@ function deskWithChairUp(x: number, z: number, turn = 0): PropData[] {
 const lamps: LampData[] = [
   // Corredor: fluorescente cada vez mais fraco, apagando atrás do jogador.
   ...CORRIDOR_LAMPS.map((x, i): LampData => ({
-    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i % 3 === 2, diesWhenPassed: true,
+    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i === 2, diesWhenPassed: true,
   })),
   // A 204: luzes apagadas (a aula não foi aqui). Só o luar da janela do fundo.
   { x: 210.3 + SHIFT, y: FLOOR + 2.8, tom: "sala", desligada: true },

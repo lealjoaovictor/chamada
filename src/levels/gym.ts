@@ -1,4 +1,5 @@
 import type { BlockData, LevelData } from "./types";
+import { CART_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL } from "./kits.ts";
 
 // Sala de teste (`?gym`): só para ajustar a furtividade, sem atravessar o jogo.
 // Da esquerda para a direita: caixa para empurrar, plataforma com um caixote para derrubar (barulho),
@@ -25,6 +26,8 @@ export const gymLevel: LevelData = {
   ],
   platforms: [],
   obstacles: [
+    // Parede para testar o apoio das mãos (andar para a esquerda até encostar).
+    { x: -2.4, y: 1.6, width: 0.4, height: 3.2, material: "parede" },
     // Degrau e plataforma de onde se derruba o caixote.
     { x: 8.4, y: 0.4, width: 0.8, height: 0.8, material: "madeira" },
     { x: 10.5, y: 0.8, width: 3, height: 1.6, material: "madeira" },
@@ -33,8 +36,8 @@ export const gymLevel: LevelData = {
   ],
   ramps: [],
   boxes: [
-    { x: 4, y: 0.5, size: 1, mass: 20 },
-    { x: 11.4, y: 2.1, size: 1, mass: 20, material: "carrinho" },
+    { x: 4, y: 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP },
+    { x: 11.4, y: 2.1, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL },
   ],
   lamps: [
     { x: 4, y: 4.6, tom: "fluorescente" },

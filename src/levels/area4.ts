@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { CARDBOARD_VISUAL, fluorescent } from "./kits.ts";
+import { GAS_CART_GRIP, GAS_CART_VISUAL, fluorescent } from "./kits.ts";
 
 const START = 117;
 const RAMP_END = 123;
@@ -146,7 +146,7 @@ export const area4Level: LevelData = {
     ...BARRIERS2.map((x) => barrier(x, 0.9)),
   ],
   ramps: [{ x0: START, y0: GALLERY_Y, x1: RAMP_END, y1: 0, material: "concreto" }],
-  boxes: [{ x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "caixa", visual: CARDBOARD_VISUAL }],
+  boxes: [{ x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "metal", visual: GAS_CART_VISUAL, pegada: GAS_CART_GRIP }],
   lamps,
   plates: [{ x: DEPOT_PLATE_X, y: -DEPOT_PLATE_DEPTH, width: DEPOT_PLATE_WIDTH, door: 1 }],
   doors: [

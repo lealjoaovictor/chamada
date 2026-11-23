@@ -143,3 +143,47 @@ export const CARDBOARD_VISUAL: PropData[] = [0, 1, 2].flatMap((row) =>
 export const CART_VISUAL: PropData[] = [
   { model: "industrial_storage_cart", x: 0, y: 0, z: 0, fitWidth: 1.02, stretch: [1, 1.16, 1.4] },
 ];
+
+// Objetos empurráveis com cara de fazer parte do lugar. O cubo de 1 m continua sendo o corpo físico;
+// `pegada` diz onde as mãos seguram (ver BoxData). Modelos do Poly Haven (CC0).
+
+/** Carrinho de ferramentas verde da zeladoria: alça na altura das mãos e tampo firme para subir. */
+export const TOOL_CART_VISUAL: PropData[] = [
+  { model: "tool_cart", x: 0, y: 0, z: 0, fitWidth: 1, stretch: [1, 1.3, 1.1] },
+];
+export const TOOL_CART_GRIP = { y: 0.95, x: 0 };
+
+/** Dois tambores de metal lado a lado, na doca de carga. */
+export const DRUMS_VISUAL: PropData[] = [-0.25, 0.25].map((x, i): PropData => ({
+  model: "barrel_03", x, y: 0, z: i ? 0.06 : -0.04, rotY: i * 70, fitHeight: 0.99, stretch: [0.78, 1, 0.78],
+}));
+export const DRUMS_GRIP = { y: 0.95, x: 0.06 };
+
+/** Lixeira de metal do pátio (sem a tampa, que fica caída no chão ao lado). */
+export const TRASH_CAN_VISUAL: PropData[] = [
+  { model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)", x: 0, y: 0, z: 0, fitHeight: 1.02, stretch: [1.15, 1, 1.15] },
+];
+// Mãos na lateral voltada para o jogador, logo abaixo da borda: o corpo fica do lado de fora da lixeira.
+export const TRASH_CAN_GRIP = { y: 0.88, x: 0.1 };
+
+/** Carrinho de carga com sacos de cimento: o peso que puxa a corda do contrapeso. */
+export const HAND_TRUCK_VISUAL: PropData[] = [
+  { model: "hand_truck", x: -0.3, y: 0, z: 0, rotY: 60, fitHeight: 1.3 },
+  ...[0, 1, 2, 3].map((row): PropData => ({
+    model: "cement_bag", x: 0.12 + (row % 2 ? 0.02 : -0.02), y: 0.04 + row * 0.17, z: 0, rotY: 90 + (row % 2 ? 4 : -3), fitWidth: 0.62,
+  })),
+];
+export const HAND_TRUCK_GRIP = { y: 1.22, x: 0.12 };
+
+/** Carrinho com cilindros de gás do depósito. */
+export const GAS_CART_VISUAL: PropData[] = [
+  { model: "portable_welding_cart", x: 0, y: 0, z: 0, fitHeight: 1.35, stretch: [1.15, 1, 1] },
+];
+export const GAS_CART_GRIP = { y: 1.12, x: 0.15 };
+
+/** Carrinho da biblioteca: o carrinho de metal com livros em cima. */
+export const LIBRARY_CART_VISUAL: PropData[] = [
+  ...CART_VISUAL,
+  { model: "book_encyclopedia_set_01", x: -0.22, y: 1.0, z: 0.05, fitWidth: 0.45 },
+  { model: "book_encyclopedia_set_01", x: 0.24, y: 1.0, z: -0.05, rotY: 180, fitWidth: 0.42 },
+];

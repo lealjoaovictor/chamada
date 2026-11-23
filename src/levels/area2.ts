@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { CARDBOARD_VISUAL, CART_VISUAL, CRATE_VISUAL, fluorescent, moonWindow } from "./kits.ts";
+import { CART_VISUAL, HAND_TRUCK_GRIP, HAND_TRUCK_VISUAL, TOOL_CART_GRIP, TOOL_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 48;
 const END = 76;
@@ -112,8 +112,8 @@ export const area2Level: LevelData = {
   ramps: [],
   boxes: [
     { x: 59.5, y: 0.5, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL },
-    { x: 80.5, y: 0.5, size: 1, mass: 20, material: "caixa", visual: CARDBOARD_VISUAL },
-    { x: 86.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "caixa", visual: CRATE_VISUAL },
+    { x: 80.5, y: 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP },
+    { x: 86.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "metal", visual: HAND_TRUCK_VISUAL, pegada: HAND_TRUCK_GRIP },
   ],
   lamps,
   plates: [

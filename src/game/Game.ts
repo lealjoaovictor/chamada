@@ -759,6 +759,8 @@ export class Game {
     const box = this.pushGrip;
     if (!box) return null;
     const p = box.mesh.position;
+    // Caiu da doca ou do palco: as mãos soltam, em vez de irem atrás dela.
+    if (p.y - box.halfSize < this.player.feetY - 0.2) return null;
     const side = Math.sign(p.x - this.player.position.x) || 1;
     return { x: p.x - side * (box.halfSize - box.grip.x), y: p.y - box.halfSize + box.grip.y };
   }

@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { CRATE_VISUAL, clad, facade, type BayKind } from "./kits.ts";
+import { DRUMS_GRIP, DRUMS_VISUAL, TRASH_CAN_GRIP, TRASH_CAN_VISUAL, clad, facade, type BayKind } from "./kits.ts";
 
 const FACADE_FRONT = 4;
 const LAMP_Z = 1.4;
@@ -86,15 +86,17 @@ export const area1Level: LevelData = {
       size: 1,
       mass: 20,
       material: "lixeira",
-      visual: [{ model: "metal_trash_can", part: "metal_trash_can|metal_trash_can_handle_(left|right)", x: 0, y: 0, z: 0, fitHeight: 1.02, stretch: [1.3, 1, 1.3] }],
+      visual: TRASH_CAN_VISUAL,
+      pegada: TRASH_CAN_GRIP,
     },
     {
       x: DOCK_X + 0.8,
       y: DOCK_HEIGHT + 0.5,
       size: 1,
       mass: 20,
-      material: "caixa",
-      visual: CRATE_VISUAL,
+      material: "metal",
+      visual: DRUMS_VISUAL,
+      pegada: DRUMS_GRIP,
     },
   ],
   lamps,
@@ -188,6 +190,8 @@ export const area1Level: LevelData = {
     { x: GUARITA_X, y: 2.68, z: COVER_Z, width: GUARITA_WIDTH + 0.4, height: 0.16, depth: COVER_DEPTH + 0.4, material: "concreto" },
   ],
   props: [
+    // Tampa da lixeira empurrável, caída onde a lixeira estava.
+    { model: "metal_trash_can", part: "metal_trash_can_lid", x: 27.2, y: 0, z: 0.75, rotY: 20, scale: 1.12, stretch: [1.3, 1, 1.3] },
     // Prédio principal da universidade: embasamento de pedra, três andares e porta no meio.
     ...facade({
       model: "modular_urban_apartments_facade",

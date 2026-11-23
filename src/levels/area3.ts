@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, ModelName, PropData } from "./types";
-import { CART_VISUAL, CRATE_VISUAL, fluorescent, moonWindow } from "./kits.ts";
+import { CRATE_VISUAL, LIBRARY_CART_VISUAL, fluorescent, moonWindow } from "./kits.ts";
 
 const START = 80;
 const HALL_START = 84;
@@ -90,7 +90,7 @@ export const area3Level: LevelData = {
   ],
   ramps: [],
   furtivo: [{ minX: HALL_START + 1, maxX: 102.6 }],
-  boxes: [{ x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho", visual: CART_VISUAL }],
+  boxes: [{ x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho", visual: LIBRARY_CART_VISUAL }],
   lamps,
   plates: [],
   doors: [],

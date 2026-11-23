@@ -168,7 +168,7 @@ Atualize esta lista a cada tarefa concluída.
   - [x] 8. `npm run build` e `vite preview` funcionando (Vite escuta na rede local)
 - [ ] Entrada: teclado e controle
 - [x] Jogador: andar e pular (playtest aprovado)
-- [x] Jogador: empurrar caixa (playtest aprovado; sem botão, empurrão lento: caixa a ~0,5 m/s)
+- [x] Jogador: empurrar caixa (playtest aprovado; sem botão, empurrão lento: caixa a ~0,5 m/s). Em 2026-11-23: mãos presas à pegada do objeto por IK de dois ossos (`src/game/HandIK.ts`; `pegada` em `BoxData`), caixas trocadas por objetos do lugar (lixeira, tambores, carrinho de ferramentas, carrinho de carga com cimento, carrinho de gás, carrinho da biblioteca com livros; visuais em `src/levels/kits.ts`) e mãos apoiando na parede ao andar contra ela, com balanço do corpo no impacto (`Player.updateBrace`). Falta playtest humano
 - [x] Jogador: deslizar (playtest aprovado em 2026-11-22)
 - [x] Morte, checkpoint e reinício (queda abaixo de `killY` mata, fade de 0,5 s, volta ao último checkpoint e caixas resetam; teste automático em `tests/checkpoints.test.ts` com `npm test`; playtest aprovado)
 - [x] Câmera lateral (segue em X com antecipação de 1,5 m, segue a altura do chão ao pousar, respeita `bounds` da fase; playtest aprovado)
@@ -279,6 +279,10 @@ Preencha ao baixar ou gerar qualquer item.
 | Modelo `utility_box_02` (glTF 1K) | https://polyhaven.com/a/utility_box_02, baixado em 2026-11-22 | CC0 | Não | `public/models/kit/utility_box_02.glb` (áreas 1 e 4); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
 | Modelo `water_manhole_cover` (glTF 1K) | https://polyhaven.com/a/water_manhole_cover, baixado em 2026-11-22 | CC0 | Não | `public/models/kit/water_manhole_cover.glb` (área 1); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
 | Modelo `wooden_military_crate` (glTF 1K) | https://polyhaven.com/a/wooden_military_crate, baixado em 2026-11-22 | CC0 | Não | `public/models/kit/wooden_military_crate.glb` (áreas 1, 2 e 3); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
+| Modelo `tool_cart` (glTF 1K) | https://polyhaven.com/a/tool_cart, baixado em 2026-11-23 | CC0 | Não | `public/models/kit/tool_cart.glb` (área 2 e sala de teste: carrinho empurrável); convertido com `ferramentas/converter_kit.py` (malha ≤ 12 mil faces, sem ORM, JPEG ≤ 512 px) |
+| Modelo `portable_welding_cart` (glTF 1K) | https://polyhaven.com/a/portable_welding_cart, baixado em 2026-11-23 | CC0 | Não | `public/models/kit/portable_welding_cart.glb` (área 4: carrinho de gás empurrável); convertido com `ferramentas/converter_kit.py` |
+| Modelo `cement_bag` (glTF 1K) | https://polyhaven.com/a/cement_bag, baixado em 2026-11-23 | CC0 | Não | `public/models/kit/cement_bag.glb` (área 2: carga do carrinho do contrapeso); convertido com `ferramentas/converter_kit.py` |
+| Modelo `book_encyclopedia_set_01` (glTF 1K) | https://polyhaven.com/a/book_encyclopedia_set_01, baixado em 2026-11-23 | CC0 | Não | `public/models/kit/book_encyclopedia_set_01.glb` (área 3: livros no carrinho da biblioteca); convertido com `ferramentas/converter_kit.py` |
 
 Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 

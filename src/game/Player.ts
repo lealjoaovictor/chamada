@@ -15,6 +15,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
+import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
 
 const MOVE_SPEED = 4.5;
@@ -35,7 +36,6 @@ const SLIDE_MIN_SPEED = 2;
 const SLIDE_TIME = 0.55;
 const SLIDE_COOLDOWN = 0.25;
 const SLIDE_HEIGHT = 0.8;
-const CROUCH_SPEED = 2.4;
 const CROUCH_BLEND = 4;
 // Acima disso o personagem usa as animações agachadas do Mixamo (Crouch Idle e Crouched Walking).
 const CROUCH_ANIM_THRESHOLD = 0.5;
@@ -209,7 +209,7 @@ export class Player {
       if (axis !== 0) this.facing = axis;
       const crouchTarget = this.crouchWanted && this.grounded && !pushing ? 1 : 0;
       this.crouch = approach(this.crouch, crouchTarget, CROUCH_BLEND * dt);
-      const walkSpeed = MOVE_SPEED + (CROUCH_SPEED - MOVE_SPEED) * this.crouch;
+      const walkSpeed = MOVE_SPEED + (TUNING.agachadoVelocidade - MOVE_SPEED) * this.crouch;
       const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : walkSpeed);
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);

@@ -248,6 +248,8 @@ export interface CameraBeatData {
   triggerX: number;
   focusX: number;
   seconds: number;
+  /** Mostra o segurança de ronda mais perto de `focusX`, onde ele estiver agora (a ronda não para). */
+  seguranca?: boolean;
 }
 
 export interface RattleData {

@@ -16,6 +16,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import "@babylonjs/loaders/glTF";
 import { MODEL_OPTIONS, modelFile } from "../modelFile";
 import type { VigiaData } from "../../levels/types";
+import { TUNING } from "../Tuning";
 
 const MODEL_URL = modelFile("vigia");
 const MODEL_COLOR = new Color3(0.03, 0.03, 0.035);
@@ -27,8 +28,6 @@ const BLEND_TIME = 0.25;
 // Lanterna LED dos seguranças: branca e fria (#E6EEF5), para nunca se confundir com a luz quente da sala.
 const LIGHT_COLOR = new Color3(0.9, 0.94, 1);
 const ALERT_COLOR = new Color3(1, 0.1, 0.03);
-const ALERT_RISE = 1 / 0.85;
-const ALERT_FALL = 0.45;
 const SUSPICIOUS_AT = 0.12;
 const HEAR_RANGE = 16;
 const HEAR_HEIGHT = 2.5;
@@ -46,7 +45,7 @@ type Phase = "andando" | "parado" | "escondido";
 
 export class Vigia {
   private readonly scene: Scene;
-  private readonly data: VigiaData;
+  private data: VigiaData;
   private readonly visual: TransformNode;
   private readonly walk?: AnimationGroup;
   private readonly idle?: AnimationGroup;
@@ -59,7 +58,7 @@ export class Vigia {
   private readonly lamp = new Vector3();
   private readonly dir = new Vector3();
   private readonly toPoint = new Vector3();
-  private readonly cosHalf: number;
+  private cosHalf: number;
   private x = 0;
   private heading = 1;
   private facing = 1;
@@ -122,6 +121,22 @@ export class Vigia {
       anims.set(group.name, group);
     }
     return new Vigia(scene, data, visual, anims);
+  }
+
+  /** Sala de teste: muda alcance, ângulo do cone e velocidade ao vivo. */
+  tune(changes: Partial<Pick<VigiaData, "range" | "coneAngle" | "speed">>): void {
+    this.data = { ...this.data, ...changes };
+    this.cosHalf = Math.cos(this.data.coneAngle);
+    this.light.angle = this.data.coneAngle * 2;
+    this.light.range = this.data.range;
+  }
+
+  get settings(): VigiaData {
+    return this.data;
+  }
+
+  get alertLevel(): number {
+    return this.alert;
   }
 
   addShadowCasters(meshes: readonly AbstractMesh[]): void {
@@ -298,7 +313,7 @@ export class Vigia {
 
   /** Sobe enquanto vê o jogador, desce quando perde; devolve true quando chega ao máximo (pegou). */
   updateAlert(dt: number, seeing: boolean): boolean {
-    this.alert = seeing ? Math.min(1, this.alert + ALERT_RISE * dt) : Math.max(0, this.alert - ALERT_FALL * dt);
+    this.alert = seeing ? Math.min(1, this.alert + dt / TUNING.reacao) : Math.max(0, this.alert - TUNING.esquecer * dt);
     Color3.LerpToRef(LIGHT_COLOR, ALERT_COLOR, this.alert, this.lightColor);
     this.light.diffuse.copyFrom(this.lightColor);
     this.lensMaterial.emissiveColor.copyFrom(this.lightColor);

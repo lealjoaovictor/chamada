@@ -8,15 +8,17 @@ const SHAFT_WIDTH = 2;
 const GALLERY_Y = 3.5;
 const END = 117;
 
-// Sala 2 (sala de leitura), no nível da galeria: um Vigia de guarda olha para a entrada.
-// Derrubar o carrinho do mezanino faz barulho; ele vai olhar e o jogador passa por trás.
+// Sala 2 (sala de leitura), no nível da galeria: um segurança faz a ronda entre o pé do mezanino e o meio da sala.
+// O jogador entra quando ele vai para a direita, sobe no mezanino e espera escondido; quando o segurança volta
+// e passa por baixo, desce pelo lado direito, já atrás dele. Derrubar o carrinho faz barulho e adianta a volta.
 const READING_END = 141;
 const READING_CEILING = 8.6;
 const STEP_X = 117.9;
 const MEZZ_X0 = 120.5;
 const MEZZ_X1 = 125.5;
 const MEZZ_TOP = GALLERY_Y + 2;
-const GUARD_X = 133;
+const GUARD_X0 = 120;
+const GUARD_X1 = 133;
 const CORRIDOR_CEILING = 3.2;
 const HALL_CEILING = 6.5;
 const SHELF_Z = 1.45;
@@ -102,13 +104,14 @@ export const area3Level: LevelData = {
       range: 10,
     },
     {
-      x0: GUARD_X,
-      x1: GUARD_X,
+      x0: GUARD_X0,
+      x1: GUARD_X1,
       y: GALLERY_Y,
       z: 3,
-      speed: 1.1,
-      pause: 1,
-      startHeading: -1,
+      speed: 1.3,
+      pause: 1.5,
+      pauseMax: 2.5,
+      startHeading: 1,
       aimAhead: 2.5,
       aimY: GALLERY_Y + 0.4,
       coneAngle: 0.5,

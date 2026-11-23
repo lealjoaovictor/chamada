@@ -290,9 +290,9 @@ export class CallClock {
   }
 
   /** Fala de um segurança, sorteada sem repetir a anterior; às vezes nenhuma. */
-  guard(kind: GuardLine, volume = 1): boolean {
+  guard(kind: GuardLine, volume = 1, always = false): boolean {
     if (!this.started) return false;
-    if (Math.random() < GUARD_SILENT_CHANCE[kind]) return false;
+    if (!always && Math.random() < GUARD_SILENT_CHANCE[kind]) return false;
     const options = this.data.falas.seguranca[kind];
     const last = this.lastGuard.get(kind) ?? -1;
     let pick = Math.floor(Math.random() * options.length);
@@ -300,6 +300,15 @@ export class CallClock {
     this.lastGuard.set(kind, pick);
     this.playFala(options[pick], "ao-vivo", 0, volume, this.guardIn);
     return true;
+  }
+
+  /** Sala de teste: o celular vibra e o colega fala a primeira fala. */
+  ring(): void {
+    if (!this.started) return;
+    this.vibrate();
+    const fala = this.data.colega[0].fala;
+    const duration = this.playFala(fala, "colega", 1.1);
+    window.setTimeout(() => this.screen?.colega(fala.legenda ?? fala.texto, Math.max(LEGEND_MIN, duration + 1)), 1100);
   }
 
   private hangUp(): void {

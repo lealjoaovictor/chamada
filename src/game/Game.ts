@@ -47,8 +47,10 @@ import { AREAS, areaAt } from "../levels/areas";
 import { TouchControls, touchMode } from "../ui/TouchControls";
 import { GestureControls } from "../ui/GestureControls";
 import { MaterialLibrary } from "./MaterialLibrary";
-import type { BlockData, DecorData, LevelData, RampData } from "../levels/types";
+import type { BlockData, CameraBeatData, DecorData, LevelData, RampData } from "../levels/types";
 import { pipelineLevel } from "../levels/pipeline";
+import { gymLevel } from "../levels/gym";
+import { TUNING } from "./Tuning";
 import { WORLD, worldLevel } from "../levels/world";
 
 const DARK_AMBIENT = 0.2;
@@ -131,6 +133,8 @@ export class Game {
   private checkpoints!: Checkpoints;
   private killY = -Infinity;
   private state: GameState = "menu";
+  private level: LevelData = worldLevel;
+  private gym = false;
   private deathTimer = 0;
   private respawned = false;
   private readonly fade = new Fade();
@@ -158,8 +162,11 @@ export class Game {
   static async create(engine: AbstractEngine): Promise<Game> {
     const game = new Game(engine);
     const params = new URLSearchParams(location.search);
-    const debugLevel = params.get("fase") === "teste";
-    const level = debugLevel ? pipelineLevel : worldLevel;
+    const gym = params.has("gym");
+    const debugLevel = params.get("fase") === "teste" || gym;
+    const level = gym ? gymLevel : debugLevel ? pipelineLevel : worldLevel;
+    game.level = level;
+    game.gym = gym;
     const area = Number(params.get("area"));
     if (!debugLevel && Number.isInteger(area) && area >= 1 && area <= AREAS.length) game.startArea = area;
     game.callScreen.setContact(CHAMADA.colegaNome);
@@ -179,6 +186,10 @@ export class Game {
     }
     game.hints = debugLevel ? new Hints(game.scene, [], [], []) : new Hints(game.scene, WORLD.hints, WORLD.beats, WORLD.rattles);
     await game.warmUp(level.bounds.minX, level.bounds.maxX);
+    if (gym && game.vigias[0]) {
+      const { GymPanel } = await import("../dev/GymPanel");
+      new GymPanel(game.vigias[0], game.clock);
+    }
     if (import.meta.env.DEV) {
       // Só em desenvolvimento: teletransporte para capturas automáticas.
       (window as unknown as { chamadaTp: (x: number, y: number) => void }).chamadaTp = (x, y) => {
@@ -383,7 +394,7 @@ export class Game {
     }
     const beat = this.hints.cameraBeat(this.player.position.x);
     if (beat) {
-      this.cameraRig.focus(beat.focusX, beat.seconds);
+      this.cameraRig.focus(this.beatFocusX(beat), beat.seconds);
       this.focusLock = true;
       this.input.setAutopilot(0);
     } else if (this.focusLock && !this.cameraRig.focusing) {
@@ -394,7 +405,7 @@ export class Game {
     if (this.ambient) {
       const dark = this.darkZones.some((z) => px >= z.minX && px <= z.maxX);
       // O prédio apaga aos poucos: cada trecho tem quanto sobra de luz geral e de que cor.
-      const zone = (worldLevel.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
+      const zone = (this.level.ambiente ?? []).find((z) => px >= z.minX && px < z.maxX);
       const target = (zone?.intensidade ?? 1) * (dark ? DARK_AMBIENT : 1);
       const k = Math.min(1, dt * 1.5);
       this.ambient.intensity += (target - this.ambient.intensity) * k;
@@ -405,7 +416,7 @@ export class Game {
         c.b += (zone.cor[2] - c.b) * k;
       }
     }
-    this.player.setCrouch((worldLevel.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
+    this.player.setCrouch((this.level.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.update(dt, this.input, this.pushTimer > 0);
     this.vultos?.update(dt, this.player.position.x);
     this.updateNoise();
@@ -474,7 +485,7 @@ export class Game {
     this.sfx.unlock();
     this.clock.start();
     this.input.setAutopilot(null);
-    document.body.style.cursor = "none";
+    if (!this.gym) document.body.style.cursor = "none";
     this.state = "jogando";
   }
 
@@ -618,6 +629,17 @@ export class Game {
     }
   }
 
+  /** Onde a câmera para num foco: um ponto fixo ou o segurança de ronda mais perto dele, onde ele estiver. */
+  private beatFocusX(beat: CameraBeatData): number {
+    if (!beat.seguranca) return beat.focusX;
+    let best: Vigia | null = null;
+    for (const vigia of this.vigias) {
+      if (vigia.chases) continue;
+      if (!best || Math.abs(vigia.positionX - beat.focusX) < Math.abs(best.positionX - beat.focusX)) best = vigia;
+    }
+    return best?.positionX ?? beat.focusX;
+  }
+
   /** Na área 5, de 0 (começo do corredor) a 1 (porta da sala): a voz real do professor vai ficando mais alta. */
   private salaProximity(area: number): number {
     const door = this.finalDoor?.data.triggerX;
@@ -683,7 +705,7 @@ export class Game {
     if (this.vigias.length === 0 || this.devInvisible) return null;
     const p = this.player.position;
     const feetY = this.player.feetY;
-    const height = (p.y - feetY) * 2 * (1 - 0.25 * this.player.crouchAmount);
+    const height = (p.y - feetY) * 2 * (1 - TUNING.agachadoAltura * this.player.crouchAmount);
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);

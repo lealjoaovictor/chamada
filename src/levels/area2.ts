@@ -225,6 +225,8 @@ export const area2Level: LevelData = {
     { x: 98.2, y: STAGE_TOP + 0.5, size: 1, mass: 20, material: "metal", visual: HAND_TRUCK_VISUAL, pegada: HAND_TRUCK_GRIP },
   ],
   lamps,
+  // Relógio do corredor: quase dez da noite.
+  vida: [{ minX: START, maxX: END, relogios: [{ x: 59.7, y: 2.6, z: BACK_Z }] }],
   plates: [
     { x: RECESS_X, y: -RECESS_DEPTH, width: RECESS_WIDTH, door: 0 },
     // Zeladoria: a porta de enrolar tem um contrapeso; a caixa no estrado puxa a corda e segura a porta aberta.

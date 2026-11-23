@@ -68,7 +68,7 @@ function deskWithChairUp(x: number, z: number, turn = 0): PropData[] {
 const lamps: LampData[] = [
   // Corredor: fluorescente cada vez mais fraco, apagando atrás do jogador.
   ...CORRIDOR_LAMPS.map((x, i): LampData => ({
-    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i === 2, diesWhenPassed: true,
+    x, y: FLOOR + 2.6, tom: "fluorescente", forca: 0.85 - i * 0.06, flicker: i === 2, zumbido: i === 2, diesWhenPassed: true,
   })),
   // A 204: luzes apagadas (a aula não foi aqui). Só o luar da janela.
   { x: 210.3 + SHIFT, y: FLOOR + 2.8, tom: "sala", desligada: true },
@@ -122,6 +122,8 @@ export const area5Level: LevelData = {
   ramps: [{ x0: STAIRS_START, y0: 0, x1: STAIRS_END, y1: FLOOR, steps: STEPS, stepDepth: 4 }],
   boxes: [],
   lamps,
+  // Relógio do corredor: quase dez da noite.
+  vida: [{ minX: START, maxX: END, relogios: [{ x: 185, y: FLOOR + 2.5, z: BACK_Z }] }],
   plates: [],
   doors: [],
   vigias: [

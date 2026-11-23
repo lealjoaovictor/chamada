@@ -3,6 +3,9 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
+import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
+import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import "@babylonjs/core/Particles/particleSystemComponent";
@@ -10,8 +13,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { LifeData } from "../levels/types";
 
 /**
- * Vida no cenário de fora, sempre lenta e longe do que importa ao jogo:
- * janelas do fundo que acendem e apagam, uma TV piscando azul, luzes de antena pulsando e folhas levadas pelo vento.
+ * Vida no cenário, sempre lenta e longe do que importa ao jogo:
+ * janelas do fundo que acendem e apagam, uma TV piscando azul, luzes de antena pulsando e folhas levadas pelo vento;
+ * dentro dos prédios, um monitor esquecido ligado e relógios de parede andando.
  * Nada disso é luz de verdade; só cor e partículas pequenas.
  */
 const BACKGROUND_Z = 6;
@@ -20,6 +24,9 @@ const WINDOW_MAX_WAIT = 40;
 const WINDOW_OFF_CHANCE = 0.35;
 const BEACON_PERIOD = 2.2;
 const LEAF_CAPACITY = 24;
+/** Hora em que o jogo começa nos relógios (21h52, perto do fim da última aula), em segundos. */
+const CLOCK_START = (21 * 60 + 52) * 60;
+const CLOCK_SIZE = 0.34;
 
 interface Toggle {
   mesh: AbstractMesh;
@@ -29,6 +36,8 @@ interface Toggle {
 export class Life {
   private readonly toggles: Toggle[] = [];
   private readonly tvs: StandardMaterial[] = [];
+  private readonly monitors: StandardMaterial[] = [];
+  private readonly clocks: { hour: TransformNode; minute: TransformNode; second: TransformNode }[] = [];
   private readonly beacons: { material: StandardMaterial; base: Color3; phase: number }[] = [];
   private time = 0;
   private seed = 11;
@@ -52,6 +61,8 @@ export class Life {
     }
     for (const zone of zones) {
       for (const tv of zone.tvs ?? []) this.tvs.push(this.createTv(scene, tv));
+      for (const monitor of zone.monitores ?? []) this.monitors.push(this.createMonitor(scene, monitor));
+      for (const clock of zone.relogios ?? []) this.clocks.push(this.createClock(scene, clock));
       if (zone.folhas) this.createLeaves(scene, zone);
     }
   }
@@ -76,10 +87,22 @@ export class Life {
       const blue = 0.75 + 0.25 * this.hash(cut + 101);
       this.tvs[i].emissiveColor.set(v * 0.55, v * 0.7, v * blue);
     }
+    // Monitor: proteção de tela que respira bem devagar, cada um no seu tempo.
+    for (let i = 0; i < this.monitors.length; i++) {
+      const k = 0.75 + 0.25 * Math.sin(this.time * 0.6 + i * 2.1);
+      this.monitors[i].emissiveColor.set(0.3 * k, 0.42 * k, 0.55 * k);
+    }
+    // Relógios: o ponteiro dos segundos anda aos saltos; o de minutos e o de horas acompanham.
+    const now = CLOCK_START + Math.floor(this.time);
+    for (const clock of this.clocks) {
+      clock.second.rotation.z = -((now % 60) / 60) * Math.PI * 2;
+      clock.minute.rotation.z = -((now % 3600) / 3600) * Math.PI * 2;
+      clock.hour.rotation.z = -((now % 43200) / 43200) * Math.PI * 2;
+    }
   }
 
-  private createTv(scene: Scene, tv: { x: number; y: number; z: number }): StandardMaterial {
-    const plane = CreatePlane(`tv-${tv.x}`, { width: 1.6, height: 1.6 }, scene);
+  private createTv(scene: Scene, tv: { x: number; y: number; z: number; largura?: number; altura?: number }): StandardMaterial {
+    const plane = CreatePlane(`tv-${tv.x}`, { width: tv.largura ?? 1.6, height: tv.altura ?? 1.6 }, scene);
     plane.position.set(tv.x, tv.y, tv.z);
     const material = new StandardMaterial(`tv-${tv.x}-mat`, scene);
     material.disableLighting = true;
@@ -88,6 +111,82 @@ export class Life {
     plane.isPickable = false;
     plane.freezeWorldMatrix();
     return material;
+  }
+
+  /** Monitor de tubo fino em cima da mesa, de frente para a câmera, com a tela acesa. */
+  private createMonitor(scene: Scene, monitor: { x: number; y: number; z: number }): StandardMaterial {
+    const body = new StandardMaterial(`monitor-${monitor.x}-corpo`, scene);
+    body.diffuseColor = new Color3(0.1, 0.1, 0.11);
+    body.specularColor = Color3.Black();
+    const parts = [
+      { w: 0.5, h: 0.34, d: 0.06, y: 0.3 },
+      { w: 0.05, h: 0.12, d: 0.05, y: 0.07 },
+      { w: 0.22, h: 0.02, d: 0.16, y: 0.01 },
+    ];
+    for (const [i, part] of parts.entries()) {
+      const box = CreateBox(`monitor-${monitor.x}-${i}`, { width: part.w, height: part.h, depth: part.d }, scene);
+      box.position.set(monitor.x, monitor.y + part.y, monitor.z);
+      box.material = body;
+      box.isPickable = false;
+      box.receiveShadows = true;
+      box.freezeWorldMatrix();
+    }
+    const screen = CreatePlane(`monitor-${monitor.x}-tela`, { width: 0.44, height: 0.28 }, scene);
+    screen.position.set(monitor.x, monitor.y + 0.3, monitor.z - 0.031);
+    const material = new StandardMaterial(`monitor-${monitor.x}-tela-mat`, scene);
+    material.disableLighting = true;
+    material.emissiveColor = new Color3(0.3, 0.42, 0.55);
+    screen.material = material;
+    screen.isPickable = false;
+    screen.freezeWorldMatrix();
+    return material;
+  }
+
+  /** Relógio redondo de parede: aro escuro, mostrador claro e três ponteiros que giram no centro. */
+  private createClock(scene: Scene, clock: { x: number; y: number; z: number }) {
+    const name = `relogio-${clock.x}`;
+    const flat = (id: string, color: Color3): StandardMaterial => {
+      const material = new StandardMaterial(`${name}-${id}`, scene);
+      material.diffuseColor = color;
+      material.specularColor = Color3.Black();
+      return material;
+    };
+    const rim = CreateDisc(`${name}-aro`, { radius: CLOCK_SIZE / 2 + 0.025, tessellation: 32 }, scene);
+    rim.position.set(clock.x, clock.y, clock.z - 0.01);
+    rim.material = flat("aro", new Color3(0.08, 0.08, 0.09));
+    const face = CreateDisc(`${name}-face`, { radius: CLOCK_SIZE / 2, tessellation: 32 }, scene);
+    face.position.set(clock.x, clock.y, clock.z - 0.02);
+    face.material = flat("face", new Color3(0.82, 0.8, 0.74));
+    const ink = flat("tinta", new Color3(0.05, 0.05, 0.05));
+    // Marcas das horas.
+    for (let h = 0; h < 12; h++) {
+      const a = (h / 12) * Math.PI * 2;
+      const r = CLOCK_SIZE / 2 - 0.025;
+      const mark = CreatePlane(`${name}-marca-${h}`, { width: 0.012, height: h % 3 === 0 ? 0.035 : 0.02 }, scene);
+      mark.position.set(clock.x + Math.sin(a) * r, clock.y + Math.cos(a) * r, clock.z - 0.025);
+      mark.rotation.z = -a;
+      mark.material = ink;
+    }
+    const hand = (id: string, length: number, width: number, material: StandardMaterial, dz: number): TransformNode => {
+      const pivot = new TransformNode(`${name}-${id}`, scene);
+      pivot.position.set(clock.x, clock.y, clock.z - dz);
+      const blade = CreatePlane(`${name}-${id}-lamina`, { width, height: length + 0.02 }, scene);
+      blade.parent = pivot;
+      blade.position.y = length / 2 - 0.01;
+      blade.material = material;
+      return pivot;
+    };
+    const parts = {
+      hour: hand("horas", 0.075, 0.016, ink, 0.03),
+      minute: hand("minutos", 0.12, 0.011, ink, 0.034),
+      second: hand("segundos", 0.13, 0.005, flat("segundos", new Color3(0.7, 0.1, 0.08)), 0.038),
+    };
+    for (const mesh of [rim, face]) {
+      mesh.isPickable = false;
+      mesh.receiveShadows = true;
+      mesh.freezeWorldMatrix();
+    }
+    return parts;
   }
 
   private createLeaves(scene: Scene, zone: LifeData): void {

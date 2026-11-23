@@ -35,6 +35,8 @@ const BURST_CHANCE = 0.45;
 const DARK_ON_TIME = [0.12, 0.4];
 const DARK_OFF_TIME = [0.9, 2.2];
 const DARK_OFF_LEVEL = 0;
+const HUM_DISTANCE = 6;
+const HUM_LEVEL = 0.6;
 
 function between(range: number[]): number {
   return range[0] + Math.random() * (range[1] - range[0]);
@@ -50,6 +52,8 @@ export class Lamp {
   private dark: boolean;
   private readonly x: number;
   private readonly diesWhenPassed: boolean;
+  private readonly y: number;
+  private readonly buzzes: boolean;
   private dead = false;
   private on = true;
   private timer = 0;
@@ -65,6 +69,8 @@ export class Lamp {
     this.dark = data.flicker === "escuro";
     this.x = data.x;
     this.diesWhenPassed = data.diesWhenPassed ?? false;
+    this.y = data.y;
+    this.buzzes = data.zumbido ?? false;
     this.light = new PointLight(name, new Vector3(data.x, data.y, moon ? MOON_Z : LAMP_Z), scene);
     this.light.diffuse = moon ? MOON_COLOR : this.color;
     this.light.specular = Color3.Black();
@@ -89,6 +95,13 @@ export class Lamp {
 
   get positionX(): number {
     return this.x;
+  }
+
+  /** Zumbido do reator (0 a 1) ouvido de (x, y): some com a distância e corta quando a lâmpada pisca. */
+  humAt(x: number, y: number): number {
+    if (!this.buzzes || this.dead) return 0;
+    const distance = Math.hypot(x - this.x, (y - this.y) * 0.5);
+    return this.level * Math.max(0, 1 - distance / HUM_DISTANCE) * HUM_LEVEL;
   }
 
   /** Passa a lâmpada para o modo escuro (quase sempre apagada). */

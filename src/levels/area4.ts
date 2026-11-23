@@ -121,7 +121,7 @@ const lamps: LampData[] = ([
   { x: 140, y: 2.75 },
   { x: 147, y: 2.75 },
   { x: 156, y: 2.75 },
-  { x: 162, y: 2.75, flicker: true },
+  { x: 162, y: 2.75, flicker: true, zumbido: true },
   { x: 172, y: 2.75 },
   { x: 180, y: 2.75 },
   { x: 188, y: 2.75 },

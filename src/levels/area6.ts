@@ -59,7 +59,7 @@ const DESK_TOP = 0.77;
 const lamps: LampData[] = [
   // Passarela: postes de sódio do pátio lá embaixo e uma luminária fraca na cobertura.
   { x: 244, y: ROOF - 0.25, tom: "sodio", forca: 0.75 },
-  { x: 258, y: ROOF - 0.25, tom: "sodio", forca: 0.65, flicker: true },
+  { x: 258, y: ROOF - 0.25, tom: "sodio", forca: 0.65, flicker: true, zumbido: true },
   // Portaria: a luz da TV (fria, piscando com as imagens) e uma lâmpada fraca no teto.
   { x: TV_X, y: FLOOR + 1.35, tom: "fluorescente", forca: 0.35, flicker: true },
   { x: 271, y: CEILING - 0.4, tom: "fluorescente", forca: 0.5 },
@@ -224,6 +224,8 @@ export const area6Level: LevelData = {
   // O carrinho do zelador, largo e baixo, esquecido no corredor de cima.
   boxes: [{ x: CART_X, y: FLOOR2 + 0.5, size: 1, mass: 20, material: "metal", visual: TOOL_CART_VISUAL, pegada: TOOL_CART_GRIP }],
   lamps,
+  // Do outro lado do pátio, alguém vê TV no bloco C (janela do 3º andar, longe das acesas do Lab. 3).
+  vida: [{ minX: START, maxX: 265, tvs: [{ x: 264.4, y: 7.4, z: 13.64, largura: 1.3, altura: 1.2 }] }],
   plates: [],
   doors: [],
   vigias: [

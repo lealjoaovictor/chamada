@@ -153,6 +153,8 @@ export const area3Level: LevelData = {
     { x: 143.6, y: GALLERY_Y + 0.5, size: 1, mass: 20, material: "carrinho", visual: LIBRARY_CART_VISUAL },
   ],
   lamps,
+  // A bibliotecária foi embora e deixou o monitor ligado.
+  vida: [{ minX: START, maxX: ARCHIVE_END, monitores: [{ x: 139.6, y: GALLERY_Y + 0.64, z: 1.55 }] }],
   plates: [],
   doors: [],
   vigias: [

@@ -132,7 +132,12 @@ export class Music {
       return t;
     }
     if (state.scene !== "jogo") return t;
-    if (state.area >= 5) return t;
+    // Bloco C (última área): a trilha de fundo sai para a voz do professor crescer; a tensão dos seguranças continua.
+    if (state.area >= 6) {
+      if (state.chase > 0) t.perseguicao = 0.7 + 0.3 * Math.min(1, state.chase);
+      else t.tensao = Math.max(0, Math.min(1, state.tension));
+      return t;
+    }
     const base = state.area <= 1 ? "patio" : "corredor";
     t[base] = state.area === 4 ? SUBSOLO_BASE : 1;
     if (state.chase > 0) {
@@ -151,7 +156,7 @@ export class Music {
     let tau = target > voice.level ? RISE[name] : FALL[name];
     if (state.scene === "pego") tau = CAUGHT_FALL;
     else if (state.chase > 0 && name !== "perseguicao" && target < voice.level) tau = CHASE_DUCK_FALL;
-    else if (state.scene === "jogo" && state.area >= 5 && target === 0) tau = SALA_FALL;
+    else if (state.scene === "jogo" && state.area >= 6 && target === 0) tau = SALA_FALL;
     voice.level += (target - voice.level) * Math.min(1, dt / tau);
     if (target > 0.001 && !voice.source) {
       voice.source = this.sfx.audio.createBufferSource();

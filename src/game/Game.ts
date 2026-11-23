@@ -239,7 +239,7 @@ export class Game {
       if (!this.gym) document.body.style.cursor = "none";
       return;
     }
-    if (this.state !== "jogando") return;
+    if (this.state !== "jogando" && this.state !== "sala-vazia") return;
     this.input.releaseAll();
     this.sfx.setPaused(true);
     this.pauseMenu.open();
@@ -401,6 +401,8 @@ export class Game {
 
     this.checkpoints = new Checkpoints(level.checkpoints);
     if (this.startArea > 1) this.checkpoints.jumpTo(this.checkpoints.indexBefore(AREAS[this.startArea - 1].inicioX));
+    // Começando depois da 204 (área ou checkpoint de teste), a conversa com o Davi já aconteceu.
+    if (this.emptyRoomDoor && this.checkpoints.current.x >= this.emptyRoomDoor.data.triggerX) this.emptyRoomDone = true;
     const checkpoint = Number(new URLSearchParams(location.search).get("checkpoint"));
     if (level === worldLevel && Number.isInteger(checkpoint) && checkpoint > 0) this.checkpoints.jumpTo(checkpoint);
     this.killY = level.killY;
@@ -871,6 +873,8 @@ export class Game {
       for (const door of this.doors) door.reset();
       for (const vigia of this.vigias) vigia.reset();
       this.chasesAnnounced.clear();
+      this.airTime = 0;
+      this.wasSliding = false;
       for (const elevator of this.elevators) elevator.reset();
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
@@ -963,7 +967,7 @@ export class Game {
         }
       }
     }
-    this.guardSounds.updateTv(dt, this.state === "menu" ? 0 : tv);
+    this.guardSounds.updateTv(dt, this.state === "menu" || this.state === "atrasado" || this.state === "fim" ? 0 : tv);
   }
 
   private habitLine(vigia: Vigia, kind: "lance" | "gol" | "perdeu" | "reclama" | "acorda" | "voltaDormir"): void {

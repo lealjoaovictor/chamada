@@ -99,10 +99,10 @@ test("perseguição recomeça do início depois de parada", () => {
   assert.equal(log.filter((l) => l === "start perseguicao").length, 2);
 });
 
-test("área 5 fica em silêncio e o final toca uma vez", () => {
+test("bloco C (área 6) fica sem trilha de fundo e o final toca uma vez", () => {
   const { run, level, music, log } = setup();
   run({ area: 3 }, 10);
-  run({ area: 5 }, 30);
+  run({ area: 6 }, 30);
   for (const name of ["patio", "corredor", "tensao", "perseguicao"]) assert.ok(level(name) < 0.01, name);
   music.playFinal();
   music.playFinal();

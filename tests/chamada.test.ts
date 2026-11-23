@@ -1,35 +1,82 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CallSchedule } from "../src/game/CallSchedule.ts";
+import { readFileSync } from "node:fs";
+import { CallSchedule, allFalas } from "../src/game/CallSchedule.ts";
 import { CHAMADA } from "../src/levels/chamada.ts";
 import { AREAS, areaAt } from "../src/levels/areas.ts";
 import { Checkpoints } from "../src/game/Checkpoints.ts";
 
 const schedule = new CallSchedule(CHAMADA);
+const nomes = schedule.names;
 
-test("a chamada dura entre 10 e 11 minutos", () => {
-  assert.ok(schedule.finalAt >= 600 && schedule.finalAt <= 660, `duração: ${schedule.finalAt.toFixed(1)} s`);
+test("o nome do Zacarias é lido em 7min50, e a chamada começa em 1min45", () => {
+  assert.equal(schedule.finalAt, 470);
+  assert.equal(nomes[0].at, 105);
+  const fimDaAula = schedule.events.filter((e) => e.at < 105);
+  assert.ok(fimDaAula.every((e) => e.kind === "professor" || e.kind === "colega"));
+  assert.match(CHAMADA.fimDaAula.at(-1)!.fala.texto, /vamos fazer a chamada/);
 });
 
-test("o nome do aluno é o último e mais ninguém vem depois em ordem alfabética", () => {
-  const last = schedule.events[schedule.events.length - 1];
+test("48 colegas e o Zacarias por último, sem ninguém depois dele em ordem alfabética", () => {
+  assert.equal(CHAMADA.turma.length, 48);
+  const last = nomes[nomes.length - 1];
   assert.equal(last.nome, CHAMADA.aluno);
   assert.equal(last.aluno, true);
-  for (const event of schedule.events.slice(0, -1)) {
-    assert.ok(event.nome.localeCompare(CHAMADA.aluno, "pt-BR") < 0, event.nome);
-  }
+  for (const name of nomes.slice(0, -1)) assert.ok(name.nome.localeCompare(CHAMADA.aluno, "pt-BR") < 0, name.nome);
+  assert.equal(schedule.events.at(-1)!.aluno, true, "nada toca depois do nome do Zacarias");
 });
 
 test("os nomes estão em ordem alfabética e sem repetição", () => {
-  const nomes = CHAMADA.entradas.map((e) => e.nome);
-  assert.deepEqual(nomes, [...nomes].sort((a, b) => a.localeCompare(b, "pt-BR")));
-  assert.equal(new Set(nomes).size, nomes.length);
+  const lista = CHAMADA.turma.map((e) => e.nome);
+  assert.deepEqual(lista, [...lista].sort((a, b) => a.localeCompare(b, "pt-BR")));
+  assert.equal(new Set(lista).size, lista.length);
 });
 
-test("menos gente responde no fim da lista do que no começo", () => {
-  const terco = Math.floor(CHAMADA.entradas.length / 3);
-  const presentes = (lista: typeof CHAMADA.entradas) => lista.filter((e) => e.presente).length;
-  assert.ok(presentes(CHAMADA.entradas.slice(0, terco)) > presentes(CHAMADA.entradas.slice(-terco)) * 2);
+test("8 faltas espalhadas pela lista, cada uma com o nome repetido e \"Falta.\"", () => {
+  const faltas = CHAMADA.turma.filter((e) => !e.presente);
+  assert.equal(faltas.length, 8);
+  const metade = CHAMADA.turma.length / 2;
+  const primeira = CHAMADA.turma.slice(0, metade).filter((e) => !e.presente).length;
+  assert.ok(primeira >= 3 && primeira <= 5, `faltas na 1ª metade: ${primeira}`);
+  for (const falta of faltas) {
+    const kinds = schedule.events.filter((e) => e.nome === falta.nome).map((e) => e.kind);
+    assert.deepEqual(kinds, ["nome", "repete", "falta"]);
+  }
+});
+
+test("três interrupções, cada uma depois de um nome que existe e comentada pelo colega", () => {
+  assert.equal(CHAMADA.interrupcoes.length, 3);
+  assert.equal(schedule.interruptionsAt.length, 3);
+  for (const pausa of CHAMADA.interrupcoes) {
+    assert.ok(CHAMADA.turma.some((e) => e.nome === pausa.depoisDe), pausa.depoisDe);
+    assert.ok(pausa.comentario.em < pausa.duracao);
+  }
+});
+
+test("13 falas do colega, todas antes do nome do Zacarias e cada uma com legenda", () => {
+  const colega = schedule.events.filter((e) => e.kind === "colega");
+  assert.equal(colega.length, 13);
+  for (const e of colega) {
+    assert.ok(e.at < schedule.finalAt, e.fala.id);
+    assert.ok(e.fala.legenda, e.fala.id);
+  }
+});
+
+test("\"Tá no M\" toca quando a chamada está mesmo no M (e o mesmo para as outras letras)", () => {
+  for (const { quando, fala } of CHAMADA.colega) {
+    if (!("letra" in quando)) continue;
+    const at = schedule.events.find((e) => e.fala.id === fala.id)!.at;
+    const atual = nomes[schedule.calledAt(at) - 1];
+    assert.ok(atual.nome.startsWith(quando.letra), `${fala.id}: ${atual.nome}`);
+  }
+});
+
+test("as falas não se atropelam: o \"presente\" vem depois do fim do nome e antes do próximo", () => {
+  for (const name of nomes.slice(0, -1)) {
+    const proximo = nomes[name.index + 1];
+    const doNome = schedule.events.filter((e) => e.nome === name.nome);
+    for (const e of doNome) assert.ok(e.at >= name.at && e.at < proximo.at, `${name.nome} ${e.kind}`);
+  }
 });
 
 test("cada nome é chamado uma vez, em ordem, mesmo em passos irregulares", () => {
@@ -39,16 +86,25 @@ test("cada nome é chamado uma vez, em ordem, mesmo em passos irregulares", () =
   let i = 0;
   while (t < schedule.finalAt) {
     const next = t + steps[i++ % steps.length];
-    for (const event of schedule.between(t, next)) seen.push(event.index);
+    for (const event of schedule.between(t, next)) if (event.kind === "nome") seen.push(event.nomeIndex!);
     t = next;
   }
-  assert.deepEqual(seen, schedule.events.map((e) => e.index));
+  assert.deepEqual(seen, nomes.map((n) => n.index));
 });
 
 test("calledAt conta quantos nomes já foram chamados", () => {
   assert.equal(schedule.calledAt(0), 0);
-  assert.equal(schedule.calledAt(schedule.events[2].at), 3);
+  assert.equal(schedule.calledAt(nomes[2].at), 3);
   assert.equal(schedule.calledAt(schedule.finalAt), schedule.total);
+  assert.equal(schedule.total, 49);
+});
+
+test("todas as falas têm id único e um arquivo de voz no manifest", () => {
+  const falas = allFalas(CHAMADA);
+  assert.equal(new Set(falas.map((f) => f.id)).size, falas.length);
+  const manifest = JSON.parse(readFileSync("public/audio/vozes/manifest.json", "utf8")) as Record<string, string>;
+  for (const fala of falas) assert.ok(manifest[fala.id], `sem áudio: ${fala.id}`);
+  for (const kind of ["desconfia", "barulho", "pego"] as const) assert.equal(CHAMADA.falas.seguranca[kind].length, 3);
 });
 
 test("áreas por posição no mundo", () => {

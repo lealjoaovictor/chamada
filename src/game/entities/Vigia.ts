@@ -258,11 +258,12 @@ export class Vigia {
     this.light.intensity = shown ? LIGHT_INTENSITY : 0;
   }
 
-  /** Barulho (caixa caindo): o Vigia de patrulha vai até lá olhar e depois volta. */
-  hear(x: number, y: number): void {
-    if (this.chases || this.phase === "escondido") return;
-    if (Math.abs(x - this.x) > HEAR_RANGE || Math.abs(y - this.data.y) > HEAR_HEIGHT) return;
+  /** Barulho (caixa caindo): o segurança de ronda vai até lá olhar e depois volta. Devolve true se ouviu. */
+  hear(x: number, y: number): boolean {
+    if (this.chases || this.phase === "escondido") return false;
+    if (Math.abs(x - this.x) > HEAR_RANGE || Math.abs(y - this.data.y) > HEAR_HEIGHT) return false;
     this.investigate = { x, looking: false, timer: 0 };
+    return true;
   }
 
   private updateInvestigate(dt: number): void {

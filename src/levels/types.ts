@@ -257,19 +257,73 @@ export interface RattleData {
   minFeetY: number;
 }
 
+/** Quem fala: decide a voz (ElevenLabs ou provisória) e por onde o som passa. */
+export type Voz = "professor" | "colega" | "aluno" | "aluna" | "zacarias" | "seguranca";
+
+/** Uma fala gravada. `id` é o nome do arquivo em `public/audio/vozes/` (sem extensão). */
+export interface Fala {
+  id: string;
+  voz: Voz;
+  texto: string;
+  /** Texto curto na tela da ligação (acessibilidade). Sem ele, a fala não tem legenda. */
+  legenda?: string;
+}
+
 export interface CallEntryData {
   nome: string;
   presente: boolean;
+  /** Voz de quem responde "presente". */
+  voz: "aluno" | "aluna";
 }
+
+/** Uma pausa no meio da chamada, depois de um nome. */
+export interface InterrupcaoData {
+  depoisDe: string;
+  duracao: number;
+  falas: { em: number; fala: Fala }[];
+  /** Comentário do colega, `em` segundos depois do começo da interrupção. */
+  comentario: { em: number; fala: Fala };
+}
+
+/** Quando o colega fala: num instante fixo, no primeiro nome de uma letra ou logo antes do último nome. */
+export type AncoraColega = { t: number } | { letra: string } | { antesDoAluno: true };
 
 export interface CallData {
   aluno: string;
-  entradas: CallEntryData[];
+  /** Nome do contato na tela da ligação. */
+  colegaNome: string;
+  /** Falas do professor antes da chamada (fim da aula), com o instante de cada uma. */
+  fimDaAula: { t: number; fala: Fala }[];
+  /** Instante do primeiro nome. */
   inicio: number;
+  turma: CallEntryData[];
+  /** Tempo de cada nome com "presente", do nome ao próximo nome. */
   tempoComResposta: number;
-  tempoSemResposta: number;
-  volumePorArea: number[];
-  filtroPorArea: number[];
+  /** Tempo de cada falta: nome, silêncio, nome de novo, "Falta.". */
+  tempoFalta: number;
+  /** Quanto depois do nome vem o "presente". */
+  atrasoPresente: number;
+  /** Quanto depois do nome o professor repete o nome de quem faltou, e quando diz "Falta.". */
+  atrasoRepete: number;
+  atrasoFalta: number;
+  interrupcoes: InterrupcaoData[];
+  colega: { quando: AncoraColega; fala: Fala }[];
+  /** Quanto depois do nome âncora (ou da interrupção) o colega fala. */
+  atrasoComentario: number;
+  falas: {
+    nome: (indice: number, nome: string) => Fala;
+    nomeAluno: Fala;
+    presente: Fala[];
+    falta: Fala[];
+    eleChamou: Fala;
+    salaChama: Fala;
+    zacariasPresente: Fala;
+    seguranca: { desconfia: Fala[]; barulho: Fala[]; pego: Fala[] };
+  };
+  /** Força do sinal da ligação por área (1 a 5); no subsolo ela picota. */
+  sinalPorArea: number[];
+  /** Áreas em que a ligação picota e quase some. */
+  picotaNasAreas: number[];
 }
 
 export interface AreaData {

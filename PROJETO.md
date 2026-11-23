@@ -126,7 +126,7 @@ chamada/
 - **Plano 2D:** o jogador e as caixas ficam travados no eixo Z (movimento só em X e Y).
 - **Movimento:** velocidade única, aceleração e frenagem curtas, *coyote time* (~0,1 s) e *buffer de pulo* (~0,1 s). Valores em constantes no topo de `Player.ts`, fáceis de ajustar. Se a versão fixada tiver o controlador de personagem do Havok, use-o; caso contrário, um controlador cinemático próprio.
 - **Morte:** fade curto (~0,5 s) e reposicionamento no último checkpoint. O relógio da chamada **não reinicia**.
-- **Relógio:** `CallClock.ts` usa o tempo de jogo (`CallSchedule.ts` diz em que instante cada nome é lido; lista em `src/levels/chamada.ts`). A voz usa clipes gravados de `public/audio/chamada/` (lista em `manifest.json`) quando existem e, sem eles, a voz sintetizada do navegador, provisória. Volume e filtro mudam por área (longe e abafado nas áreas 1 e 2, próximo e alto na 5).
+- **Relógio:** `CallClock.ts` usa o tempo de jogo (`CallSchedule.ts` diz em que instante cada fala toca; roteiro em `src/levels/chamada.ts`). Tudo chega pela ligação do colega, com filtro de telefone. As vozes são arquivos de `public/audio/vozes/` (lista em `manifest.json`, id = nome do arquivo); sem o arquivo, a voz sintetizada do navegador. O sinal picota no subsolo e a voz real do professor aparece na área 5.
 - Use o **Inspector** do Babylon para depurar. Ele fica fora do build final.
 
 ## 6. Arquitetura resumida
@@ -142,20 +142,17 @@ chamada/
 
 Atualize esta lista a cada tarefa concluída.
 
-- [ ] **História nova (GDD v3, validada em 2026-11-22), falta implementar:** ligação do colega como fonte da chamada (filtro de telefone, falas do colega com legenda, sinal picotando no subsolo, voz real do professor na área 5); seguranças no lugar do Vigia (ser pego = levado para fora); vultos viram colegas sólidos saindo na direção contrária; final bom com o professor chamando fora da ordem e o jogador respondendo "presente"; final ruim com "...ele chamou" e caneta; tirar a regra de "quase ninguém responde no fim"; falas dos seguranças (desconfiança, barulho, pego; 3 variações sorteadas) e conversa de fundo dos alunos nas áreas 1 e 2, com ducking quando o colega fala; relógio em duas partes (no máximo 8 minutos de jogo: fim da aula até 1:45 com falas do professor, depois chamada até 7:50 de 48 colegas + Zacarias com 3 interrupções e faltas com "Falta."), refazendo `chamada.ts` e `CallSchedule.ts` pela tabela do roteiro da voz
-- [x] **Cenário da história nova — feito em 2026-11-23** (sem playtest):
-  - Luz por área com a paleta "Clima da Chamada": lâmpadas têm `tom` (sódio nos postes da área 1 e na rampa da 4, fluorescente frio dentro, tubo velho esverdeado no subsolo, luz quente só na sala) e `forca`; `ambiente` por trecho baixa a luz geral área a área (0,8 → 0,62 → 0,4 → 0,36 → 0,28 no corredor; 0,9 quente na sala). Saturação do pós-processamento de -50 para -22, janelas acesas frias, lanterna dos Vigias branca e fria
-  - Lâmpadas `desligada` (luminária sem luz) e placa verde de saída (`saida`) nos trechos apagados
-  - Placas de pressão viram sensores de portão (faixa listrada + coluna com olho e LED vermelho/verde); na zeladoria, `tipo: "contrapeso"`: estrado pendurado por cordas e roldanas até a porta
-  - Corredor em laço removido (código e dados); corredor novo com portas de outras salas, murais, bancos e placa de saída; alto-falantes e vultos da área 5 removidos
-  - Sala final: professor (X Bot, em pé atrás da mesa com a lista) e colega (Y Bot, sentado numa carteira com o celular aceso), em `figurantes` (`src/game/entities/Figurante.ts`, pose por rotação dos ossos)
-  - Fica para o trabalho dos seguranças e dos finais: alunos saindo nas áreas 1 e 2, seguranças no lugar do Vigia, animação do professor erguendo os olhos
-- [ ] **Decisões de 2026-11-23 (GDD v3.1), falta implementar:**
-  - Mínimo da v3 até o congelamento (noite de 24/11): relógio novo pela ligação, seguranças e os dois finais. Conversa dos alunos e sinal picotando saem primeiro se faltar tempo
+- [ ] **História nova (GDD v3.1): mínimo feito em 2026-11-23, testado por bot, falta playtest humano**
+  - Relógio novo (`src/levels/chamada.ts` = roteiro inteiro com ids das falas; `CallSchedule.ts` = linha do tempo): fim da aula de 0:00 a 1:45 (6 falas do professor), chamada de 1:45 a 7:50 com 48 colegas (6 s por nome com "presente", 9 s por falta: nome, silêncio, nome de novo, "Falta."), 8 faltas espalhadas, 3 interrupções (bronca, aviso da coordenação, pergunta de uma aluna) e o Zacarias em 7:50 exatos. Teste em `tests/chamada.test.ts`
+  - Ligação do colega (`CallClock.ts`): celular vibra no primeiro botão, filtro de telefone (300 a 3.400 Hz, distorção leve, compressão), professor ao fundo com eco e colega seco perto do microfone, ducking quando o colega fala, 13 falas do colega (as de letra ficam presas ao primeiro nome daquela letra). Sinal picota no subsolo (área 4) e a legenda mostra "· · ·"; na área 5 a voz real do professor (sem filtro) sobe conforme o jogador chega à porta
+  - Tela da ligação (`src/ui/CallScreen.ts`, estilos `.ligacao` em `index.html`): canto superior direito, nome do contato (`colegaNome`, provisório "Davi"), barras de sinal, legenda do colega e nome lido ("Larissa Melo · presente", "· falta")
+  - Seguranças: ser pego escurece devagar (0,7 s + 0,5 s) e volta ao checkpoint; falas de desconfiança (ao começar a desconfiar, com intervalo mínimo de 6 s), barulho (ao ir investigar) e pego, 3 variações sorteadas sem repetir, às vezes nenhuma (`GUARD_SILENT_CHANCE` em `CallClock.ts`). No código ainda se chama `Vigia`
+  - Final bom: a ligação desliga, o professor chama "Zacarias Vieira?" na sala (legenda embaixo); qualquer botão responde "Presente!" e corta para preto; sem botão em ~4 s depois da fala, corta em silêncio. Final ruim: o nome pela ligação, silêncio, "...ele chamou" e a caneta, depois escurece e oferece recomeçar
+  - Vozes: provisórias geradas no Mac (`node ferramentas/vozes.ts --provisorias`). Para trocar pelo ElevenLabs: salvar `public/audio/vozes/<id>.mp3` com o id da 1ª coluna de `docs/roteiro-vozes.csv` e rodar `node ferramentas/vozes.ts` (atualiza o `manifest.json`). Fala sem arquivo cai na voz do navegador
+  - Falta (se der tempo, nesta ordem): colegas sólidos saindo na direção contrária e conversa de fundo nas áreas 1 e 2 (os `vultos` antigos continuam no código); professor erguer os olhos no final; sensores de portão já feitos no cenário
+- [ ] **Decisões de 2026-11-23 (GDD v3.1), falta:**
   - Ordem de corte única (GDD, "A chamada"): segunda perseguição e depósito da área 4, sala escura da área 2, garagem da área 1; gatilho = primeira partida acima de 6 min nos dois primeiros playtests
-  - Vozes: todas no ElevenLabs; conferir crédito e uso permitido do plano e registrar na seção 9
-  - Legenda do nome lido na tela da ligação (acessibilidade para quem joga sem som)
-  - Final bom: professor em pé na mesa segurando a lista e colega sentado com o celular, reaproveitando Y Bot e X Bot do Mixamo com outro tom
+  - Vozes: gravar todas no ElevenLabs; conferir crédito e uso permitido do plano e registrar na seção 9
   - Testar com um controle real
   - Plano B: gravar vídeo de uma partida completa na véspera da apresentação
 - [x] Projeto base (Vite + TypeScript + Babylon + Havok)
@@ -241,6 +238,7 @@ Preencha ao baixar ou gerar qualquer item.
 | Textura metal_plate (Rob Tuytel): cor e normal 1K | https://polyhaven.com/a/metal_plate, baixado em 2026-11-22 | CC0 | Sim: cor convertida para cinza com contraste reduzido; normal reduzida para 512 px | `public/textures/metal_cor.jpg`, `public/textures/metal_normal.jpg` |
 | Textura beige_wall_001 (Dimitrios Savva, Rico Cilliers): cor e normal 1K | https://polyhaven.com/a/beige_wall_001, baixado em 2026-11-22 | CC0 | Sim: cor convertida para cinza com contraste reduzido; normal reduzida para 512 px | `public/textures/parede_cor.jpg`, `public/textures/parede_normal.jpg` |
 | Textura granite_tile (Charlotte Baglioni): cor e normal 1K | https://polyhaven.com/a/granite_tile, baixado em 2026-11-22 | CC0 | Sim: cor convertida para cinza com contraste reduzido; normal reduzida para 512 px | `public/textures/piso_cor.jpg`, `public/textures/piso_normal.jpg` |
+| Vozes provisórias (92 falas: professor, colega, alunos, seguranças, Zacarias) | Geradas com o `say` do macOS (vozes Reed, Eddy, Rocko, Grandpa, Flo, Sandy, Shelley, Luciana) por `ferramentas/vozes.ts --provisorias`, 2026-11-23 | Provisórias, só para teste: serão trocadas pelas do ElevenLabs antes da entrega (anotar aqui o plano, a data e os termos) | — | `public/audio/vozes/` (lista em `docs/roteiro-vozes.csv`) |
 | Estantes com livros (3 variações) | Modeladas por script no Blender (`ferramentas/modelar_estante.py -- 1|2|3`), 2026-11-22 | Próprio do projeto | — | `public/models/estante-1.glb`, `estante-2.glb`, `estante-3.glb` |
 | Modelo `SchoolChair_01` (glTF 1K) | https://polyhaven.com/a/SchoolChair_01, baixado em 2026-11-22 | CC0 | Não | `public/models/kit/SchoolChair_01.glb` (áreas 2, 3 e 5)); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
 | Modelo `SchoolDesk_01` (glTF 1K) | https://polyhaven.com/a/SchoolDesk_01, baixado em 2026-11-22 | CC0 | Não | `public/models/kit/SchoolDesk_01.glb` (áreas 2 e 5)); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |

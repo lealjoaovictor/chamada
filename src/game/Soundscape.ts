@@ -49,6 +49,12 @@ export class Soundscape {
     else this.sfx.play("morte-queda", { volume: 0.8 });
   }
 
+  /** Pego por um segurança: um aviso curto e baixo (eles são bravos, não violentos); a fala vem do CallClock. */
+  caught(cause: "luz" | "toque"): void {
+    if (cause === "luz") this.sfx.play("morte-luz", { volume: 0.45 });
+    else this.sfx.play("vigia-surge", { volume: 0.4, pitch: 0.8 });
+  }
+
   forget(): void {
     this.previous = null;
   }

@@ -38,7 +38,8 @@ import { FresnelParameters } from "@babylonjs/core/Materials/fresnelParameters";
 import { Soundscape } from "./Soundscape";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
-import { EndScreen, LateScreen, MenuScreen } from "../ui/Screens";
+import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
+import { CallScreen } from "../ui/CallScreen";
 import { CallClock } from "./CallClock";
 import { Telemetry } from "./Telemetry";
 import { CHAMADA } from "../levels/chamada";
@@ -61,8 +62,18 @@ const LIGHT_CULL_DISTANCE = 17;
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const WARMUP_STEP = 2;
 const ARRIVAL_PAUSE = 0.6;
-const ROOM_HOLD = 3.5;
-const LATE_HOLD = 3;
+// Final bom: depois de o professor chamar, o jogador tem ~4 s para responder "presente" (contados do fim da fala).
+const ANSWER_WINDOW = 4;
+const ANSWER_EARLIEST = 0.5;
+const CUT_AFTER_ANSWER = 1.3;
+// Final ruim: o nome, o silêncio, "...ele chamou" e a caneta, depois escurece.
+const LATE_HOLD = 6;
+// Ser pego: a tela escurece devagar (dá tempo de ouvir o segurança) e o jogador volta ao checkpoint.
+const CAUGHT_FADE_OUT = 0.7;
+const CAUGHT_HOLD = 0.5;
+const CAUGHT_FADE_IN = 0.4;
+const SUSPICION_LINE_COOLDOWN = 6;
+const GUARD_VOICE_RANGE = 22;
 const MAX_CLOCK_STEP = 0.25;
 const END_FADE = 1.5;
 const END_SCREEN_DELAY = 0.6;
@@ -95,6 +106,16 @@ export class Game {
   private readonly endScreen = new EndScreen();
   private readonly lateScreen = new LateScreen();
   private endShownAt = -1;
+  private readonly callScreen = new CallScreen("");
+  private readonly roomCaption = new RoomCaption();
+  private cutAt = -1;
+  private answerFrom = 0;
+  private answerUntil = 0;
+  private fadeOut = DEATH_FADE_OUT;
+  private fadeIn = DEATH_FADE_IN;
+  private hold = 0;
+  private readonly suspicionLineAt = new Map<Vigia, number>();
+  private readonly wasSuspicious = new Map<Vigia, boolean>();
   private clock!: CallClock;
   private telemetry!: Telemetry;
   private startArea = 1;
@@ -141,7 +162,8 @@ export class Game {
     const level = debugLevel ? pipelineLevel : worldLevel;
     const area = Number(params.get("area"));
     if (!debugLevel && Number.isInteger(area) && area >= 1 && area <= AREAS.length) game.startArea = area;
-    game.clock = new CallClock(CHAMADA, game.sfx);
+    game.callScreen.setContact(CHAMADA.colegaNome);
+    game.clock = new CallClock(CHAMADA, game.sfx, game.callScreen);
     const clockStart = Number(params.get("chamada"));
     if (clockStart > 0) game.clock.setTime(clockStart);
     game.telemetry = new Telemetry(game.startArea);
@@ -322,7 +344,7 @@ export class Game {
     this.input.update();
     const area = areaAt(this.player.position.x);
     const running = this.state === "jogando" || this.state === "morto";
-    this.clock.update(realDt, area, running);
+    this.clock.update(realDt, area, running, this.salaProximity(area));
     if (running) {
       this.telemetry.update(realDt, area, this.clock.calledCount, this.clock.schedule.total, this.player.position.x, this.player.feetY);
       if (this.clock.studentNameReached) this.late();
@@ -427,9 +449,16 @@ export class Game {
   }
 
   private die(cause: "queda" | "luz" | "toque"): void {
+    // Seguranças não matam: ser pego é ser levado para fora (volta ao checkpoint).
+    const caught = cause !== "queda";
+    this.fadeOut = caught ? CAUGHT_FADE_OUT : DEATH_FADE_OUT;
+    this.fadeIn = caught ? CAUGHT_FADE_IN : DEATH_FADE_IN;
+    this.hold = caught ? CAUGHT_HOLD : 0;
+    if (caught) this.clock.guard("pego");
     this.hints.registerDeath(this.player.position.x);
     this.telemetry.death(areaAt(this.player.position.x), cause, this.player.position.x);
-    this.soundscape.death(cause);
+    if (cause === "queda") this.soundscape.death(cause);
+    else this.soundscape.caught(cause);
     this.soundscape.forget();
     this.fade.setColor(cause === "luz" ? LIGHT_DEATH_COLOR : DEFAULT_FADE_COLOR);
     this.state = "morto";
@@ -456,14 +485,15 @@ export class Game {
     this.endShownAt = -1;
     this.input.setAutopilot(0);
     this.fade.setColor(DEFAULT_FADE_COLOR);
+    this.clock.badEnding();
     this.telemetry.finish("ruim");
   }
 
   private updateLate(dt: number): void {
     this.arrivalTimer += dt;
-    if (this.arrivalTimer > LATE_HOLD) this.clock.stopHiss();
+    if (this.arrivalTimer > LATE_HOLD + END_FADE) this.clock.silence();
     this.fade.set(Math.min(Math.max((this.arrivalTimer - LATE_HOLD) / END_FADE, 0), 1));
-    this.updateEndScreen(this.lateScreen, LATE_HOLD);
+    this.updateEndScreen(this.lateScreen, LATE_HOLD + END_FADE + END_SCREEN_DELAY);
     this.player.update(dt, this.input, false);
     this.cullLights();
   }
@@ -508,15 +538,34 @@ export class Game {
       const walking = this.arrivalTimer > ARRIVAL_PAUSE && this.player.position.x < target;
       this.input.setAutopilot(walking ? 1 : 0);
       if (this.arrivalTimer > ARRIVAL_PAUSE && !walking) {
+        // O professor ergue os olhos e chama o nome fora da ordem.
         this.state = "fim";
         this.arrivalTimer = 0;
-        this.clock.callStudentNow();
+        this.cutAt = -1;
+        this.endShownAt = -1;
+        const duration = this.clock.goodEnding();
+        this.answerFrom = Math.min(ANSWER_EARLIEST, duration);
+        this.answerUntil = duration + ANSWER_WINDOW;
+        this.roomCaption.show(CHAMADA.falas.salaChama.texto, duration + 1);
+        this.input.consumeAnyPress();
         this.telemetry.finish("bom");
       }
-    } else {
-      if (this.arrivalTimer > ROOM_HOLD) this.clock.stopHiss();
-      this.fade.set(Math.min(Math.max((this.arrivalTimer - ROOM_HOLD) / END_FADE, 0), 1));
-      this.updateEndScreen(this.endScreen, ROOM_HOLD);
+    } else if (this.cutAt < 0) {
+      // Qualquer botão: "presente". Sem resposta em ~4 s, corta em silêncio.
+      const pressed = this.input.consumeAnyPress();
+      if (this.arrivalTimer >= this.answerFrom && pressed) {
+        this.clock.answer();
+        this.roomCaption.show(CHAMADA.falas.zacariasPresente.texto, CUT_AFTER_ANSWER);
+        this.cutAt = this.arrivalTimer + CUT_AFTER_ANSWER;
+      } else if (this.arrivalTimer > this.answerUntil) {
+        this.cutAt = this.arrivalTimer;
+      }
+    } else if (this.arrivalTimer >= this.cutAt) {
+      // Corte seco para preto.
+      this.fade.set(1);
+      this.roomCaption.hide();
+      this.clock.silence();
+      this.updateEndScreen(this.endScreen, this.cutAt + END_FADE);
     }
     this.player.update(dt, this.input, false);
     this.cameraRig.update(dt, {
@@ -528,9 +577,9 @@ export class Game {
     this.cullLights();
   }
 
-  private updateEndScreen(screen: EndScreen | LateScreen, hold: number): void {
+  private updateEndScreen(screen: EndScreen | LateScreen, showAt: number): void {
     if (this.endShownAt < 0) {
-      if (this.arrivalTimer < hold + END_FADE + END_SCREEN_DELAY) return;
+      if (this.arrivalTimer < showAt) return;
       this.endShownAt = this.arrivalTimer;
       this.input.consumeAnyPress();
       document.body.style.cursor = "";
@@ -546,8 +595,8 @@ export class Game {
 
   private updateDeath(dt: number): void {
     this.deathTimer += dt;
-    if (this.deathTimer < DEATH_FADE_OUT) {
-      this.fade.set(this.deathTimer / DEATH_FADE_OUT);
+    if (this.deathTimer < this.fadeOut) {
+      this.fade.set(this.deathTimer / this.fadeOut);
       return;
     }
     if (!this.respawned) {
@@ -561,12 +610,27 @@ export class Game {
       this.cameraRig.snap(point.x, this.player.feetY);
       this.pushTimer = 0;
     }
-    const t = (this.deathTimer - DEATH_FADE_OUT) / DEATH_FADE_IN;
-    this.fade.set(1 - t);
+    const t = Math.max(0, this.deathTimer - this.fadeOut - this.hold) / this.fadeIn;
+    this.fade.set(1 - Math.min(t, 1));
     if (t >= 1) {
       this.state = "jogando";
       this.fade.setColor(DEFAULT_FADE_COLOR);
     }
+  }
+
+  /** Na área 5, de 0 (começo do corredor) a 1 (porta da sala): a voz real do professor vai ficando mais alta. */
+  private salaProximity(area: number): number {
+    const door = this.finalDoor?.data.triggerX;
+    const start = AREAS.find((a) => a.numero === area)?.inicioX;
+    if (area !== AREAS[AREAS.length - 1].numero || door === undefined || start === undefined) return 0;
+    return Math.min(Math.max((this.player.position.x - start) / (door - start), 0), 1);
+  }
+
+  /** Fala de um segurança, mais baixa quanto mais longe ele está. */
+  private guardSays(vigia: Vigia, kind: "desconfia" | "barulho"): void {
+    const distance = Math.abs(vigia.positionX - this.player.position.x);
+    if (distance > GUARD_VOICE_RANGE) return;
+    this.clock.guard(kind, 1 - 0.6 * (distance / GUARD_VOICE_RANGE));
   }
 
   // Caixa que cai com força faz barulho: os Vigias de patrulha por perto vão investigar.
@@ -576,7 +640,13 @@ export class Game {
       if (impact <= 0) continue;
       const p = box.mesh.position;
       this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
-      for (const vigia of this.vigias) vigia.hear(p.x, p.y);
+      let heard = false;
+      for (const vigia of this.vigias) {
+        if (vigia.hear(p.x, p.y) && !heard) {
+          heard = true;
+          this.guardSays(vigia, "barulho");
+        }
+      }
     }
   }
 
@@ -623,6 +693,13 @@ export class Game {
     for (const vigia of this.vigias) {
       if (vigia.chases) continue;
       if (vigia.updateAlert(dt, vigia.sees(this.sightPoints))) caught = true;
+      // Começou a desconfiar: "Ei? Tem alguém aí?"
+      const now = performance.now() / 1000;
+      if (vigia.suspicious && !this.wasSuspicious.get(vigia) && now - (this.suspicionLineAt.get(vigia) ?? -99) > SUSPICION_LINE_COOLDOWN && !caught) {
+        this.suspicionLineAt.set(vigia, now);
+        this.guardSays(vigia, "desconfia");
+      }
+      this.wasSuspicious.set(vigia, vigia.suspicious);
     }
     return caught ? "luz" : null;
   }

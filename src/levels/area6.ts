@@ -43,7 +43,7 @@ const STAIR_STEPS = 15;
 const FLOOR2 = FLOOR + 3;
 /** O teto do térreo acaba no começo da escada (o vão da escada é aberto até o teto do segundo andar). */
 const CEILING_END = STAIR_X0 + 2.5;
-const CEILING2 = FLOOR2 + 3.8;
+const CEILING2 = FLOOR2 + 4.2;
 /** A mudança do Lab. 3 empilhada no corredor de cima: alta demais para o pulo, passa subindo no carrinho. */
 const CART_X = 299.5;
 const PILE_X0 = 304;

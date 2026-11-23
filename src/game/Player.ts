@@ -1,7 +1,6 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
 import {
   CharacterSupportedState,
@@ -18,6 +17,7 @@ import type { Input } from "./Input";
 import { GRAVITY } from "./Physics";
 import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
+import { dressCharacter } from "./characterLook";
 import { HandIK, type HandTarget } from "./HandIK";
 
 const MOVE_SPEED = 4.5;
@@ -43,7 +43,8 @@ const CROUCH_BLEND = 4;
 const CROUCH_ANIM_THRESHOLD = 0.5;
 
 const MODEL_URL = modelFile("personagem");
-const MODEL_COLOR = new Color3(0.06, 0.06, 0.07);
+/** Escurece a textura do Bryce (Zacarias) para ele não brilhar mais que o cenário. */
+const MODEL_TINT = new Color3(0.62, 0.62, 0.66);
 const TURN_SPEED = 14;
 const BLEND_TIME = 0.15;
 const WALK_CLIP_SPEED = 5.3;
@@ -164,16 +165,8 @@ export class Player {
   static async create(scene: Scene, spawn: { x: number; y: number }): Promise<Player> {
     const result = await ImportMeshAsync(MODEL_URL, scene, MODEL_OPTIONS);
     const visual = new TransformNode("player-visual", scene);
-    const material = new StandardMaterial("player-mat", scene);
-    material.diffuseColor = MODEL_COLOR;
-    material.specularColor = Color3.Black();
-    for (const mesh of result.meshes) {
-      if (!mesh.parent) mesh.parent = visual;
-      if (mesh.material) {
-        mesh.material.dispose();
-        mesh.material = material;
-      }
-    }
+    for (const mesh of result.meshes) if (!mesh.parent) mesh.parent = visual;
+    dressCharacter(result.meshes, scene, "player", MODEL_TINT);
     const anims = new Map<AnimName, AnimationGroup>();
     for (const group of result.animationGroups) {
       group.stop();

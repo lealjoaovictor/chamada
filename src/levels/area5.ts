@@ -74,8 +74,8 @@ export const area5Level: LevelData = {
   ],
   // O professor em pé na mesa, com a lista, e o colega sentado numa carteira com o celular na mão.
   figurantes: [
-    { modelo: "vigia", x: 216.4 + SHIFT, y: FLOOR, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.065, 0.058, 0.05], segura: "lista" },
-    { modelo: "personagem", x: 212.25 + SHIFT, y: FLOOR, z: 0.42, rotY: 0, pose: "sentado", tom: [0.05, 0.06, 0.085], segura: "celular" },
+    { modelo: "professor", x: 216.4 + SHIFT, y: FLOOR, z: 1.98, rotY: 180, pose: "em-pe", tom: [0.75, 0.72, 0.68], segura: "lista" },
+    { modelo: "aluno", x: 212.25 + SHIFT, y: FLOOR, z: 0.42, rotY: 0, pose: "sentado", tom: [0.7, 0.7, 0.74], segura: "celular" },
   ],
   depth: 4,
   ground: [{ x: (STAIRS_END + END + 1) / 2, y: (FLOOR - 1) / 2, width: END + 1 - STAIRS_END, height: FLOOR + 1, material: "piso" }],

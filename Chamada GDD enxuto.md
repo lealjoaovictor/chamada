@@ -7,7 +7,7 @@ Versão 3.1 · Nov 23, 2026 (v3 de 22/11: faculdade noturna realista, chamada ou
 Chamada é um jogo de plataforma e puzzle 2.5D de no máximo 8 minutos em que um aluno atravessa à noite uma faculdade que está fechando para chegar à sala antes que o professor leia o nome dele na chamada.
 
 - **Gênero:** plataforma e puzzle 2.5D (mundo 3D, câmera lateral), um jogador.
-- **Plataforma:** navegador, rodando localmente, com Babylon.js. Teclado ou controle conectado ao computador; gestos no celular.
+- **Plataforma:** navegador, rodando localmente no MacBook Air (M1) da apresentação, com Babylon.js. Teclado ou controle conectado ao computador. Decisão de 2026-11-23: o alvo é o computador; o celular deixou de ser plataforma.
 - **Duração:** no máximo 8 minutos (decisão de 2026-11-22). O relógio termina em 7min50; a primeira partida deve levar de 5 a 6 minutos, com cerca de 2 minutos de folga para quem joga bem (a calibrar nos testes com a telemetria).
 - **Referências:** INSIDE (clima, perseguição, narrativa pelo cenário) e SpeedRunners (pressão que empurra o jogador para frente, movimento fluido).
 

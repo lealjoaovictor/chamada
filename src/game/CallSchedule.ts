@@ -116,6 +116,6 @@ export function allFalas(data: CallData): Fala[] {
   schedule.events.forEach((event) => add(event.fala));
   const extra = data.falas;
   [...extra.presente, ...extra.falta, extra.eleChamou, extra.salaChama, extra.zacariasPresente].forEach(add);
-  [...extra.seguranca.desconfia, ...extra.seguranca.barulho, ...extra.seguranca.pego].forEach(add);
+  [...extra.seguranca.desconfia, ...extra.seguranca.barulho, ...extra.seguranca.pego, ...extra.seguranca.persegue].forEach(add);
   return [...falas.values()];
 }

@@ -87,6 +87,11 @@ export interface BoxData {
   material?: MaterialName;
   /** Modelos prontos usados como visual da caixa (o cubo segue como corpo físico). Posições relativas ao centro da base. */
   visual?: PropData[];
+  /**
+   * Onde as mãos do jogador seguram ao empurrar (alça, borda): `y` = altura acima da base,
+   * `x` = quanto para dentro da face encostada (negativo = alça para fora). Padrão: borda de cima.
+   */
+  pegada?: { y: number; x?: number };
 }
 
 export interface PointData {
@@ -156,6 +161,8 @@ export interface VigiaData {
   aimY: number;
   coneAngle: number;
   range: number;
+  /** Perseguição: o segurança entra por uma porta na parede do fundo (em x0), em vez de surgir do nada. */
+  porta?: { z: number; largura?: number; altura?: number };
 }
 
 export interface ElevatorData {
@@ -320,7 +327,7 @@ export interface CallData {
     eleChamou: Fala;
     salaChama: Fala;
     zacariasPresente: Fala;
-    seguranca: { desconfia: Fala[]; barulho: Fala[]; pego: Fala[] };
+    seguranca: { desconfia: Fala[]; barulho: Fala[]; pego: Fala[]; persegue: Fala[] };
   };
   /** Força do sinal da ligação por área (1 a 5); no subsolo ela picota. */
   sinalPorArea: number[];

@@ -168,6 +168,8 @@ export const CHAMADA: CallData = {
         seguranca("seg_pego_2", "Acabou o horário!"),
         seguranca("seg_pego_3", "Opa, opa. Aqui não."),
       ],
+      // Perseguição do subsolo: o segurança sai pela porta gritando.
+      persegue: [seguranca("seg_persegue_1", "Ei! Parado aí!"), seguranca("seg_persegue_2", "Volta aqui, rapaz!")],
     },
   },
 

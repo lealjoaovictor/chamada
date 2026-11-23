@@ -53,6 +53,19 @@ export class Sfx {
     );
   }
 
+  private mutedState = false;
+
+  /** Silencia todo o jogo (efeitos, ambiente e vozes passam por este volume geral). */
+  get muted(): boolean {
+    return this.mutedState;
+  }
+
+  set muted(value: boolean) {
+    this.mutedState = value;
+    this.master.gain.setTargetAtTime(value ? 0 : MASTER_VOLUME, this.context.currentTime, 0.02);
+    if (value && typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+  }
+
   get audio(): AudioContext {
     return this.context;
   }

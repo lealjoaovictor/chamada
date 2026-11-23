@@ -31,14 +31,14 @@ const SIGNAL_OFF = [0.35, 1.5];
 const SIGNAL_SMOOTH = 18;
 const GUARD_VOLUME = 0.95;
 const GUARD_DUCKED = 0.6;
-const GUARD_SILENT_CHANCE = { desconfia: 0.15, barulho: 0.1, pego: 0.3 };
+const GUARD_SILENT_CHANCE = { desconfia: 0.15, barulho: 0.1, pego: 0.3, persegue: 0 };
 // Final ruim: depois do nome, um silêncio, "...ele chamou" e a caneta.
 const BAD_ELE_CHAMOU = 2.6;
 const BAD_PEN = 4.2;
 const LEGEND_MIN = 2.5;
 
 type Route = "professor" | "aluno" | "colega" | "ao-vivo";
-export type GuardLine = "desconfia" | "barulho" | "pego";
+export type GuardLine = "desconfia" | "barulho" | "pego" | "persegue";
 
 // O relógio do jogo: o tempo de jogo decide o que está tocando na ligação.
 export class CallClock {
@@ -380,7 +380,7 @@ export class CallClock {
   }
 
   private speak(fala: Fala, route: Route): void {
-    if (typeof speechSynthesis === "undefined" || !this.started) return;
+    if (typeof speechSynthesis === "undefined" || !this.started || this.sfx.muted) return;
     const utterance = new SpeechSynthesisUtterance(fala.texto);
     utterance.lang = "pt-BR";
     const voice = this.voices[VOICE_INDEX[fala.voz] % Math.max(1, this.voices.length)];

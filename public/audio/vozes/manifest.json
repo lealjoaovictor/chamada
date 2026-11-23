@@ -90,5 +90,7 @@
  "seg_barulho_3": "seg_barulho_3.mp3",
  "seg_pego_1": "seg_pego_1.mp3",
  "seg_pego_2": "seg_pego_2.mp3",
- "seg_pego_3": "seg_pego_3.mp3"
+ "seg_pego_3": "seg_pego_3.mp3",
+ "seg_persegue_1": "seg_persegue_1.mp3",
+ "seg_persegue_2": "seg_persegue_2.mp3"
 }

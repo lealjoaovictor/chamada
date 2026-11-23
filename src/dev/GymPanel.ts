@@ -1,9 +1,14 @@
 import type { Vigia } from "../game/entities/Vigia";
 import type { CallClock, GuardLine } from "../game/CallClock";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { Camera } from "@babylonjs/core/Cameras/camera";
+import type { Sfx } from "../game/Sfx";
+import { Lanterna } from "../game/entities/Lanterna";
 import { TUNING } from "../game/Tuning";
 
 // Painel da sala de teste (`?gym`): ajusta a furtividade ao vivo. Os mesmos valores entram pela URL
-// (ex.: `?gym&alcance=8&cone=25&reacao=1.2`), e o painel mostra a URL com os valores atuais para copiar.
+// (ex.: `?gym&alcance=8&cone=25&reacao=1.2&mudo`), e o painel mostra a URL com os valores atuais para copiar.
 interface Slider {
   key: string;
   label: string;
@@ -21,13 +26,20 @@ export class GymPanel {
   private readonly url = document.createElement("input");
   private readonly sliders: Slider[];
   private readonly clock: CallClock;
+  private readonly sfx: Sfx;
+  private readonly vigia: Vigia;
+  private closeCam: FreeCamera | null = null;
+  private gameCam: Camera | null = null;
 
-  constructor(vigia: Vigia, clock: CallClock) {
+  constructor(vigia: Vigia, clock: CallClock, sfx: Sfx) {
     this.clock = clock;
+    this.sfx = sfx;
+    this.vigia = vigia;
     const deg = (rad: number): number => Math.round((rad * 180) / Math.PI);
     this.sliders = [
       { key: "alcance", label: "alcance da lanterna (m)", min: 3, max: 18, step: 0.5, get: () => vigia.settings.range, set: (v) => vigia.tune({ range: v }) },
       { key: "cone", label: "abertura do cone (graus, metade)", min: 10, max: 50, step: 1, get: () => deg(vigia.settings.coneAngle), set: (v) => vigia.tune({ coneAngle: (v * Math.PI) / 180 }) },
+      { key: "facho", label: "facho visível (força)", min: 0, max: 0.6, step: 0.01, get: () => Lanterna.beamStrength, set: (v) => (Lanterna.beamStrength = v) },
       { key: "ronda", label: "velocidade da ronda (m/s)", min: 0.4, max: 3, step: 0.1, get: () => vigia.settings.speed, set: (v) => vigia.tune({ speed: v }) },
       { key: "reacao", label: "reação: segundos vendo até pegar", min: 0.2, max: 3, step: 0.05, get: () => TUNING.reacao, set: (v) => (TUNING.reacao = v) },
       { key: "esquecer", label: "esquecer: alerta que baixa por segundo", min: 0.1, max: 2, step: 0.05, get: () => TUNING.esquecer, set: (v) => (TUNING.esquecer = v) },
@@ -39,6 +51,7 @@ export class GymPanel {
       const value = Number(params.get(slider.key));
       if (params.has(slider.key) && Number.isFinite(value)) slider.set(value);
     }
+    if (params.has("mudo")) sfx.muted = true;
     this.build();
     this.refreshUrl();
     const loop = (): void => {
@@ -90,15 +103,29 @@ export class GymPanel {
     }
     const buttons = document.createElement("div");
     buttons.className = "gym-botoes";
-    const button = (label: string, action: () => void): void => {
+    const button = (label: string, action: (b: HTMLButtonElement) => void): HTMLButtonElement => {
       const b = document.createElement("button");
       b.textContent = label;
       b.addEventListener("click", () => {
-        action();
+        action(b);
         b.blur();
       });
       buttons.append(b);
+      return b;
     };
+    const muteLabel = (): string => (this.sfx.muted ? "som: mudo" : "som: ligado");
+    const mute = button(muteLabel(), (b) => {
+      this.sfx.muted = !this.sfx.muted;
+      b.textContent = muteLabel();
+      b.classList.toggle("gym-ativo", this.sfx.muted);
+      this.refreshUrl();
+    });
+    mute.classList.toggle("gym-ativo", this.sfx.muted);
+    button("câmera: jogo", (b) => {
+      const on = this.toggleCloseUp();
+      b.textContent = on ? "câmera: segurança" : "câmera: jogo";
+      b.classList.toggle("gym-ativo", on);
+    });
     button("tocar celular", () => this.clock.ring());
     for (const [label, kind] of [["fala: desconfia", "desconfia"], ["fala: barulho", "barulho"], ["fala: pego", "pego"]] as [string, GuardLine][]) {
       button(label, () => this.clock.guard(kind, 1, true));
@@ -113,9 +140,40 @@ export class GymPanel {
     document.body.append(r);
   }
 
+  /** Câmera de perto que acompanha a mão do segurança, para ver a lanterna e o facho. */
+  private toggleCloseUp(): boolean {
+    const scene = this.vigia.scene3d;
+    if (!this.closeCam) {
+      const cam = new FreeCamera("gym-perto", new Vector3(), scene);
+      cam.fov = 0.55;
+      cam.minZ = 0.05;
+      const pipeline = scene.postProcessRenderPipelineManager.supportedPipelines[0] as { addCamera?: (c: Camera) => void } | undefined;
+      pipeline?.addCamera?.(cam);
+      const target = new Vector3();
+      scene.onBeforeActiveMeshesEvaluationObservable.add(() => {
+        if (scene.activeCamera !== cam) return;
+        const lens = this.vigia.lensPosition;
+        // De lado e um pouco atrás do segurança, para ver a mão, a lanterna e o facho saindo dela.
+        const side = this.vigia.debugState.facing >= 0 ? 1 : -1;
+        target.set(lens.x + side * 0.4, lens.y - 0.25, lens.z);
+        cam.position.set(lens.x - side * 0.6, lens.y + 0.4, lens.z - 3.6);
+        cam.setTarget(target);
+      });
+      this.closeCam = cam;
+    }
+    if (scene.activeCamera === this.closeCam) {
+      scene.activeCamera = this.gameCam;
+      return false;
+    }
+    this.gameCam = scene.activeCamera;
+    scene.activeCamera = this.closeCam;
+    return true;
+  }
+
   private refreshUrl(): void {
     const params = new URLSearchParams({ gym: "" });
     for (const slider of this.sliders) params.set(slider.key, String(slider.get()));
-    this.url.value = `?${params.toString().replace("gym=", "gym")}`;
+    if (this.sfx.muted) params.set("mudo", "");
+    this.url.value = `?${params.toString().replace("gym=", "gym").replace("mudo=", "mudo")}`;
   }
 }

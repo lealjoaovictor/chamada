@@ -28,6 +28,8 @@ const SHELF_WIDTH = 1.4;
 const SHELF_XS = [86.5, 89.5, 92.5, 95.5, 98.5, 101.5];
 const BACK_Z = 4.6;
 
+const READING_SHELF_XS = [128.5, 131, 135.5, 138];
+const READING_SHELF_Z = 2.2;
 const SHELF_MODELS: ModelName[] = ["estante-1", "estante-2", "estante-3"];
 
 function shelf(x: number, i: number): BlockData {
@@ -70,6 +72,9 @@ export const area3Level: LevelData = {
   obstacles: [
     { x: HALL_START + 0.5, y: HALL_CEILING / 2, z: SHELF_Z, depth: SHELF_DEPTH, width: 0.9, height: HALL_CEILING, material: "pedra" },
     ...SHELF_XS.map(shelf),
+    // Estantes da sala de leitura: o segurança passa por trás delas, então elas escondem quem está na frente
+    // (em pé, porque são mais altas que o Zacarias) e cortam a luz da lanterna, como as da biblioteca.
+    ...READING_SHELF_XS.map((x, i): BlockData => ({ ...shelf(x, i + 1), y: GALLERY_Y + 1.1, z: READING_SHELF_Z, depth: 0.5, width: 1.6, height: 2.2 })),
     {
       x: (SHAFT_X + SHAFT_WIDTH / 2 + READING_END) / 2,
       y: GALLERY_Y / 2,
@@ -159,8 +164,6 @@ export const area3Level: LevelData = {
     { x: (END + READING_END) / 2, y: GALLERY_Y + 0.6, z: BACK_Z, width: READING_END - END, height: 1.2, depth: 0.1, material: "madeira" },
     { x: (END + READING_END) / 2, y: (GALLERY_Y + 1.2 + READING_CEILING) / 2, z: BACK_Z + 0.05, width: READING_END - END, height: READING_CEILING - GALLERY_Y - 1.2, depth: 0.1, material: "parede" },
     { x: END, y: (HALL_CEILING + READING_CEILING) / 2 + 0.2, z: 0, width: 0.6, height: READING_CEILING - HALL_CEILING, depth: 4.4, material: "concreto" },
-    // Estantes cheias da sala de leitura, encostadas na parede do fundo (só visual, sem colisão).
-    ...[128.5, 131, 135.5, 138].map((x, i): DecorData => ({ ...shelf(x, i + 1), y: GALLERY_Y + 1.1, z: 2.4, depth: 0.5, width: 1.6, height: 2.2 })),
     ...READING_WINDOWS.flatMap((x) => tallWindow(x).map((d) => ({ ...d, y: d.y + GALLERY_Y - 0.6 }))),
     { x: (MEZZ_X0 + MEZZ_X1) / 2, y: MEZZ_TOP + 0.95, z: -1.6, width: MEZZ_X1 - MEZZ_X0, height: 0.05, depth: 0.05, material: "metal" },
     { x: (HALL_START + END) / 2, y: 3.85, z: BACK_Z + 0.05, width: END - HALL_START, height: 5.3, depth: 0.1, material: "parede" },

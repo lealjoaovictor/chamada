@@ -28,6 +28,9 @@ const CHASE2_TRIGGER = 169.5;
 const SLIDES2 = [174.5, 183.2];
 const BARRIERS2 = [177.6, 186.1, 188.4];
 const GATE2_X = 193;
+// Portas de serviço na parede do fundo: é por elas que os seguranças entram na perseguição.
+const DOOR1_X = 123.3;
+const DOOR2_X = 165;
 
 const ELASTICO = { distancia: 5, ganho: 0.12, min: 0.8, max: 1.4 };
 
@@ -153,7 +156,8 @@ export const area4Level: LevelData = {
     {
       mode: "perseguicao",
       triggerX: 128,
-      x0: 123,
+      x0: DOOR1_X,
+      porta: { z: BACK_Z },
       x1: GATE_X - 0.6,
       y: 0,
       z: 1.4,
@@ -168,7 +172,8 @@ export const area4Level: LevelData = {
     {
       mode: "perseguicao",
       triggerX: CHASE2_TRIGGER,
-      x0: 163,
+      x0: DOOR2_X,
+      porta: { z: BACK_Z },
       x1: GATE2_X - 0.6,
       y: 0,
       z: 1.4,
@@ -202,7 +207,6 @@ export const area4Level: LevelData = {
     { x: (RAMP_END + END) / 2, y: 1.95, z: BACK_Z + 0.03, width: END - RAMP_END, height: 2.1, depth: 0.1, material: "parede" },
     ...[125, 130, 135, 140, 145, 150, 155, 160].flatMap(column),
     ...[132.5, 147.5].flatMap(cobogo),
-    { x: 123.3, y: 1.1, z: BACK_Z - 0.06, width: 1.2, height: 2.2, depth: 0.08, material: "metal" },
 
     ...[127, 131, 137, 141, 146, 150, 155, 159].map((x): DecorData => ({
       x, y: 0.005, z: -1, width: 0.12, height: 0.01, depth: 1.8, material: "listrado",

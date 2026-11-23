@@ -53,7 +53,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       doneWhen: { passedX: 67.5 },
     },
     {
-      zone: { minX: 79, maxX: 92 },
+      zone: { minX: 91, maxX: 104 },
       trigger: "tempo",
       glowAfter: 45,
       iconAfter: 90,
@@ -78,6 +78,14 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       glow: { box: 0 },
       icon: { action: "empurrar", x: 0, y: 0.9, followBox: 0 },
       doneWhen: { passedX: 128 },
+    },
+    {
+      // Acervo: o carrinho do patamar é a isca (só brilha; dá para passar sem ele).
+      zone: { minX: 141, maxX: 145 },
+      trigger: "tempo",
+      glowAfter: 30,
+      glow: { box: 1 },
+      doneWhen: { passedX: 146 },
     },
   ],
   4: [
@@ -114,12 +122,23 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       doneWhen: { passedX: 152.5 },
     },
     {
-      zone: { minX: 154, maxX: 166.8 },
+      // Depósito: primeiro um objeto vai para a valeta (vira ponte)...
+      zone: { minX: 153, maxX: 166.8 },
       trigger: "tempo",
       glowAfter: 40,
       iconAfter: 80,
-      glow: { box: 0, plate: 0 },
+      glow: { box: 0 },
       icon: { action: "empurrar", x: 0, y: 0.9, followBox: 0 },
+      doneWhen: { boxMoved: 0 },
+    },
+    {
+      // ...e o outro passa por cima até o sensor.
+      zone: { minX: 153, maxX: 166.8 },
+      trigger: "tempo",
+      glowAfter: 70,
+      iconAfter: 110,
+      glow: { box: 1, plate: 0 },
+      icon: { action: "empurrar", x: 0, y: 0.9, followBox: 1 },
       doneWhen: { platePressed: 0 },
     },
     ...[174.5, 183.2, 193].map((x): HintData => ({
@@ -142,8 +161,14 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
 };
 
 export const FOCOS_POR_AREA: Record<number, CameraBeatData[]> = {
+  // Depois da porta do corredor, a câmera mostra o segurança apagando as luzes no recuo.
+  2: [{ triggerX: 68.5, focusX: 82, seconds: 2.2, seguranca: true }],
   // Ao entrar na biblioteca, a câmera mostra o segurança da ronda (o primeiro aviso do perigo da área).
-  3: [{ triggerX: 82, focusX: 93, seconds: 2.4, seguranca: true }],
+  // No acervo, mostra a sala com os dois seguranças.
+  3: [
+    { triggerX: 82, focusX: 93, seconds: 2.4, seguranca: true },
+    { triggerX: 141.8, focusX: 155.5, seconds: 2.6 },
+  ],
 };
 
 export const CHACOALHAR_POR_AREA: Record<number, RattleData[]> = {

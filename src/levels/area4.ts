@@ -1,5 +1,5 @@
 import type { BlockData, DecorData, LampData, LevelData, PropData } from "./types";
-import { GAS_CART_GRIP, GAS_CART_VISUAL, fluorescent } from "./kits.ts";
+import { DRUMS_GRIP, DRUMS_VISUAL, GAS_CART_GRIP, GAS_CART_VISUAL, fluorescent } from "./kits.ts";
 
 const START = 117;
 const RAMP_END = 123;
@@ -16,9 +16,15 @@ const BARRIER_X = 143;
 const GATE_X = 152;
 const BARRIER2_X = 138.3;
 
-// Depósito: pausa entre as duas perseguições. Caixa sobre a placa abre o portão de saída.
-const DEPOT_BOX_X = 156.5;
-const DEPOT_PLATE_X = 163.5;
+// Depósito: pausa entre as duas perseguições. Um objeto sobre o sensor (perto da entrada) abre o portão de saída.
+// Os dois objetos estão do outro lado de uma valeta aberta (a grade foi tirada): o primeiro empurrado para a
+// esquerda cai na valeta e vira ponte; o segundo passa por cima dele até o sensor. Tanto faz qual vai primeiro.
+const DEPOT_DRUMS_X = 160.6;
+const DEPOT_BOX_X = 163;
+const DEPOT_PLATE_X = 155.2;
+const TRENCH_X0 = 157.4;
+const TRENCH_X1 = 158.6;
+const TRENCH_DEPTH = 1;
 const DEPOT_PLATE_WIDTH = 1.4;
 const DEPOT_PLATE_DEPTH = 0.2;
 const DEPOT_GATE_X = 167;
@@ -117,14 +123,17 @@ function groundWithRecess(): BlockData[] {
   return [
     { x: (START + a) / 2, y: -0.5, width: a - START, height: 1, material: "asfalto" },
     { x: DEPOT_PLATE_X, y: -0.5 - DEPOT_PLATE_DEPTH, width: DEPOT_PLATE_WIDTH, height: 1, material: "concreto" },
-    { x: (b + END + 1) / 2, y: -0.5, width: END + 1 - b, height: 1, material: "asfalto" },
+    { x: (b + TRENCH_X0) / 2, y: -0.5, width: TRENCH_X0 - b, height: 1, material: "asfalto" },
+    // Valeta: fundo um metro abaixo do piso (um objeto dentro dela fica rente ao chão).
+    { x: (TRENCH_X0 + TRENCH_X1) / 2, y: -TRENCH_DEPTH - 0.5, width: TRENCH_X1 - TRENCH_X0, height: 1, material: "concreto" },
+    { x: (TRENCH_X1 + END + 1) / 2, y: -0.5, width: END + 1 - TRENCH_X1, height: 1, material: "asfalto" },
   ];
 }
 
 export const area4Level: LevelData = {
   checkpoints: [
     { x: 124, y: 1.2 },
-    { x: 154, y: 1.2 },
+    { x: 153.4, y: 1.2 },
     { x: 168.6, y: 1.2 },
   ],
   killY: -5,
@@ -146,7 +155,10 @@ export const area4Level: LevelData = {
     ...BARRIERS2.map((x) => barrier(x, 0.9)),
   ],
   ramps: [{ x0: START, y0: GALLERY_Y, x1: RAMP_END, y1: 0, material: "concreto" }],
-  boxes: [{ x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "metal", visual: GAS_CART_VISUAL, pegada: GAS_CART_GRIP }],
+  boxes: [
+    { x: DEPOT_DRUMS_X, y: 0.5, size: 1, mass: 20, material: "metal", visual: DRUMS_VISUAL, pegada: DRUMS_GRIP },
+    { x: DEPOT_BOX_X, y: 0.5, size: 1, mass: 20, material: "metal", visual: GAS_CART_VISUAL, pegada: GAS_CART_GRIP },
+  ],
   lamps,
   plates: [{ x: DEPOT_PLATE_X, y: -DEPOT_PLATE_DEPTH, width: DEPOT_PLATE_WIDTH, door: 1 }],
   doors: [
@@ -191,9 +203,13 @@ export const area4Level: LevelData = {
   elevators: [],
   decor: [
     // Narrativa: mochila esquecida no depósito.
-    { x: 159.2, y: 0.22, z: 1.3, width: 0.36, height: 0.44, depth: 0.2, material: "tecido" },
-    { x: 158.4, y: 0.01, z: 1.0, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
-    { x: 160.3, y: 0.01, z: 0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 161.9, y: 0.22, z: 1.3, width: 0.36, height: 0.44, depth: 0.2, material: "tecido" },
+    { x: 155.9, y: 0.01, z: 1.0, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    { x: 162.6, y: 0.01, z: 0.7, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
+    // Valeta: paredes de concreto, faixa de aviso nas bordas e a grade tirada, encostada na parede.
+    { x: (TRENCH_X0 + TRENCH_X1) / 2, y: -TRENCH_DEPTH / 2, z: 1.9, width: TRENCH_X1 - TRENCH_X0, height: TRENCH_DEPTH, depth: 0.2, material: "concreto" },
+    ...[TRENCH_X0 - 0.06, TRENCH_X1 + 0.06].map((x): DecorData => ({ x, y: 0.005, z: -0.3, width: 0.12, height: 0.01, depth: 3.4, material: "listrado" })),
+    { x: 159.3, y: 0.6, z: 2.35, width: 1.2, height: 1.2, depth: 0.05, material: "metal" },
     ...SLIDES2.flatMap((x) => [
       ...stripes(x, (GAP + CEILING) / 2, CEILING - GAP, 0.25),
       { x, y: CEILING - 0.02, z: LANE_Z, width: 0.08, height: 0.04, depth: LANE_DEPTH, material: "metal" } as DecorData,

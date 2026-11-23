@@ -419,7 +419,7 @@ export class Vigia {
 
   /** Sobe enquanto vê o jogador, desce quando perde; devolve true quando chega ao máximo (pegou). */
   updateAlert(dt: number, seeing: boolean): boolean {
-    this.alert = seeing ? Math.min(1, this.alert + dt / TUNING.reacao) : Math.max(0, this.alert - TUNING.esquecer * dt);
+    this.alert = seeing ? Math.min(1, this.alert + dt / (this.data.reacao ?? TUNING.reacao)) : Math.max(0, this.alert - TUNING.esquecer * dt);
     Color3.LerpToRef(LIGHT_COLOR, ALERT_COLOR, this.alert, this.lightColor);
     this.light.diffuse.copyFrom(this.lightColor);
     this.lanterna.setColor(this.lightColor, 1 + 0.6 * this.alert);

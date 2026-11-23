@@ -150,6 +150,12 @@ Atualize esta lista a cada tarefa concluída.
   - Final bom: a ligação desliga, o professor chama "Zacarias Vieira?" na sala (legenda embaixo); qualquer botão responde "Presente!" e corta para preto; sem botão em ~4 s depois da fala, corta em silêncio. Final ruim: o nome pela ligação, silêncio, "...ele chamou" e a caneta, depois escurece e oferece recomeçar
   - Vozes: provisórias geradas no Mac (`node ferramentas/vozes.ts --provisorias`). Para trocar pelo ElevenLabs: salvar `public/audio/vozes/<id>.mp3` com o id da 1ª coluna de `docs/roteiro-vozes.csv` e rodar `node ferramentas/vozes.ts` (atualiza o `manifest.json`). Fala sem arquivo cai na voz do navegador
   - Falta (se der tempo, nesta ordem): colegas sólidos saindo na direção contrária e conversa de fundo nas áreas 1 e 2 (os `vultos` antigos continuam no código); professor erguer os olhos no final; sensores de portão já feitos no cenário
+- [ ] **Fase mais longa (2026-11-23), testada por bot, falta playtest humano.** O João (que conhece o caminho) terminou no Diego Moreira (3:11); escolheu 3A + 2A + 4A
+  - Área 2: recuo do corredor entre a porta e a zeladoria (`HALL_X0`–`HALL_X1` em `area2.ts`, +12 m; o resto da área foi deslocado), segurança de ronda, dois pilares de cobertura, metade das luzes apagada; checkpoint passou para x 71
+  - Área 3: acervo depois da sala de leitura (`area3.ts`, x 141–168): patamar com estante e carrinho de isca, piso rebaixado 1,2 m, três estantes, dois seguranças em rondas que se cruzam, escada de volta à galeria; checkpoint novo em 141,4; foco de câmera ao entrar
+  - Área 4: depósito em dois passos: sensor perto da entrada, valeta de 1,2 m × 1 m no piso, tambores e carrinho de gás do outro lado (qualquer um que caia na valeta vira ponte); duas dicas
+  - `reacao` opcional por segurança (`VigiaData`): 0,5 s no corredor e no acervo, para quem passa correndo na frente ser pego
+  - Bot: no corredor, quem corre direto é pego 5 de 5 vezes e quem espera passa 3 de 3 (~19 s); no acervo, 3 de 5 e 3 de 3 (~20 s); no depósito, os tambores caem na valeta e o carrinho de gás passa por cima até o sensor (portão abre). Para quem conhece o caminho, as três somam uns 45 s
 - [ ] **Decisões de 2026-11-23 (GDD v3.1), falta:**
   - Ordem de corte única (GDD, "A chamada"): segunda perseguição e depósito da área 4, sala escura da área 2, garagem da área 1; gatilho = primeira partida acima de 6 min nos dois primeiros playtests
   - Vozes: gravar todas no ElevenLabs; conferir crédito e uso permitido do plano e registrar na seção 9

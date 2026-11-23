@@ -19,6 +19,9 @@ import { TUNING } from "./Tuning";
 import { MODEL_OPTIONS, modelFile } from "./modelFile";
 import { dressCharacter } from "./characterLook";
 import { HandIK, type HandTarget } from "./HandIK";
+import { FootIK, type FootGround } from "./FootIK";
+import type { RampData } from "../levels/types";
+import { treadHeightAt } from "../levels/stairs";
 
 const MOVE_SPEED = 4.5;
 const PUSH_SPEED = 1.2;
@@ -90,6 +93,18 @@ const PUSH_ARM = 0.42;
 const PUSH_BACK_MAX = 0.42;
 const PUSH_BACK_SPEED = 1.5;
 
+// Pés no chão: o corpo (pés da animação) fica este tanto acima do piso sob a cápsula (folga do controlador).
+const FEET_CLEARANCE = 0.017;
+// Até onde, acima e abaixo dos pés, procurar o piso sob cada pé.
+const FOOT_PROBE_UP = 0.6;
+const FOOT_PROBE_DOWN = 0.6;
+// Correndo na escada o tronco inclina: para a frente subindo, um pouco para trás descendo (radianos).
+const STAIR_LEAN_UP = 0.08;
+const STAIR_LEAN_DOWN = -0.04;
+const STAIR_LEAN_SPEED = 0.5;
+// Começa a seguir a escada para baixo um pouco antes do primeiro degrau (a cápsula tem raio).
+const STAIR_STICK_MARGIN = 0.3;
+
 const JUMP_SPEED = Math.sqrt(2 * -GRAVITY.y * JUMP_HEIGHT);
 const AIR_TIME = (2 * JUMP_SPEED) / -GRAVITY.y;
 const DOWN = new Vector3(0, -1, 0);
@@ -138,6 +153,10 @@ export class Player {
   private crouchWanted = false;
   private crouch = 0;
   private ik: HandIK | null = null;
+  private feet: FootIK | null = null;
+  private stairs: readonly RampData[] = [];
+  private stairLean = 0;
+  private readonly ground: FootGround = { heightAt: (x) => this.groundAt(x), rootGround: 0, facing: 1 };
   private grip: HandTarget | null = null;
   private brace: HandTarget | null = null;
   private lean = 0;
@@ -179,6 +198,7 @@ export class Player {
     const player = new Player(scene, spawn, visual, anims);
     player.meshes = result.meshes;
     player.ik = HandIK.create(result.transformNodes);
+    player.feet = FootIK.create(visual, result.transformNodes);
     return player;
   }
 
@@ -212,6 +232,64 @@ export class Player {
     return this.facing;
   }
 
+  /**
+   * Descendo escada correndo, o corpo acompanha a rampa escondida em vez de sair voando por cima dos degraus
+   * (sem isso o controlador perde o chão e toca o pulo no meio da escada). Pulo e queda continuam livres.
+   */
+  private followStairsDown(): void {
+    if (this.coyoteTimer <= 0 || this.velocity.y > 0 || this.ramp !== "nao") return;
+    const x = this.position.x;
+    for (const stair of this.stairs) {
+      const left = Math.min(stair.x0, stair.x1) - STAIR_STICK_MARGIN;
+      const right = Math.max(stair.x0, stair.x1) + STAIR_STICK_MARGIN;
+      if (x < left || x > right) continue;
+      const slope = (stair.y1 - stair.y0) / (stair.x1 - stair.x0);
+      const follow = slope * this.velocity.x;
+      if (follow < 0) this.velocity.y = Math.min(this.velocity.y, follow);
+      return;
+    }
+  }
+
+  /** Inclinação do tronco correndo na escada (some aos poucos ao parar ou sair dela). */
+  private updateStairLean(dt: number): void {
+    let target = 0;
+    const speed = Math.abs(this.velocity.x);
+    if (this.grounded && !this.sliding && this.ramp === "nao" && speed > 0.5) {
+      const stair = this.stairs.find((s) => this.position.x >= Math.min(s.x0, s.x1) && this.position.x <= Math.max(s.x0, s.x1));
+      if (stair) {
+        const climbing = (stair.y1 - stair.y0) / (stair.x1 - stair.x0) * this.velocity.x > 0;
+        target = (climbing ? STAIR_LEAN_UP : STAIR_LEAN_DOWN) * Math.min(speed / MOVE_SPEED, 1);
+      }
+    }
+    this.stairLean = approach(this.stairLean, target, STAIR_LEAN_SPEED * dt);
+  }
+
+  /** Escadas da fase: os pés pisam no piso de cada degrau. */
+  setStairs(stairs: readonly RampData[]): void {
+    this.stairs = stairs;
+  }
+
+  /** Para testes e capturas: ajuste dos pés (quadril, erro e piso/sola de cada pé). */
+  get footState(): { pelvis: number; error: number; feet: { ground: number; sole: number; planted: number; toe: number }[] } {
+    return { pelvis: this.feet?.lastPelvis ?? 0, error: this.feet?.lastError ?? 0, feet: [...(this.feet?.debug ?? [])] };
+  }
+
+  /** Piso sob `x`: degrau de escada, ou o que um raio para baixo encontrar perto dos pés. */
+  private groundAt(x: number): number | null {
+    const tread = treadHeightAt(this.stairs, x);
+    if (tread !== null) return tread;
+    const engine = this.scene.getPhysicsEngine() as PhysicsEngine | null;
+    if (!engine) return null;
+    const base = this.feetY - FEET_CLEARANCE;
+    this.rayFrom.set(x, base + FOOT_PROBE_UP, 0);
+    this.rayTo.set(x, base - FOOT_PROBE_DOWN, 0);
+    engine.raycastToRef(this.rayFrom, this.rayTo, this.ray);
+    if (!this.ray.hasHit) return null;
+    // Caixa sendo empurrada ou rolando não serve de piso para o pé (só para o corpo, quando em cima dela).
+    if (this.ray.body?.getMotionType() === PhysicsMotionType.DYNAMIC && Math.abs(this.ray.hitPointWorld.y - base) > 0.05) return null;
+    return this.ray.hitPointWorld.y;
+  }
+
   /** Ponto de pegada do objeto que está sendo empurrado (mundo), ou nulo. */
   setGrip(target: HandTarget | null): void {
     this.grip = target;
@@ -226,6 +304,7 @@ export class Player {
     if (dt <= 0) return;
 
     const support = this.controller.checkSupport(dt, DOWN);
+
     this.grounded = support.supportedState === CharacterSupportedState.SUPPORTED;
 
     this.coyoteTimer = this.grounded ? COYOTE_TIME : Math.max(0, this.coyoteTimer - dt);
@@ -281,6 +360,8 @@ export class Player {
       this.velocity.y = Math.min(this.velocity.y, -Math.tan(this.rampSlope) * Math.abs(this.velocity.x));
     }
 
+    this.followStairsDown();
+
     let jumped = false;
     if (this.jumpBufferTimer > 0 && (this.coyoteTimer > 0 || this.ramp === "descendo")) {
       this.velocity.y = JUMP_SPEED;
@@ -315,7 +396,13 @@ export class Player {
       back = Math.min(Math.max(reach - PUSH_SHOULDER_AHEAD, 0), PUSH_BACK_MAX) * lowness;
     }
     this.pushBack = approach(this.pushBack, back, PUSH_BACK_SPEED * dt);
+    this.updateStairLean(dt);
     this.syncVisual(dt);
+    // Pés: com o corpo no chão (andando, parado, agachado ou empurrando), cada pé pisa no piso sob ele.
+    this.ground.rootGround = this.feetY - FEET_CLEARANCE;
+    this.ground.facing = this.facing;
+    const feetOn = this.grounded && !jumped && !this.sliding && this.ramp === "nao";
+    this.feet?.apply(dt, this.ground, feetOn);
     this.ik?.apply(dt, pushingNow && this.grip ? this.grip : this.brace);
   }
 
@@ -377,6 +464,8 @@ export class Player {
     this.pushBack = 0;
     this.ramp = "nao";
     this.rampTilt = 0;
+    this.feet?.reset();
+    this.stairLean = 0;
     this.current = "parado";
     for (const [name, group] of this.anims) group.weight = name === "parado" ? 1 : 0;
     this.syncVisual(0);
@@ -603,7 +692,7 @@ export class Player {
     const tiltTarget = this.ramp === "descendo" ? this.rampSlope : 0;
     this.rampTilt = dt > 0 ? approach(this.rampTilt, tiltTarget, RAMP_TILT_SPEED * dt) : tiltTarget;
     const tiltAmount = this.rampSlope > 0 ? this.rampTilt / this.rampSlope : 0;
-    this.visual.rotation.x = this.lean + this.rampTilt;
+    this.visual.rotation.x = this.lean + this.rampTilt + this.stairLean;
     let y = this.position.y - this.height / 2;
     if (this.ramp === "descendo") y += (Math.min(this.rampSurfaceY, y) - y) * tiltAmount;
     this.visual.position.set(this.position.x - this.facing * this.pushBack, y, 0);

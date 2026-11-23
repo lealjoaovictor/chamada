@@ -23,7 +23,7 @@ const NAP_X = 196;
 const NAP_SEAT = FLOOR + 0.02;
 const FURTIVO_MIN = 189.5;
 const FURTIVO_MAX = 202.5;
-const STEPS = 6;
+const STEPS = 8;
 /** Altura do tampo da carteira pronta. */
 const DESK_TOP = 0.77;
 
@@ -102,7 +102,7 @@ export const area5Level: LevelData = {
   // Carteira encostada na parede, embaixo da janela: o degrau para sair.
   platforms: [{ x: END - 0.75, y: FLOOR + DESK_TOP / 2, width: 0.7, height: DESK_TOP, z: 0, depth: 1.4, hidden: true }],
   obstacles: [],
-  ramps: [{ x0: STAIRS_START, y0: 0, x1: STAIRS_END, y1: FLOOR, hidden: true }],
+  ramps: [{ x0: STAIRS_START, y0: 0, x1: STAIRS_END, y1: FLOOR, steps: STEPS, stepDepth: 4 }],
   boxes: [],
   lamps,
   plates: [],
@@ -126,11 +126,6 @@ export const area5Level: LevelData = {
   ],
   elevators: [],
   decor: [
-    ...Array.from({ length: STEPS }, (_, i): DecorData => {
-      const step = (STAIRS_END - STAIRS_START) / STEPS;
-      const height = ((i + 1) * FLOOR) / STEPS;
-      return { x: STAIRS_START + step * (i + 0.5), y: height / 2, z: 0, width: step, height, depth: 4, material: "pedra" };
-    }),
     { x: START + 0.5, y: (3 + CEILING + 0.4) / 2, z: 0, width: 1, height: CEILING + 0.4 - 3, depth: 4.6, material: "concreto" },
     { x: (START + END) / 2, y: CEILING + 2, z: 0, width: END - START, height: 3.2, depth: 4.6, material: "pedra" },
 

@@ -133,7 +133,7 @@ export class HandIK {
  * Gira o osso `node` (no espaço do pai) para que a direção `from` (mundo) passe a apontar para `to`.
  * Feito com matrizes porque a raiz do glTF espelha o eixo Z (escala negativa).
  */
-function rotateToward(node: TransformNode, from: Vector3, to: Vector3): void {
+export function rotateToward(node: TransformNode, from: Vector3, to: Vector3): void {
   const parent = node.parent as TransformNode | null;
   if (!parent) return;
   parent.getWorldMatrix().invertToRef(tmpM);

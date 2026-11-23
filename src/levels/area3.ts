@@ -39,7 +39,7 @@ const ARCHIVE_RAMP_X0 = 164.5;
 const ARCHIVE_RAMP_X1 = 167;
 const LANDING_SHELF_X = 142.6;
 const ARCHIVE_SHELF_XS = [149.5, 155.5, 161.5];
-const ARCHIVE_STEPS = 5;
+const ARCHIVE_STEPS = 6;
 
 const READING_SHELF_XS = [128.5, 131, 135.5, 138];
 const READING_SHELF_Z = 2.2;
@@ -121,7 +121,7 @@ export const area3Level: LevelData = {
     // Mureta na borda direita do mezanino: esconde quem está em cima.
     { x: MEZZ_X1 - 0.1, y: MEZZ_TOP + 0.3, width: 0.2, height: 0.6, material: "madeira" },
   ],
-  ramps: [{ x0: ARCHIVE_RAMP_X0, y0: SUNK_Y, x1: ARCHIVE_RAMP_X1, y1: GALLERY_Y, hidden: true }],
+  ramps: [{ x0: ARCHIVE_RAMP_X0, y0: SUNK_Y, x1: ARCHIVE_RAMP_X1, y1: GALLERY_Y, steps: ARCHIVE_STEPS, stepDepth: 4 }],
   furtivo: [{ minX: HALL_START + 1, maxX: 102.6 }],
   boxes: [
     { x: 122.2, y: MEZZ_TOP + 0.5, size: 1, mass: 20, material: "carrinho", visual: LIBRARY_CART_VISUAL },
@@ -251,11 +251,6 @@ export const area3Level: LevelData = {
     { x: READING_END, y: READING_CEILING - 0.5, z: 0, width: 0.6, height: 1, depth: 4.4, material: "concreto" },
     ...ARCHIVE_WINDOWS.flatMap((x) => tallWindow(x).map((d) => ({ ...d, y: d.y + GALLERY_Y - 0.6 }))),
     { x: LANDING_END - 0.05, y: GALLERY_Y + 0.5, z: -1.6, width: 0.05, height: 1, depth: 0.05, material: "metal" },
-    ...Array.from({ length: ARCHIVE_STEPS }, (_, i): DecorData => {
-      const step = (ARCHIVE_RAMP_X1 - ARCHIVE_RAMP_X0) / ARCHIVE_STEPS;
-      const height = SUNK_Y + ((i + 1) * (GALLERY_Y - SUNK_Y)) / ARCHIVE_STEPS;
-      return { x: ARCHIVE_RAMP_X0 + step * (i + 0.5), y: height / 2, z: 0, width: step, height, depth: 4, material: "pedra" };
-    }),
     { x: 150.6, y: SUNK_Y + 0.01, z: -0.8, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: 157.2, y: SUNK_Y + 0.01, z: -1.3, width: 0.21, height: 0.005, depth: 0.29, material: "papel" },
     { x: (MEZZ_X0 + MEZZ_X1) / 2, y: MEZZ_TOP + 0.95, z: -1.6, width: MEZZ_X1 - MEZZ_X0, height: 0.05, depth: 0.05, material: "metal" },

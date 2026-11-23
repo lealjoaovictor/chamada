@@ -478,7 +478,7 @@ export const area1Level: LevelData = {
     // Garagem.
     { model: "barrel_03", x: 49.4, y: 0, z: 1.6 },
     { model: "barrel_03", x: 50.1, y: 0, z: 2.3, rotY: 60 },
-    { model: "old_tyre", x: 48.6, y: 0.3, z: 2.4, rotY: 20 },
+    { model: "old_tyre", x: 48.6, y: 0, z: 2.4, rotY: 20 },
     { model: "hand_truck", x: 55.2, y: 0, z: 2.6, rotY: 160 },
     { model: "industrial_storage_cart", x: 62.5, y: 0, z: 2.6, rotY: 180 },
     { model: "trashbag", x: 64.4, y: 0, z: 2.8 },

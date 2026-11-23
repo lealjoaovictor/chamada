@@ -405,7 +405,7 @@ export class Game {
       if (prop.shadow) this.propShadowCasters.push(...root.getChildMeshes());
     });
     level.doors.forEach((door, i) =>
-      this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
+      this.doors.push(new Door(scene, door, door.depth ?? level.depth, this.materials.get("metal"), `door-${i}`)),
     );
     level.plates.forEach((plate, i) =>
       this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials, `plate-${i}`)),

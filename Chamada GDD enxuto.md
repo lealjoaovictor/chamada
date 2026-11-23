@@ -22,6 +22,8 @@ Pilares:
 
 **Premissa.** Zacarias Vieira trabalha de dia e estuda à noite. Hoje ele se atrasou e perdeu a aula inteira. Está no limite de faltas, e o professor faz a chamada no fim da aula, em ordem alfabética. Se ele chegar à sala antes de o nome dele ser lido, ganha a presença.
 
+**Introdução (uns 8 s, pulável).** Do menu a tela escurece e Zacarias entra pela calçada andando devagar, lendo o celular. Chegam três mensagens do Davi ("mano cadê vc??", "o prof vai fazer a chamada no fim da aula", "vc tá no limite de faltas"), ele para, aparece o título e o Davi liga. O relógio da chamada só começa na ligação (`src/game/Intro.ts`).
+
 **Abertura.** Zacarias chega ao portão principal, já trancado. O celular vibra: é um colega da turma, que liga e sussurra algo como "Começou a chamada! Sorte sua que você é o último, Zacarias. Nem dá pra responder por você, ele tá olhando um por um. Corre!". O colega deixa a ligação aberta. Essa fala ensina tudo: o que está acontecendo, o nome do jogador, que ele é o último e por que ninguém pode responder por ele.
 
 **O mundo.** O prédio está fechando: portões trancados, corredores sendo apagados, seguranças fazendo a ronda. O caminho normal está sempre fechado, e por isso Zacarias corta por onde não deveria (lateral do pátio, garagem, zeladoria, biblioteca, subsolo). Cada área começa com uma passagem "óbvia" trancada.

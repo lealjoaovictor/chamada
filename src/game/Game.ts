@@ -49,6 +49,7 @@ import { Music, type MusicScene } from "./Music";
 import { Checkpoints } from "./Checkpoints";
 import { Fade } from "../ui/Fade";
 import { PauseMenu, pauseButton } from "../ui/PauseMenu";
+import { INTRO_START_X, Intro } from "./Intro";
 import { EndScreen, LateScreen, MenuScreen, RoomCaption } from "../ui/Screens";
 import { CallScreen } from "../ui/CallScreen";
 import { CallClock } from "./CallClock";
@@ -136,7 +137,7 @@ const LIGHT_DEATH_COLOR = "#3a2306";
 const DEFAULT_FADE_COLOR = "#000";
 const RAMP_THICKNESS = 0.4;
 
-type GameState = "menu" | "jogando" | "morto" | "chegada" | "fim" | "atrasado" | "sala-vazia";
+type GameState = "menu" | "intro" | "jogando" | "morto" | "chegada" | "fim" | "atrasado" | "sala-vazia";
 
 /** Camada que a câmera não desenha, mas o mapa de sombra da lanterna desenha. */
 const SHADOW_ONLY_LAYER = 0x10000000;
@@ -188,6 +189,7 @@ export class Game {
   private clock!: CallClock;
   private telemetry!: Telemetry;
   private startArea = 1;
+  private intro: Intro | null = null;
   private audioPrimed = false;
   private hints!: Hints;
   private props!: Props;
@@ -563,6 +565,11 @@ export class Game {
       this.input.endFrame();
       return;
     }
+    if (this.state === "intro") {
+      this.updateIntro(dt);
+      this.input.endFrame();
+      return;
+    }
     if (this.state === "atrasado") {
       this.updateLate(dt);
       this.input.endFrame();
@@ -697,9 +704,53 @@ export class Game {
     if (!this.input.consumeAnyPress()) return;
     this.menu.hide();
     this.sfx.unlock();
+    if (!this.gym) document.body.style.cursor = "none";
+    // A introdução só abre a partida normal (da área 1); a sala de teste e o ?area= vão direto para a ligação.
+    if (this.gym || this.startArea > 1 || this.level !== worldLevel) {
+      this.beginCall();
+      return;
+    }
+    this.state = "intro";
+    this.intro = new Intro({
+      fade: this.fade,
+      playerX: () => this.player.position.x,
+      placeAtStart: () => {
+        const y = this.checkpoints.current.y;
+        this.player.respawn({ x: INTRO_START_X, y });
+        this.player.setPhone(true);
+        this.cameraRig.snap(INTRO_START_X, this.player.feetY);
+      },
+      walk: (on) => this.input.setAutopilot(on ? 1 : 0),
+      startCall: () => {
+        this.player.setPhone(false);
+        this.beginCall();
+      },
+      ping: () => this.guardSounds.notification(0.9),
+    });
+  }
+
+  /** Introdução: a cena roda com o jogo vivo (passos, câmera, luzes), mas sem relógio e sem seguranças. */
+  private updateIntro(dt: number): void {
+    const pressed = this.input.consumeAnyPress();
+    this.intro?.update(dt, pressed);
+    if (this.state !== "intro") return;
+    this.player.update(dt, this.input, false);
+    this.cameraRig.update(dt, {
+      x: this.player.position.x,
+      feetY: this.player.feetY,
+      grounded: this.player.isGrounded,
+      facing: this.player.facingDirection,
+    });
+    this.cullLights();
+    this.life?.update(dt);
+    this.soundscape.update(dt, this.soundState());
+  }
+
+  /** O celular vibra, o Davi liga e o controle passa para o jogador: o relógio da chamada começa aqui. */
+  private beginCall(): void {
+    this.intro = null;
     this.clock.start();
     this.input.setAutopilot(null);
-    if (!this.gym) document.body.style.cursor = "none";
     this.state = "jogando";
   }
 
@@ -795,6 +846,7 @@ export class Game {
     }
     const scenes: Record<GameState, MusicScene> = {
       menu: "menu",
+      intro: "jogo",
       jogando: "jogo",
       morto: "pego",
       chegada: "chegada",

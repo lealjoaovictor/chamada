@@ -413,8 +413,9 @@ export class Vigia {
       return;
     }
     if (habit.tipo === "celular") {
-      this.phoneLeg = true;
-      this.enterHabit("celular", 0);
+      // Começa a ronda atento (lanterna acesa); o celular sai no fim do primeiro trecho.
+      this.phoneLeg = false;
+      this.enterHabit("atento", 0);
     } else if (habit.tipo === "futebol") {
       this.facing = habit.tvLado;
       this.enterHabit("tv", rand(TV_TIME));

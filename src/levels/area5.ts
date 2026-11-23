@@ -118,7 +118,7 @@ export const area5Level: LevelData = {
       pause: 0,
       startHeading: -1,
       aimAhead: 2.2,
-      aimY: 0.5,
+      aimY: FLOOR + 0.5,
       coneAngle: 0.55,
       range: 7.5,
       reacao: 0.6,

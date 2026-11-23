@@ -118,6 +118,25 @@ export class Music {
     }
   }
 
+  /**
+   * Volta ao checkpoint: para todos os loops na hora (tensão e perseguição não continuam de onde estavam)
+   * e esquece o estado anterior, para a trilha recomeçar do início, só com o fundo da área.
+   */
+  reset(): void {
+    for (const voice of this.voices.values()) {
+      if (voice.source) {
+        voice.source.stop();
+        voice.source.disconnect();
+        voice.source = null;
+      }
+      voice.level = 0;
+      voice.silentFor = 0;
+      voice.gain.gain.value = 0;
+    }
+    this.previous = null;
+    this.suspicionCooldown = SUSPICION_COOLDOWN;
+  }
+
   /** Final bom: o tema volta, quente, depois do "presente". */
   playFinal(): void {
     if (this.finalPlayed) return;

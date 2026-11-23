@@ -28,6 +28,9 @@ const HALL_SHELF_HEIGHT = 2.2;
 // Pontas da ronda: ele para à vista, na frente do bebedouro e do quadro de luz.
 const FOUNTAIN_X = 80.6;
 const SWITCHBOARD_X = 87.2;
+// Do armário até passar o quadro de luz o Zacarias anda agachado sozinho, como na guarita da área 1.
+const FURTIVO_MIN_X = LOCKERS_X - LOCKERS_WIDTH / 2 - 1;
+const FURTIVO_MAX_X = SWITCHBOARD_X + 1.3;
 const CEILING = 3.2;
 const BACK_Z = 2.1;
 const RECESS_X = 63;
@@ -157,6 +160,7 @@ export const area2Level: LevelData = {
   ],
   vultos: [{ x: 114.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 126.5 }],
+  furtivo: [{ minX: FURTIVO_MIN_X, maxX: FURTIVO_MAX_X }],
   depth: 4,
   ground: [
     { x: (START + RECESS_X - RECESS_WIDTH / 2) / 2, y: -0.5, width: RECESS_X - RECESS_WIDTH / 2 - START, height: 1, material: "piso" },
@@ -177,6 +181,11 @@ export const area2Level: LevelData = {
     { x: LOCKERS_X, y: LOCKERS_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: LOCKERS_WIDTH, height: LOCKERS_HEIGHT, material: "carrinho" },
     { x: PILLAR_X, y: CEILING / 2, z: PILLAR_Z, depth: PILLAR_DEPTH, width: PILLAR_WIDTH, height: CEILING, material: "concreto" },
     { x: HALL_SHELF_X, y: HALL_SHELF_HEIGHT / 2, z: COVER_Z, depth: COVER_DEPTH, width: HALL_SHELF_WIDTH, height: HALL_SHELF_HEIGHT, hidden: true },
+    // Paredes laterais do recuo (só colisão escondida, fora da faixa do jogador): cortam o facho da lanterna,
+    // que antes atravessava a parede e iluminava o corredor e a zeladoria depois do hall.
+    ...[HALL_X0, HALL_X1].map((x): BlockData => ({
+      x, y: CEILING / 2, z: (BACK_Z + HALL_BACK_Z) / 2, depth: HALL_BACK_Z - BACK_Z, width: 0.2, height: CEILING, hidden: true,
+    })),
     ...stage(),
     // Rodapé nas bordas do palco: segura a caixa de cima para ela não cair de nenhum lado.
     { x: STAGE_X0 + 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
@@ -248,7 +257,7 @@ export const area2Level: LevelData = {
     { model: "cardboard_box_01", x: 103.7, y: 1.85, z: 1.75, rotY: 96 },
     { model: "barrel_03", x: 102.3, y: STAGE_TOP, z: 1.55 },
     { model: "barrel_03", x: 96.9, y: STAGE_TOP, z: 1.6, rotY: 40 },
-    { model: "hand_truck", x: 95.4, y: STAGE_TOP, z: 1.5, rotY: 200 },
+    { model: "hand_truck", x: 95.4, y: 0, z: 1.5, rotY: 200 },
     { model: "trashbag", x: 105.9, y: 0, z: 1.7 },
     ...CRATE_VISUAL.map((p): PropData => ({
       ...p,
@@ -327,7 +336,8 @@ export const area2Level: LevelData = {
     { x: (ROOM1_END + ROOM2_END) / 2, y: 0.55, z: BACK_Z, width: ROOM2_END - ROOM1_END, height: 1.1, depth: 0.1, material: "pedra" },
     { x: (ROOM1_END + ROOM2_END) / 2, y: (1.1 + ROOM2_CEILING) / 2, z: BACK_Z + 0.05, width: ROOM2_END - ROOM1_END, height: ROOM2_CEILING - 1.1, depth: 0.1, material: "parede" },
     { x: ROOM1_END, y: (CEILING + ROOM2_CEILING) / 2 + 0.2, z: 0, width: 0.6, height: ROOM2_CEILING - CEILING, depth: 4.4, material: "concreto" },
-    { x: (STAGE_X0 + STAGE_X1) / 2, y: STAGE_TOP + 0.01, z: -0.6, width: STAGE_X1 - STAGE_X0, height: 0.02, depth: 2, material: "listrado" },
+    // Faixa de aviso só na borda da frente do estrado (antes cobria o tampo inteiro de amarelo).
+    { x: (STAGE_X0 + STAGE_X1) / 2, y: STAGE_TOP + 0.01, z: -1.82, width: STAGE_X1 - STAGE_X0, height: 0.02, depth: 0.3, material: "listrado" },
     ...[94, 99.5].flatMap(archWindow).map((d) => ({ ...d, y: d.y + 1 })),
     { x: GATE2_X, y: ROOM2_CEILING / 2, z: BACK_Z - 0.05, width: 0.6, height: ROOM2_CEILING, depth: 0.2, material: "concreto" },
     { x: GATE2_X - 0.25, y: ROOM2_CEILING / 2, z: -1.95, width: 0.25, height: ROOM2_CEILING, depth: 0.15, material: "concreto" },

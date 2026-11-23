@@ -52,6 +52,10 @@ const GATE2_X = 105;
 const STEP2_WIDTH = 1;
 const STEP2_HEIGHT = 1.2;
 const GATE2_OPEN = 2.2;
+// Degrau baixo no vão entre o caixote e a porta: do chão ao caixote eram 1,2 m num vão apertado, e o terceiro
+// jogador se enroscou ali. Com ele a volta para o palco vira uma escada de três degraus fáceis.
+const STEP3_WIDTH = 0.4;
+const STEP3_HEIGHT = 0.5;
 const ROOM2_END = 107;
 
 // Sala 3 (sala escura): três vãos no piso que só aparecem nos lampejos das lâmpadas.
@@ -217,6 +221,7 @@ export const area2Level: LevelData = {
     { x: STAGE_X1 - 0.1, y: STAGE_TOP + 0.12, width: 0.2, height: 0.24, material: "madeira" },
     // Caixote entre o palco e a porta: quem cai do lado direito com a porta fechada sobe de volta por ele.
     { x: STAGE_X1 + STEP2_WIDTH / 2, y: STEP2_HEIGHT / 2, width: STEP2_WIDTH, height: STEP2_HEIGHT, hidden: true },
+    { x: STAGE_X1 + STEP2_WIDTH + STEP3_WIDTH / 2, y: STEP3_HEIGHT / 2, width: STEP3_WIDTH, height: STEP3_HEIGHT, hidden: true },
   ],
   ramps: [],
   boxes: [
@@ -292,6 +297,7 @@ export const area2Level: LevelData = {
       y: p.y * STEP2_HEIGHT,
       stretch: p.stretch && [p.stretch[0], p.stretch[1] * STEP2_HEIGHT, p.stretch[2]],
     })),
+    { model: "wooden_military_crate", x: STAGE_X1 + STEP2_WIDTH + STEP3_WIDTH / 2, y: 0, z: 0, fitWidth: STEP3_WIDTH, stretch: [1, 2.5, 4] },
     { model: "plastic_crate_01", x: 91.2, y: 0, z: 1.6, rotY: 20 },
     ...[93.4, 95.2, 97, 98.8, 100.6, 102.4, 104.2].map((x): PropData => ({
       model: "modular_airduct_rectangular_01", part: "modular_airduct_rectangular_01_tripple_01", x, y: 4.55, z: 1.3, rotY: 90, origin: false,

@@ -297,12 +297,14 @@ export class Game {
     await Promise.all((level.figurantes ?? []).map((data, i) => Figurante.create(scene, data, `figurante-${i}`)));
     for (const data of level.vigias) {
       const vigia = await Vigia.create(scene, data);
-      vigia.setCovers(coverFromBlocks(level.obstacles, level.depth), [
-        ...solidsFromBlocks(level.obstacles, level.depth),
-        // Chão e paredes também cortam o facho (senão o cone aparece por baixo do piso).
-        ...solidsFromBlocks([...level.ground, ...level.walls], level.depth, false),
-      ]);
-      vigia.addShadowCasters([...this.obstacleMeshes, ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
+      vigia.setCovers(
+        coverFromBlocks(level.obstacles, level.depth),
+        // Todos os obstáculos, o chão e as paredes cortam o facho (senão o cone atravessa barreiras e o piso).
+        solidsFromBlocks([...level.obstacles, ...level.ground, ...level.walls], level.depth, false),
+        // Portões sobem e descem: a caixa é lida a cada quadro, e o portão fechado barra a luz.
+        () => this.doors.map((door) => door.occluder),
+      );
+      vigia.addShadowCasters([...this.obstacleMeshes, ...this.doors.map((door) => door.mesh), ...this.propShadowCasters, ...this.player.meshes, ...this.boxes.flatMap((box) => [box.mesh, ...box.mesh.getChildMeshes()])]);
       this.vigias.push(vigia);
     }
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);

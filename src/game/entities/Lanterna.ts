@@ -125,6 +125,7 @@ export class Lanterna {
   private readonly beamColor = new Color3();
   private strength = 1;
   private occluders: readonly OccluderBox[] = [];
+  private movingOccluders: () => readonly OccluderBox[] = () => [];
   private readonly lensWorld = new Vector3();
   private readonly boxMin = new Array<number>(MAX_OCCLUDERS * 3).fill(0);
   private readonly boxMax = new Array<number>(MAX_OCCLUDERS * 3).fill(0);
@@ -223,15 +224,18 @@ export class Lanterna {
   }
 
   /** Caixas que cortam o facho visível (as mesmas estantes e paredes que fazem sombra na lanterna). */
-  setOccluders(boxes: readonly OccluderBox[]): void {
+  setOccluders(boxes: readonly OccluderBox[], moving?: () => readonly OccluderBox[]): void {
     this.occluders = boxes;
+    if (moving) this.movingOccluders = moving;
   }
 
   /** As caixas mais perto da lente vão para o shader (no máximo MAX_OCCLUDERS). */
   private pickOccluders(lens: Vector3): void {
     const reach = this.range + 1;
-    const near = this.occluders
+    const near = [...this.occluders, ...this.movingOccluders()]
       .filter((box) => box.maxX > lens.x - reach && box.minX < lens.x + reach)
+      // Uma caixa com a lente dentro apagaria o facho inteiro: ignora.
+      .filter((box) => !(lens.x > box.minX && lens.x < box.maxX && lens.y > box.minY && lens.y < box.maxY && lens.z > box.minZ && lens.z < box.maxZ))
       .sort((a, b) => boxDistance(a, lens) - boxDistance(b, lens))
       .slice(0, MAX_OCCLUDERS);
     near.forEach((box, i) => {

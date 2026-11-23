@@ -199,9 +199,9 @@ export class Vigia {
   }
 
   /** Estantes e outros obstáculos atrás do jogador que escondem quem está "atrás" deles na tela. */
-  setCovers(covers: readonly CoverBox[], solids: readonly CoverBox[]): void {
+  setCovers(covers: readonly CoverBox[], solids: readonly CoverBox[], moving?: () => readonly CoverBox[]): void {
     this.covers = covers;
-    this.lanterna.setOccluders(solids);
+    this.lanterna.setOccluders(solids, moving);
   }
 
   addShadowCasters(meshes: readonly AbstractMesh[]): void {

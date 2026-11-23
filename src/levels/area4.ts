@@ -28,6 +28,8 @@ const CHASE2_TRIGGER = 169.5;
 const SLIDES2 = [174.5, 183.2];
 const BARRIERS2 = [177.6, 186.1, 188.4];
 const GATE2_X = 193;
+// O segurança para antes do portão: com o braço esticado, a lanterna não pode atravessar a grade.
+const GATE_STOP = 1.2;
 // Portas de serviço na parede do fundo: é por elas que os seguranças entram na perseguição.
 const DOOR1_X = 123.3;
 const DOOR2_X = 165;
@@ -158,7 +160,7 @@ export const area4Level: LevelData = {
       triggerX: 128,
       x0: DOOR1_X,
       porta: { z: BACK_Z },
-      x1: GATE_X - 0.6,
+      x1: GATE_X - GATE_STOP,
       y: 0,
       z: 1.4,
       speed: 4.3,
@@ -174,7 +176,7 @@ export const area4Level: LevelData = {
       triggerX: CHASE2_TRIGGER,
       x0: DOOR2_X,
       porta: { z: BACK_Z },
-      x1: GATE2_X - 0.6,
+      x1: GATE2_X - GATE_STOP,
       y: 0,
       z: 1.4,
       speed: 4.3,

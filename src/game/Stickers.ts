@@ -204,13 +204,13 @@ function crack(ctx: Ctx, w: number, h: number, rand: () => number): void {
 }
 
 /** Mancha elíptica suave (sombra de contato ou poça de luz): forte no centro, some na borda. */
-function blob(ctx: Ctx, w: number, h: number, rgb: string, strength: number): void {
+function blob(ctx: Ctx, w: number, h: number, rgb: string, strength: number, core = 0.45): void {
   ctx.save();
   ctx.scale(w / 2, h / 2);
   ctx.translate(1, 1);
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
   g.addColorStop(0, `rgba(${rgb},${strength})`);
-  g.addColorStop(0.45, `rgba(${rgb},${strength * 0.7})`);
+  g.addColorStop(core, `rgba(${rgb},${strength * (core > 0.45 ? 0.85 : 0.7)})`);
   g.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = g;
   ctx.fillRect(-1, -1, 2, 2);
@@ -294,7 +294,7 @@ function draw(ctx: Ctx, w: number, h: number, data: StickerData): void {
     case "rachadura":
       return crack(ctx, w, h, rand);
     case "sombra":
-      return blob(ctx, w, h, "0,0,0", data.strength ?? 0.6);
+      return blob(ctx, w, h, "0,0,0", data.strength ?? 0.6, data.nucleo);
     case "pe-de-parede":
       return wallFoot(ctx, w, h, data.strength ?? 0.5);
     case "poca":
@@ -326,7 +326,7 @@ const BATCH_KINDS = new Set<StickerData["kind"]>(["sombra", "pe-de-parede"]);
 function sharedKey(data: StickerData): string | null {
   if (!SHARED_KINDS.has(data.kind)) return null;
   const size = STRETCH_KINDS.has(data.kind) ? "" : `${data.width.toFixed(2)}x${data.height.toFixed(2)}`;
-  return [data.kind, size, data.color ?? "", data.strength ?? "", data.glow ?? ""].join("|");
+  return [data.kind, size, data.color ?? "", data.strength ?? "", data.glow ?? "", data.nucleo ?? ""].join("|");
 }
 
 /** Luz pintada no chão sob um poste: o jogo liga a opacidade dela ao poste da mesma posição x. */

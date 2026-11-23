@@ -6,6 +6,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Constants } from "@babylonjs/core/Engines/constants";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { PhysicsMotionType, PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
@@ -39,7 +40,15 @@ const RIDE_DELAY = 0.6;
 const STILL_SPEED = 0.4;
 const BUTTON_IDLE = new Color3(0.35, 0.3, 0.22);
 const BUTTON_ACTIVE = new Color3(1, 0.62, 0.22);
-const CAB_LIGHT = new Color3(1, 0.86, 0.66);
+const CAB_LIGHT = new Color3(1, 0.88, 0.7);
+const CAB_LIGHT_INTENSITY = 2.2;
+/** Intervalo entre as falhas da lâmpada e a duração de cada uma (segundos). */
+const FLICKER_EVERY = [6, 14];
+const FLICKER_LENGTH = [0.05, 0.22];
+
+function between(range: number[]): number {
+  return range[0] + Math.random() * (range[1] - range[0]);
+}
 
 export interface Rider {
   x: number;
@@ -71,6 +80,15 @@ export class Elevator {
   private readonly buttonMaterial: StandardMaterial;
   private readonly cable: Mesh;
   private readonly cabLight: PointLight;
+  private readonly lightMaterial: StandardMaterial;
+  private readonly glowMaterial: StandardMaterial;
+  private readonly cabScreen: DynamicTexture;
+  private readonly floorButtons: StandardMaterial[];
+  private cabShown = "";
+  /** Tremulação da lâmpada: segundos até a próxima falha e quanto dura a falha atual. */
+  private flickerTimer = 4;
+  private flickerLeft = 0;
+  private humLevel = 0;
   private readonly shaftTop: number;
   private readonly landings: Record<Stop, Landing>;
   private readonly target = new Vector3();
@@ -151,11 +169,27 @@ export class Elevator {
       mesh.parent = cab;
       return mesh;
     };
-    // Fundo de lambri com rodapé e corrimão de aço; colunas nos quatro cantos; faixa de luz no teto.
-    part("fundo", data.width, CAB_HEIGHT, 0.06, 0, CAB_HEIGHT / 2, CAB_DEPTH / 2 - 0.03, panel);
-    part("rodape", data.width, 0.15, 0.07, 0, 0.075, CAB_DEPTH / 2 - 0.06, steel);
-    part("corrimao", data.width - 0.3, 0.05, 0.05, 0, 0.95, CAB_DEPTH / 2 - 0.16, steel);
+    // Fundo: lambri até o corrimão e espelho de aço polido em cima, com rodapé e frisos de aço.
+    const backZ = CAB_DEPTH / 2 - 0.03;
+    const mirror = new StandardMaterial(`${name}-espelho`, scene);
+    mirror.diffuseColor = new Color3(0.32, 0.36, 0.4);
+    mirror.specularColor = new Color3(0.9, 0.9, 0.9);
+    mirror.specularPower = 64;
+    mirror.emissiveColor = new Color3(0.05, 0.055, 0.06);
+    part("fundo", data.width, 1, 0.06, 0, 0.5, backZ, panel);
+    part("espelho", data.width - 0.16, CAB_HEIGHT - 1.2, 0.04, 0, 1 + (CAB_HEIGHT - 1.2) / 2 + 0.04, backZ - 0.01, mirror);
+    part("fundo-alto", data.width, CAB_HEIGHT - 1, 0.05, 0, 1 + (CAB_HEIGHT - 1) / 2, backZ + 0.01, steel);
+    part("friso", data.width, 0.04, 0.08, 0, 1, backZ - 0.03, steel);
+    part("rodape", data.width, 0.15, 0.07, 0, 0.075, backZ - 0.03, steel);
+    part("corrimao", data.width - 0.3, 0.05, 0.05, 0, 0.95, backZ - 0.13, steel);
+    for (const sx of [-1, 1]) part(`corrimao-apoio${sx}`, 0.04, 0.04, 0.12, sx * (half - 0.25), 0.95, backZ - 0.08, steel);
+    // Piso: tapete de borracha escura com soleira de aço nos dois vãos.
+    const rubber = new StandardMaterial(`${name}-borracha`, scene);
+    rubber.diffuseColor = new Color3(0.12, 0.12, 0.13);
+    rubber.specularColor = Color3.Black();
+    part("tapete", data.width - 0.3, 0.012, CAB_DEPTH - 0.1, 0, 0.006, 0, rubber);
     for (const sx of [-1, 1]) {
+      part(`soleira${sx}`, 0.14, 0.014, DOOR_GAP, sx * (half - 0.08), 0.007, 0, steel);
       for (const sz of [-1, 1]) {
         part(`coluna${sx}${sz}`, 0.08, CAB_HEIGHT, 0.08, sx * (half - 0.04), CAB_HEIGHT / 2, sz * (CAB_DEPTH / 2 - 0.04), steel);
       }
@@ -166,18 +200,78 @@ export class Elevator {
       }
       part(`verga${sx}`, 0.04, CAB_HEIGHT - DOOR_HEIGHT, DOOR_GAP, sx * (half - 0.02), (CAB_HEIGHT + DOOR_HEIGHT) / 2, 0, steel);
     }
-    const lightMaterial = new StandardMaterial(`${name}-luz`, scene);
-    lightMaterial.emissiveColor = CAB_LIGHT;
-    lightMaterial.disableLighting = true;
-    const strip = CreatePlane(`${name}-faixa`, { width: data.width - 0.5, height: 0.5 }, scene);
-    strip.material = lightMaterial;
-    strip.rotation.x = -Math.PI / 2;
-    strip.position.set(0, CAB_HEIGHT - 0.01, 0.2);
-    strip.parent = cab;
-    this.cabLight = new PointLight(`${name}-lampada`, new Vector3(0, CAB_HEIGHT - 0.25, -0.2), scene);
+
+    // Luminária de teto: caixa de aço com difusor aceso por baixo e pela borda da frente (que a câmera vê).
+    this.lightMaterial = new StandardMaterial(`${name}-luz`, scene);
+    this.lightMaterial.emissiveColor = CAB_LIGHT;
+    this.lightMaterial.disableLighting = true;
+    const lampW = data.width - 0.7;
+    const lampD = 0.9;
+    part("luminaria", lampW + 0.1, 0.08, lampD + 0.1, 0, CAB_HEIGHT - 0.04, 0.05, steel);
+    const diffuser = part("difusor", lampW, 0.07, lampD, 0, CAB_HEIGHT - 0.115, 0.05, this.lightMaterial);
+    diffuser.material = this.lightMaterial;
+    // Facho da lâmpada: um véu de luz que desce do teto até o piso, mais forte em cima.
+    const glow = new DynamicTexture(`${name}-facho-tex`, { width: 16, height: 128 }, scene, false);
+    const ctx = glow.getContext();
+    const gradient = ctx.createLinearGradient(0, 0, 0, 128);
+    gradient.addColorStop(0, "rgba(255,225,180,0.55)");
+    gradient.addColorStop(0.5, "rgba(255,225,180,0.12)");
+    gradient.addColorStop(1, "rgba(255,225,180,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 16, 128);
+    glow.hasAlpha = true;
+    glow.update();
+    this.glowMaterial = new StandardMaterial(`${name}-facho`, scene);
+    this.glowMaterial.emissiveTexture = glow;
+    this.glowMaterial.opacityTexture = glow;
+    this.glowMaterial.diffuseColor = Color3.Black();
+    this.glowMaterial.disableLighting = true;
+    this.glowMaterial.alphaMode = Constants.ALPHA_ADD;
+    this.glowMaterial.backFaceCulling = false;
+    const veil = CreatePlane(`${name}-facho`, { width: data.width - 0.12, height: CAB_HEIGHT - 0.12 }, scene);
+    veil.material = this.glowMaterial;
+    veil.position.set(0, (CAB_HEIGHT - 0.12) / 2, backZ - 0.05);
+    veil.parent = cab;
+    veil.isPickable = false;
+
+    // Botoeira interna no fundo, à direita: mostrador do andar, botões "1" e "T" e o de alarme.
+    const copX = half - 0.3;
+    part("botoeira-interna", 0.22, 0.55, 0.03, copX, 1.35, backZ - 0.04, steel);
+    this.cabScreen = new DynamicTexture(`${name}-mostrador-interno`, { width: 128, height: 64 }, scene, false);
+    // Desenha já na criação: textura dinâmica sem desenho nunca fica "pronta" e trava o carregamento.
+    this.cabScreen.drawText("1", null, 50, "bold 44px monospace", "#ff8a2a", "#050302", true, true);
+    const cabScreenMaterial = new StandardMaterial(`${name}-mostrador-interno-mat`, scene);
+    cabScreenMaterial.emissiveTexture = this.cabScreen;
+    cabScreenMaterial.diffuseColor = Color3.Black();
+    cabScreenMaterial.disableLighting = true;
+    const cabScreen = CreatePlane(`${name}-mostrador-interno-tela`, { width: 0.16, height: 0.08 }, scene);
+    cabScreen.material = cabScreenMaterial;
+    cabScreen.position.set(copX, 1.54, backZ - 0.06);
+    cabScreen.parent = cab;
+    this.floorButtons = (["top", "bottom"] as Stop[]).map((stop, i) => {
+      const material = new StandardMaterial(`${name}-botao-${stop}`, scene);
+      material.emissiveColor = BUTTON_IDLE;
+      material.disableLighting = true;
+      const disc = CreateCylinder(`${name}-botao-${stop}`, { diameter: 0.05, height: 0.02, tessellation: 12 }, scene);
+      disc.rotation.x = Math.PI / 2;
+      disc.position.set(copX, 1.4 - i * 0.09, backZ - 0.06);
+      disc.material = material;
+      disc.parent = cab;
+      return material;
+    });
+    const alarm = new StandardMaterial(`${name}-alarme`, scene);
+    alarm.emissiveColor = new Color3(0.45, 0.06, 0.04);
+    alarm.disableLighting = true;
+    const alarmButton = CreateCylinder(`${name}-alarme`, { diameter: 0.05, height: 0.02, tessellation: 12 }, scene);
+    alarmButton.rotation.x = Math.PI / 2;
+    alarmButton.position.set(copX, 1.15, backZ - 0.06);
+    alarmButton.material = alarm;
+    alarmButton.parent = cab;
+
+    this.cabLight = new PointLight(`${name}-lampada`, new Vector3(0, CAB_HEIGHT - 0.3, -0.3), scene);
     this.cabLight.diffuse = CAB_LIGHT;
-    this.cabLight.specular = CAB_LIGHT.scale(0.3);
-    this.cabLight.intensity = 1.8;
+    this.cabLight.specular = CAB_LIGHT.scale(0.5);
+    this.cabLight.intensity = CAB_LIGHT_INTENSITY;
     this.cabLight.range = 3.8;
     this.cabLight.parent = cab;
 
@@ -350,7 +444,48 @@ export class Elevator {
     }
 
     this.place();
+    this.updateCabin(dt, rider);
     this.buttonMaterial.emissiveColor = this.calledFlag && !(this.stop === "bottom" && this.door > 0) ? BUTTON_ACTIVE : BUTTON_IDLE;
+  }
+
+  /** Luz que às vezes falha, botões e mostrador internos e o zumbido de quem está perto da cabine. */
+  private updateCabin(dt: number, rider: Rider): void {
+    this.flickerTimer -= dt;
+    if (this.flickerTimer <= 0) {
+      this.flickerLeft = between(FLICKER_LENGTH);
+      this.flickerTimer = between(FLICKER_EVERY);
+    }
+    this.flickerLeft = Math.max(0, this.flickerLeft - dt);
+    const level = this.flickerLeft > 0 ? 0.25 + 0.2 * Math.random() : 1;
+    this.lightMaterial.emissiveColor.copyFrom(CAB_LIGHT).scaleInPlace(level);
+    this.glowMaterial.alpha = level;
+    this.cabLight.intensity = CAB_LIGHT_INTENSITY * level;
+
+    const going = this.state === "andando" || this.state === "partindo" ? this.goal : null;
+    this.floorButtons.forEach((material, i) => {
+      const stop: Stop = i === 0 ? "top" : "bottom";
+      material.emissiveColor = going === stop ? BUTTON_ACTIVE : BUTTON_IDLE;
+    });
+    const text = this.floorText();
+    if (text !== this.cabShown) {
+      this.cabShown = text;
+      this.cabScreen.drawText(text, null, 50, "bold 44px monospace", "#ff8a2a", "#050302", true, true);
+    }
+
+    const dx = Math.max(0, Math.abs(rider.x - this.data.x) - this.data.width / 2);
+    const dy = Math.max(0, Math.abs(rider.feetY + 0.9 - (this.surface + CAB_HEIGHT / 2)) - CAB_HEIGHT / 2);
+    this.humLevel = Math.max(0, 1 - Math.hypot(dx, dy) / 3) * (this.flickerLeft > 0 ? 0.4 : 1);
+  }
+
+  /** Zumbido do reator da lâmpada (0 longe a 1 dentro da cabine). */
+  get hum(): number {
+    return this.humLevel;
+  }
+
+  private floorText(): string {
+    const floor = this.surface < (this.data.bottomY + this.data.topY) / 2 ? "T" : "1";
+    const arrow = this.state === "andando" ? (this.goal === "top" ? "▲" : "▼") : "";
+    return `${arrow}${floor}`;
   }
 
   private go(state: State): void {
@@ -390,9 +525,7 @@ export class Elevator {
   }
 
   private drawIndicator(landing: Landing): void {
-    const floor = this.surface < (this.data.bottomY + this.data.topY) / 2 ? "T" : "1";
-    const arrow = this.state === "andando" ? (this.goal === "top" ? "▲" : "▼") : "";
-    const text = `${arrow}${floor}`;
+    const text = this.floorText();
     if (landing.shown === text) return;
     landing.shown = text;
     landing.indicator.drawText(text, null, 50, "bold 44px monospace", "#ff8a2a", "#050302", true, true);

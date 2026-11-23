@@ -26,6 +26,8 @@ export interface SoundState {
   elevatorDoors: number[];
   /** Chegadas da cabine (cada uma é um "plim"). */
   elevatorArrivals: number[];
+  /** Zumbido da lâmpada da cabine mais próxima (0 a 1). */
+  elevatorHum: number;
   lampsDead: boolean[];
   vigias: { x: number; walking: boolean; chases: boolean; shown: boolean; suspicious: boolean }[];
   finalDoorOpen: boolean;
@@ -61,6 +63,7 @@ export class Soundscape {
 
   forget(): void {
     this.previous = null;
+    this.sfx.setHum(0);
   }
 
   update(dt: number, state: SoundState): void {
@@ -87,6 +90,7 @@ export class Soundscape {
     state.elevatorsCalled.forEach((called, i) => {
       if (called && !before.elevatorsCalled[i]) this.sfx.play("botao", { volume: 0.7 });
     });
+    this.sfx.setHum(state.elevatorHum);
     state.elevatorArrivals.forEach((count, i) => {
       if (count > (before.elevatorArrivals[i] ?? count)) this.sfx.chime(0.35);
     });

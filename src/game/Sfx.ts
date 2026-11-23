@@ -49,6 +49,7 @@ function loadLevels(): VolumeLevels {
   }
   return levels;
 }
+const HUM_VOLUME = 0.035;
 
 export class Sfx {
   private readonly context = new AudioContext();
@@ -176,6 +177,28 @@ export class Sfx {
     } catch {
       return null;
     }
+  }
+
+  private humGain: GainNode | null = null;
+
+  /** Zumbido baixo do reator da lâmpada do elevador (0 desliga). Os osciladores são criados na primeira vez. */
+  setHum(level: number): void {
+    if (this.context.state !== "running") return;
+    if (!this.humGain) {
+      if (level <= 0) return;
+      this.humGain = this.context.createGain();
+      this.humGain.gain.value = 0;
+      this.humGain.connect(this.effects);
+      for (const [freq, amount] of [[120, 1], [240, 0.35], [360, 0.12]]) {
+        const osc = this.context.createOscillator();
+        osc.frequency.value = freq;
+        const gain = this.context.createGain();
+        gain.gain.value = amount;
+        osc.connect(gain).connect(this.humGain);
+        osc.start();
+      }
+    }
+    this.humGain.gain.setTargetAtTime(level * HUM_VOLUME, this.context.currentTime, 0.08);
   }
 
   /** "Plim" de elevador chegando: duas notas de sino sintetizadas, uma depois da outra. */

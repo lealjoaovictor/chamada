@@ -73,6 +73,13 @@ const DARK_AMBIENT = 0.2;
 const MAX_DT = 1 / 30;
 const PUSH_REACH = 0.5;
 const PUSH_GRACE = 0.2;
+/** Foco de câmera num segurança: quanto ele precisa aparecer (s), quanto a mais dá para esperar ele sair de trás de uma estante. */
+const FOCUS_MIN_SEEN = 1.4;
+const FOCUS_MAX_WAIT = 3;
+const FOCUS_HOLD_STEP = 0.3;
+/** Meia largura do corpo que precisa estar coberta para contar como escondido, e até onde a estante precisa subir. */
+const FOCUS_BODY_HALF = 0.2;
+const FOCUS_HIDE_TOP = 1.4;
 const DEATH_FADE_OUT = 0.25;
 const DEATH_FADE_IN = 0.25;
 const DOOR_CLEARANCE = 0.05;
@@ -202,6 +209,11 @@ export class Game {
   private props!: Props;
   private kit!: Kit;
   private focusLock = false;
+  /** Segurança mostrado no foco de câmera de agora (a câmera acompanha e espera ele sair de trás das estantes). */
+  private focusVigia: Vigia | null = null;
+  private focusElapsed = 0;
+  private focusSeen = 0;
+  private focusBeatSeconds = 0;
   private readonly sfx = new Sfx();
   private readonly soundscape = new Soundscape(this.sfx);
   private readonly guardSounds = new GuardSounds(this.sfx);
@@ -622,11 +634,18 @@ export class Game {
     }
     const beat = this.hints.cameraBeat(this.player.position.x);
     if (beat) {
-      this.cameraRig.focus(this.beatFocusX(beat), beat.seconds);
+      this.focusVigia = beat.seguranca ? this.beatVigia(beat) : null;
+      this.focusElapsed = 0;
+      this.focusSeen = 0;
+      this.focusBeatSeconds = beat.seconds;
+      this.cameraRig.focus(this.focusVigia?.positionX ?? beat.focusX, beat.seconds);
       this.focusLock = true;
       this.input.setAutopilot(0);
+    } else if (this.focusVigia && this.cameraRig.focusing) {
+      this.followFocusVigia(dt, this.focusVigia);
     } else if (this.focusLock && !this.cameraRig.focusing) {
       this.focusLock = false;
+      this.focusVigia = null;
       this.input.setAutopilot(null);
     }
     const px = this.player.position.x;
@@ -1031,15 +1050,39 @@ export class Game {
     this.cameraRig.setChase(on, near);
   }
 
-  /** Onde a câmera para num foco: um ponto fixo ou o segurança de ronda mais perto dele, onde ele estiver. */
-  private beatFocusX(beat: CameraBeatData): number {
-    if (!beat.seguranca) return beat.focusX;
+  /** O segurança de ronda mais perto do ponto do foco (a câmera vai até onde ele estiver). */
+  private beatVigia(beat: CameraBeatData): Vigia | null {
     let best: Vigia | null = null;
     for (const vigia of this.vigias) {
       if (vigia.chases) continue;
       if (!best || Math.abs(vigia.positionX - beat.focusX) < Math.abs(best.positionX - beat.focusX)) best = vigia;
     }
-    return best?.positionX ?? beat.focusX;
+    return best;
+  }
+
+  /**
+   * Durante o foco num segurança, a câmera acompanha a ronda e só solta depois de ele aparecer de verdade
+   * (fora de trás das estantes) por um tempo; se ele demorar a sair, espera um pouco mais.
+   */
+  private followFocusVigia(dt: number, vigia: Vigia): void {
+    this.focusElapsed += dt;
+    if (!this.vigiaHidden(vigia)) this.focusSeen += dt;
+    const wantSeen = Math.min(FOCUS_MIN_SEEN, this.focusBeatSeconds);
+    const canWait = this.focusElapsed < this.focusBeatSeconds + FOCUS_MAX_WAIT;
+    this.cameraRig.holdFocus(vigia.positionX, this.focusSeen < wantSeen && canWait ? FOCUS_HOLD_STEP : 0);
+  }
+
+  /** O segurança está escondido para a câmera (atrás de uma estante, ou fora de cena numa porta). */
+  private vigiaHidden(vigia: Vigia): boolean {
+    if (!vigia.shown) return true;
+    const { y, z } = vigia.settings;
+    const x = vigia.positionX;
+    return this.level.obstacles.some((block) => {
+      const bz = block.z ?? 0;
+      if (bz < 0.5 || bz >= z) return false;
+      if (Math.abs(x - block.x) > block.width / 2 - FOCUS_BODY_HALF) return false;
+      return block.y + block.height / 2 > y + FOCUS_HIDE_TOP && block.y - block.height / 2 < y + 0.5;
+    });
   }
 
   /** Na área 5, de 0 (começo do corredor) a 1 (porta da sala): a voz real do professor vai ficando mais alta. */

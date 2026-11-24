@@ -4,8 +4,8 @@ import type { CameraBeatData, HintData, RattleData } from "./types";
 // O mundo contínuo (`world.ts`) desloca tudo para a posição final.
 
 // Área 4 (esticada): as duas perseguições.
-const CHASE = { minX: 124, maxX: 163 };
-const CHASE2 = { minX: 179, maxX: 214 };
+const CHASE = { minX: 124, maxX: 173 };
+const CHASE2 = { minX: 189, maxX: 234 };
 
 export const DICAS_POR_AREA: Record<number, HintData[]> = {
   1: [
@@ -102,9 +102,9 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       doneWhen: { passedX: 146 },
     },
   ],
-  // Área 4 já nas coordenadas esticadas (ver `AREA4_STRETCH` em area4.ts: 10 m a mais antes de cada portão).
+  // Área 4 já nas coordenadas esticadas (ver `AREA4_STRETCH` em area4.ts: 20 m a mais antes de cada portão).
   4: [
-    ...[[134, "deslizar"], [138.3, "pular"], [143, "pular"], [149.2, "deslizar"], [154, "pular"], [162, "deslizar"]].map(
+    ...[[134, "deslizar"], [138.3, "pular"], [143, "pular"], [149.2, "deslizar"], [154, "pular"], [158.5, "pular"], [164, "deslizar"], [172, "deslizar"]].map(
       ([x, action], i, all): HintData => ({
         zone: { minX: i === 0 ? 124 : (all[i - 1][0] as number) + 0.3, maxX: (x as number) + 0.3 },
         trigger: "mortes",
@@ -116,7 +116,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
     ),
     {
       // Depósito: primeiro um objeto vai para a valeta (vira ponte)...
-      zone: { minX: 163, maxX: 176.8 },
+      zone: { minX: 173, maxX: 186.8 },
       trigger: "tempo",
       glowAfter: 40,
       iconAfter: 80,
@@ -126,7 +126,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
     },
     {
       // ...e o outro passa por cima até o sensor.
-      zone: { minX: 163, maxX: 176.8 },
+      zone: { minX: 173, maxX: 186.8 },
       trigger: "tempo",
       glowAfter: 70,
       iconAfter: 110,
@@ -134,7 +134,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       icon: { action: "empurrar", x: 0, y: 0.9, followBox: 1 },
       doneWhen: { platePressed: 0 },
     },
-    ...[184.5, 193.2, 207.5, 213].map((x): HintData => ({
+    ...[194.5, 203.2, 217.5, 227.5, 233].map((x): HintData => ({
       zone: { minX: x - 3, maxX: x + 0.3 },
       trigger: "mortes",
       deathZone: CHASE2,
@@ -142,7 +142,7 @@ export const DICAS_POR_AREA: Record<number, HintData[]> = {
       icon: { action: "deslizar", x: x - 0.4, y: 1.7 },
       doneWhen: { passedX: x + 0.5 },
     })),
-    ...[187.6, 196.1, 198.4, 203].map((x): HintData => ({
+    ...[197.6, 206.1, 208.4, 213, 223].map((x): HintData => ({
       zone: { minX: x - 2.2, maxX: x + 0.3 },
       trigger: "mortes",
       deathZone: CHASE2,

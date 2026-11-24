@@ -68,8 +68,9 @@ const lamps: LampData[] = [
   { x: 111, y: 5.6, forca: 0.8 },
   { x: 89, y: 5, moonlight: true },
   { x: 98, y: 5, moonlight: true },
-  { x: 127, y: 7.4, forca: 0.8 },
-  { x: 137, y: 7.4, forca: 0.8 },
+  // Sala de leitura: luminárias fracas, para a lanterna do segurança aparecer de longe.
+  { x: 127, y: 7.4, forca: 0.45 },
+  { x: 137, y: 7.4, forca: 0.45 },
   { x: 122, y: 7.6, moonlight: true },
   // Acervo: o prédio está fechando. Uma luminária já foi desligada e a outra falha, fraca; o resto é luar e as
   // lanternas dos dois seguranças, que assim se destacam de longe.
@@ -106,7 +107,9 @@ export const area3Level: LevelData = {
     { x0: ARCHIVE_RAMP_X1, x1: ARCHIVE_END, y0: GALLERY_Y },
   ],
   ambiente: [
-    { minX: START, maxX: READING_END, intensidade: 0.45, cor: [0.5, 0.56, 0.66] },
+    { minX: START, maxX: END, intensidade: 0.45, cor: [0.5, 0.56, 0.66] },
+    // Sala de leitura mais escura: quem desenha a cena é a lanterna do segurança e o luar.
+    { minX: END, maxX: READING_END, intensidade: 0.2, cor: [0.42, 0.5, 0.68] },
     { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.21, cor: [0.4, 0.48, 0.66] },
   ],
   vultos: [],

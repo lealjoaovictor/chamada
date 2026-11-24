@@ -77,6 +77,12 @@ export class CameraRig {
     this.focusTimer = seconds;
   }
 
+  /** Segue um alvo que se move durante o foco e garante pelo menos `minSeconds` a mais nele. */
+  holdFocus(x: number, minSeconds: number): void {
+    this.focusX = x;
+    this.focusTimer = Math.max(this.focusTimer, minSeconds);
+  }
+
   /** Perseguição em andamento (`on`) e quanto o segurança está perto (0 longe, 1 encostando). */
   setChase(on: boolean, near: number): void {
     this.chaseTarget = on ? 1 : 0;

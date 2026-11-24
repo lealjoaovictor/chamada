@@ -498,6 +498,8 @@ export class Vigia {
       this.updateInvestigate(dt);
     } else if (this.phase === "andando") {
       this.x += this.heading * this.walkSpeed * dt;
+      // Andando, o corpo sempre vira para onde vai (nunca de costas).
+      if (this.walkSpeed > 0) this.facing = approach(this.facing, this.heading, dt * 4);
       const end = this.heading > 0 ? this.data.x1 : this.data.x0;
       if ((end - this.x) * this.heading <= 0) {
         this.x = end;
@@ -675,8 +677,12 @@ export class Vigia {
     }
     if (this.habitPhase === "olhando") {
       // Olha para um lado e para o outro com a lanterna, parado.
-      const t = this.habitTimer / this.habitLength;
-      this.facing = this.heading * Math.cos(Math.PI * smooth(Math.min(t * 1.3, 1)));
+      const t = Math.min(this.habitTimer / this.habitLength, 1);
+      // Olhadela no meio do trecho: olha para trás e volta para a frente (senão segue andando de costas).
+      // No fim do trecho: termina virado para o lado de onde veio, que é para onde ele vai andar.
+      this.facing = this.glancing
+        ? this.heading * Math.cos(2 * Math.PI * smooth(t))
+        : this.heading * Math.cos(Math.PI * smooth(Math.min(t * 1.3, 1)));
     }
     const stopped = this.habitPhase === "erguendo" || (this.habitPhase === "olhando" && this.glancing);
     const clip = this.habitClip() ?? (walking && !stopped ? "andar" : "parado");

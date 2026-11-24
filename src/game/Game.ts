@@ -127,7 +127,9 @@ const CUT_AFTER_ANSWER = 1.3;
 // Final ruim: o nome, o silêncio, "...ele chamou" e a caneta, depois escurece.
 const LATE_HOLD = 6;
 // Ser pego: a tela escurece devagar (dá tempo de ouvir o segurança) e o jogador volta ao checkpoint.
-const CAUGHT_FADE_OUT = 0.7;
+const CAUGHT_FADE_OUT = 1;
+/** Antes de escurecer, um instante para ver o susto dele e o segurança apontando (s, dentro do CAUGHT_FADE_OUT). */
+const CAUGHT_REACT = 0.35;
 const CAUGHT_HOLD = 0.5;
 const CAUGHT_FADE_IN = 0.4;
 const SUSPICION_LINE_COOLDOWN = 6;
@@ -215,6 +217,8 @@ export class Game {
   private props!: Props;
   private kit!: Kit;
   private focusLock = false;
+  /** O segurança que pegou o jogador agora (aponta para ele enquanto a tela escurece). */
+  private catcher: Vigia | null = null;
   /** Segurança mostrado no foco de câmera de agora (a câmera acompanha e espera ele sair de trás das estantes). */
   private focusVigia: Vigia | null = null;
   private focusElapsed = 0;
@@ -770,6 +774,7 @@ export class Game {
   private die(cause: "queda" | "luz" | "toque"): void {
     // Seguranças não matam: ser pego é ser levado para fora (volta ao checkpoint).
     const caught = cause !== "queda";
+    if (!caught) this.catcher = null;
     this.fadeOut = caught ? CAUGHT_FADE_OUT : DEATH_FADE_OUT;
     this.fadeIn = caught ? CAUGHT_FADE_IN : DEATH_FADE_IN;
     this.hold = caught ? CAUGHT_HOLD : 0;
@@ -1050,9 +1055,16 @@ export class Game {
   private updateDeath(dt: number): void {
     this.deathTimer += dt;
     if (this.deathTimer < this.fadeOut) {
-      this.fade.set(this.deathTimer / this.fadeOut);
+      const caught = this.catcher !== null;
+      if (this.catcher) {
+        this.player.caughtPose(dt, this.catcher.positionX);
+        this.catcher.pointAt(dt, this.player.position.x);
+      }
+      const react = caught ? CAUGHT_REACT : 0;
+      this.fade.set(Math.max(0, this.deathTimer - react) / (this.fadeOut - react));
       return;
     }
+    this.catcher = null;
     if (!this.respawned) {
       this.respawned = true;
       const point = this.checkpoints.current;
@@ -1301,12 +1313,19 @@ export class Game {
     this.sightPoints[0].set(p.x, feetY + 0.25, 0);
     this.sightPoints[1].set(p.x, feetY + height * 0.55, 0);
     this.sightPoints[2].set(p.x, feetY + height - 0.15, 0);
-    if (this.vigias.some((vigia) => vigia.catches(p.x))) return "toque";
+    const toucher = this.vigias.find((vigia) => vigia.catches(p.x));
+    if (toucher) {
+      this.catcher = toucher;
+      return "toque";
+    }
     // Desconfiança: a lanterna esquenta enquanto o jogador está no cone e esfria quando ele sai.
     let caught = false;
     for (const vigia of this.vigias) {
       if (vigia.chases) continue;
-      if (vigia.updateAlert(dt, vigia.sees(this.sightPoints))) caught = true;
+      if (vigia.updateAlert(dt, vigia.sees(this.sightPoints)) && !caught) {
+        caught = true;
+        this.catcher = vigia;
+      }
       // Começou a desconfiar: "Ei? Tem alguém aí?"
       const now = performance.now() / 1000;
       if (vigia.suspicious && !this.wasSuspicious.get(vigia) && now - (this.suspicionLineAt.get(vigia) ?? -99) > SUSPICION_LINE_COOLDOWN && !caught) {

@@ -103,6 +103,23 @@ const SLIDE_CLIP_START = 0.15;
 const SLIDE_CLIP_LOW = 0.75;
 // Quadros antes do fim em que pulo e deslize ficam parados (o grupo nunca chega a terminar).
 const CLIP_HOLD_MARGIN = 0.5;
+/**
+ * Freada ("Run To Stop"): soltar a direção correndo. O clipe entra já no fim da derrapagem (0,29 s); o
+ * deslocamento do quadril que vem no clipe (0,66 a 0,79 m à frente da origem) é descontado no corpo.
+ */
+const BRAKE_MIN_SPEED = 3.5;
+/** Pego: o clipe "Terrified" fica um tempo parado antes do susto; entra já no susto e encolhe em ~0,4 s. */
+const CAUGHT_CLIP_START = 0.85;
+const CAUGHT_CLIP_END = 3;
+const CAUGHT_CLIP_RATE = 1.3;
+const CAUGHT_CLIP_DURATION = 20.03;
+const BRAKE_CLIP_START = 0.29;
+const BRAKE_CLIP_END = 0.9;
+const BRAKE_CLIP_DURATION = 0.933;
+/** Quanto o quadril fica à frente da origem correndo ou parado (m). */
+const BRAKE_HIPS_REST = 0.03;
+/** Folga para a mistura terminar antes do fim do clipe mesmo com um quadro lento. */
+const BRAKE_END_MARGIN = 0.08;
 // Descida de rampa: Zacarias escorrega de pés por uma rampa íngreme (garagem, rampa de metal) usando o mesmo
 // "Running Slide": entra na pose deitada, segura enquanto desce e, no fim da rampa, toca o trecho em que o
 // clipe levanta e volta a correr. Escadas são rampas escondidas e não contam.
@@ -162,7 +179,9 @@ type AnimName =
   | "agachado_andar"
   | "celular_andar"
   | "celular_parado"
-  | "cair";
+  | "cair"
+  | "frear"
+  | "susto";
 
 export class Player {
   readonly position = new Vector3();
@@ -207,6 +226,10 @@ export class Player {
   private brace: HandTarget | null = null;
   private lean = 0;
   private pushBack = 0;
+  /** Freada: pedido neste quadro e tempo que falta. */
+  private brakeStart = false;
+  private brakeTimer = 0;
+  private axisNow = 0;
   private leanSpeed = 0;
   private phone = false;
   private phoneMesh: Mesh | null = null;
@@ -391,6 +414,7 @@ export class Player {
     // `current` é a referência interna do controlador (muda no integrate); guarda a velocidade de chegada.
     const speedBefore = Math.abs(current.x);
     const axis = input.axisX();
+    this.axisNow = axis;
     this.slideCooldown = Math.max(0, this.slideCooldown - dt);
     if (!input.isDown("slide")) this.slideArmed = true;
 
@@ -423,6 +447,13 @@ export class Player {
       this.crouch = approach(this.crouch, crouchTarget, CROUCH_BLEND * dt);
       const walkSpeed = this.phone ? PHONE_WALK_SPEED : MOVE_SPEED + (TUNING.agachadoVelocidade - MOVE_SPEED) * this.crouch;
       const targetX = axis * (pushing && this.grounded ? PUSH_SPEED : walkSpeed);
+      // Soltou a direção correndo a toda: freia com o corpo (o clipe da freada), não para seco.
+      if (
+        axis === 0 && this.grounded && !pushing && !this.phone && this.crouch < CROUCH_ANIM_THRESHOLD &&
+        this.ramp === "nao" && this.airKind === "nao" && Math.abs(current.x) > BRAKE_MIN_SPEED
+      ) {
+        this.brakeStart = true;
+      }
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);
     }
@@ -554,6 +585,8 @@ export class Player {
     this.airTime = 0;
     this.jumpTime = Infinity;
     this.landTimer = 0;
+    this.brakeTimer = 0;
+    this.brakeStart = false;
     this.hipsLift = 0;
     this.jumpScrub = false;
     this.fallPose = false;
@@ -710,10 +743,12 @@ export class Player {
     const crouched = this.crouch > CROUCH_ANIM_THRESHOLD;
     this.airDt = dt;
     this.updateAir(dt, jumped, speedX);
+    this.updateBrake(dt);
     let next: AnimName;
     if (this.sliding || this.ramp !== "nao") next = "deslizar";
     else if (this.airKind !== "nao") next = this.airPose();
     else if (this.landTimer > 0 && !pushing) next = "pular";
+    else if (this.brakeTimer > 0 && !pushing && !crouched) next = "frear";
     else if (pushing) next = "empurrar";
     else if (this.phone) next = speedX > 0.2 ? "celular_andar" : "celular_parado";
     else if (speedX > 0.2) next = crouched ? "agachado_andar" : "andar";
@@ -735,11 +770,60 @@ export class Player {
       this.phoneMesh.isVisible = held > 0.5;
     }
     this.holdClipEnds();
+    this.blendWeights(dt);
+  }
+
+  private blendWeights(dt: number): void {
     const step = dt / BLEND_TIME;
     for (const [name, group] of this.anims) {
       const target = name === this.current ? 1 : 0;
       group.weight = approach(group.weight, target, step);
     }
+  }
+
+  /**
+   * Pego por um segurança: sem física, ele vira para o segurança e se encolhe de susto enquanto a tela escurece.
+   * No ar, fica na pose de agora (o susto é de quem está com os pés no chão).
+   */
+  caughtPose(dt: number, guardX: number | null): void {
+    if (this.current !== "susto" && this.grounded && this.airKind === "nao") {
+      if (guardX !== null) {
+        const side = Math.sign(guardX - this.position.x);
+        if (side !== 0) this.facing = side;
+      }
+      const group = this.anims.get("susto");
+      if (group) {
+        const frame = (t: number): number => group.from + (t / CAUGHT_CLIP_DURATION) * (group.to - group.from);
+        this.playOnce("susto", group, CAUGHT_CLIP_RATE, frame(CAUGHT_CLIP_START), frame(CAUGHT_CLIP_END));
+        this.current = "susto";
+        this.brakeTimer = 0;
+        this.landTimer = 0;
+      }
+    }
+    this.holdClipEnds();
+    this.blendWeights(dt);
+    this.syncVisual(dt);
+  }
+
+  private updateBrake(dt: number): void {
+    const start = this.brakeStart;
+    this.brakeStart = false;
+    // Recomeça só com a freada anterior já fora da mistura (senão a pose dá um tranco).
+    if (start && this.brakeTimer <= 0 && (this.anims.get("frear")?.weight ?? 0) < 0.05) {
+      const group = this.anims.get("frear");
+      if (group) {
+        const frame = (t: number): number => group.from + (t / BRAKE_CLIP_DURATION) * (group.to - group.from);
+        this.playOnce("frear", group, 1, frame(BRAKE_CLIP_START), frame(BRAKE_CLIP_END));
+        // Sai da mistura antes do fim (ver abaixo): não precisa ficar segurando o último quadro.
+        this.clipEnds.delete("frear");
+        // Sai antes do fim: a mistura para o "parado" acontece com o clipe ainda tocando (parado no fim, ele perde a pose).
+        this.brakeTimer = BRAKE_CLIP_END - BRAKE_CLIP_START - BLEND_TIME - BRAKE_END_MARGIN;
+        return;
+      }
+    }
+    this.brakeTimer = Math.max(0, this.brakeTimer - dt);
+    // Voltou a andar, pulou, deslizou ou agachou: a freada acaba na hora.
+    if (this.axisNow !== 0 || this.airKind !== "nao" || this.sliding || this.crouchWanted) this.brakeTimer = 0;
   }
 
   /** Toca um trecho de clipe uma vez. `stop` antes: `start` num grupo que ainda está tocando é ignorado. */
@@ -891,7 +975,15 @@ export class Player {
     // No ar segue o clipe exatamente; só depois do pouso os quadris assentam devagar.
     this.hipsLift = lift >= this.hipsLift || dt <= 0 || this.airKind !== "nao" ? lift : approach(this.hipsLift, lift, HIPS_SETTLE_SPEED * dt);
     y -= this.hipsLift;
-    this.visual.position.set(this.position.x - this.facing * this.pushBack, y, 0);
+    // Freada: o clipe leva o quadril para a frente; o corpo recua o mesmo tanto, medido no último quadro desenhado,
+    // e o quadril fica sobre a cápsula (que freia sozinha em uns 0,2 m).
+    let brake = 0;
+    if (this.hips && (this.anims.get("frear")?.weight ?? 0) > 0.001) {
+      // Com sinal: se ele virar no meio da mistura, o desconto acompanha para o lado em que o quadril está.
+      const off = this.hips.getAbsolutePosition().x - this.visual.position.x;
+      brake = Math.sign(off) * Math.max(0, Math.abs(off) - BRAKE_HIPS_REST);
+    }
+    this.visual.position.set(this.position.x - this.facing * this.pushBack - brake, y, 0);
   }
 }
 

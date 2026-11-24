@@ -119,7 +119,7 @@ chamada/
       PauseMenu.ts
   tests/                  (node --test)
   ferramentas/            (scripts do Blender, vozes e música)
-  assets-brutos/          (FBX do Mixamo e trilha original)
+  assets-brutos/          (trilha original; os FBX do Mixamo ficam só no computador, fora do Git)
   .github/workflows/publicar.yml (publica no GitHub Pages a cada push no main)
 ```
 

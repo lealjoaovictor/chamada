@@ -25,9 +25,8 @@ npm-debug.log*
 test-results
 playwright-report
 
-# Personagens do Mixamo em FBX (50 MB cada, com texturas 4K): baixar de novo no mixamo.com em pose T
-# (Bryce, Alex, Joe, David) e salvar com estes nomes antes de rodar ferramentas/converter_mixamo.py.
-assets-brutos/mixamo/Bryce.fbx
-assets-brutos/mixamo/Alex.fbx
-assets-brutos/mixamo/Joe.fbx
-assets-brutos/mixamo/David.fbx
+# FBX do Mixamo (personagens e animações) ficam fora do repositório: os termos do Mixamo não permitem
+# redistribuir os arquivos brutos. Baixe de novo no mixamo.com (personagens Bryce, Alex, Joe e David em
+# pose T; animações com os nomes da tabela de licenças do PROJETO.md) e salve nesta pasta antes de rodar
+# ferramentas/converter_mixamo.py. O jogo usa só os GLB já convertidos em public/models/.
+assets-brutos/mixamo/*.fbx

@@ -104,7 +104,7 @@ chamada/
 │   ├── levels/      as seis áreas e o roteiro da chamada, descritos em dados, separados do código
 │   └── ui/          menu, ligação na tela, pausa, transições e tela final com créditos
 ├── public/          modelos GLB, texturas, vozes, música e efeitos usados pelo jogo
-├── assets-brutos/   arquivos de origem: animações do Mixamo (FBX) e a trilha original
+├── assets-brutos/   arquivos de origem: a trilha original (os FBX do Mixamo não vão para o repositório)
 ├── ferramentas/     scripts: conversão do Mixamo e dos modelos (Blender), estantes, vozes e loops da música
 ├── docs/            imagens do README e o roteiro das vozes (CSV)
 ├── tests/           testes com node --test

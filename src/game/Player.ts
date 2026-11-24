@@ -118,6 +118,8 @@ const BRAKE_CLIP_END = 0.9;
 const BRAKE_CLIP_DURATION = 0.933;
 /** Quanto o quadril fica à frente da origem correndo ou parado (m). */
 const BRAKE_HIPS_REST = 0.03;
+/** Folga para a mistura terminar antes do fim do clipe mesmo com um quadro lento. */
+const BRAKE_END_MARGIN = 0.08;
 // Descida de rampa: Zacarias escorrega de pés por uma rampa íngreme (garagem, rampa de metal) usando o mesmo
 // "Running Slide": entra na pose deitada, segura enquanto desce e, no fim da rampa, toca o trecho em que o
 // clipe levanta e volta a correr. Escadas são rampas escondidas e não contam.
@@ -224,10 +226,9 @@ export class Player {
   private brace: HandTarget | null = null;
   private lean = 0;
   private pushBack = 0;
-  /** Freada: pedido neste quadro, tempo que falta e para que lado ele corria. */
+  /** Freada: pedido neste quadro e tempo que falta. */
   private brakeStart = false;
   private brakeTimer = 0;
-  private brakeFacing = 1;
   private axisNow = 0;
   private leanSpeed = 0;
   private phone = false;
@@ -452,7 +453,6 @@ export class Player {
         this.ramp === "nao" && this.airKind === "nao" && Math.abs(current.x) > BRAKE_MIN_SPEED
       ) {
         this.brakeStart = true;
-        this.brakeFacing = Math.sign(current.x);
       }
       const accel = this.grounded ? (targetX !== 0 ? GROUND_ACCEL : GROUND_DECEL) : AIR_ACCEL;
       this.velocity.x = approach(current.x, targetX, accel * dt);
@@ -808,7 +808,8 @@ export class Player {
   private updateBrake(dt: number): void {
     const start = this.brakeStart;
     this.brakeStart = false;
-    if (start && this.brakeTimer <= 0) {
+    // Recomeça só com a freada anterior já fora da mistura (senão a pose dá um tranco).
+    if (start && this.brakeTimer <= 0 && (this.anims.get("frear")?.weight ?? 0) < 0.05) {
       const group = this.anims.get("frear");
       if (group) {
         const frame = (t: number): number => group.from + (t / BRAKE_CLIP_DURATION) * (group.to - group.from);
@@ -816,7 +817,7 @@ export class Player {
         // Sai da mistura antes do fim (ver abaixo): não precisa ficar segurando o último quadro.
         this.clipEnds.delete("frear");
         // Sai antes do fim: a mistura para o "parado" acontece com o clipe ainda tocando (parado no fim, ele perde a pose).
-        this.brakeTimer = BRAKE_CLIP_END - BRAKE_CLIP_START - BLEND_TIME;
+        this.brakeTimer = BRAKE_CLIP_END - BRAKE_CLIP_START - BLEND_TIME - BRAKE_END_MARGIN;
         return;
       }
     }
@@ -978,8 +979,9 @@ export class Player {
     // e o quadril fica sobre a cápsula (que freia sozinha em uns 0,2 m).
     let brake = 0;
     if (this.hips && (this.anims.get("frear")?.weight ?? 0) > 0.001) {
-      const ahead = (this.hips.getAbsolutePosition().x - this.visual.position.x) * this.brakeFacing;
-      brake = Math.max(0, ahead - BRAKE_HIPS_REST) * this.brakeFacing;
+      // Com sinal: se ele virar no meio da mistura, o desconto acompanha para o lado em que o quadril está.
+      const off = this.hips.getAbsolutePosition().x - this.visual.position.x;
+      brake = Math.sign(off) * Math.max(0, Math.abs(off) - BRAKE_HIPS_REST);
     }
     this.visual.position.set(this.position.x - this.facing * this.pushBack - brake, y, 0);
   }

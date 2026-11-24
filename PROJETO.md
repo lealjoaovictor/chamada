@@ -13,7 +13,7 @@ O design completo está no **GDD** ("Chamada: GDD enxuto"). Em caso de dúvida d
 ## 2. Regras de ouro para a IA
 
 1. **Uma tarefa por vez.** Não implemente nada fora do que foi pedido.
-2. **Escopo fechado.** Quatro ações do jogador (andar, pular, deslizar, empurrar caixa), um perigo humano (os seguranças; no código ainda se chama `Vigia`), cinco áreas. Não adicione mecânicas, menus extras nem sistemas novos sem pedido.
+2. **Escopo fechado.** Quatro ações do jogador (andar, pular, deslizar, empurrar caixa), um perigo humano (os seguranças; no código ainda se chama `Vigia`), seis áreas. Não adicione mecânicas, menus extras nem sistemas novos sem pedido.
 3. **Use só a API da versão fixada** na seção 3. Em caso de dúvida, consulte a documentação oficial (doc.babylonjs.com) e o Playground da mesma versão antes de escrever. Não misture API antiga com nova. Não invente métodos.
 4. **Não reescreva arquivos inteiros** para mudar pouco. Altere o mínimo e diga o que mudou.
 5. **Dados separados do código.** Posições, textos e parâmetros de fase ficam em arquivos de dados (`src/levels/`), não espalhados na lógica.
@@ -85,13 +85,12 @@ Atenção: a IA tende a conhecer melhor as versões 6 a 8 do Babylon. Se a vers�
 ```
 chamada/
   PROJETO.md
-  iniciar.bat             (sobe o jogo local e abre o navegador)
   index.html
   package.json
   vite.config.ts
   public/
     models/               (GLB: personagem, cenário, props)
-    audio/                (OGG ou MP3)
+    audio/                (vozes, música e efeitos; vozes listadas em vozes/manifest.json)
     textures/
   src/
     main.ts               (cria engine, carrega o jogo)
@@ -111,10 +110,17 @@ chamada/
         Elevator.ts
         Vigia.ts
     levels/
-      area1.ts ... area5.ts   (dados: posições, caixas, portas, luzes)
+      area1.ts ... area6.ts   (dados: posições, caixas, portas, luzes)
+      world.ts            (junta as áreas num mundo contínuo)
+      chamada.ts          (roteiro da chamada e de todas as falas)
     ui/
-      Menu.ts
-      EndScreen.ts
+      Screens.ts          (menu, tela de morte e tela final)
+      CallScreen.ts       (a ligação na tela)
+      PauseMenu.ts
+  tests/                  (node --test)
+  ferramentas/            (scripts do Blender, vozes e música)
+  assets-brutos/          (FBX do Mixamo e trilha original)
+  .github/workflows/publicar.yml (publica no GitHub Pages a cada push no main)
 ```
 
 ## 5. Convenções de código
@@ -210,8 +216,8 @@ Atualize esta lista a cada tarefa concluída.
   - Estimativa de duração pela geometria e pelas esperas: ~3 min para quem já conhece o caminho; primeira partida provavelmente entre 6 e 8 min. Falta medir com gente
 - [ ] Alvo de desempenho: a apresentação roda no Mac. O celular é só para teste; o limite é manter 60 fps no Mac
 - [ ] Efeitos sonoros e ambiente
-- [ ] Build local e `iniciar.bat`
-- [ ] Backup publicado no itch.io
+- [x] Build local (`npm run build` e `npx vite preview --port 4173`)
+- [x] Versão publicada: GitHub Pages em https://lealjoaovictor.github.io/chamada/, atualizada a cada push no `main` (`.github/workflows/publicar.yml`)
 
 ## 8. Prova de pipeline (primeira etapa)
 
@@ -249,8 +255,8 @@ Preencha ao baixar ou gerar qualquer item.
 | Textura beige_wall_001 (Dimitrios Savva, Rico Cilliers): cor e normal 1K | https://polyhaven.com/a/beige_wall_001, baixado | CC0 | Sim: cor convertida para cinza com contraste reduzido; normal reduzida para 512 px | `public/textures/parede_cor.jpg`, `public/textures/parede_normal.jpg` |
 | Textura granite_tile (Charlotte Baglioni): cor e normal 1K | https://polyhaven.com/a/granite_tile, baixado | CC0 | Sim: cor convertida para cinza com contraste reduzido; normal reduzida para 512 px | `public/textures/piso_cor.jpg`, `public/textures/piso_normal.jpg` |
 | Vozes provisórias (92 falas: professor, colega, alunos, seguranças, Zacarias) | Geradas com o `say` do macOS (vozes Reed, Eddy, Rocko, Grandpa, Flo, Sandy, Shelley, Luciana) por `ferramentas/vozes.ts --provisorias` | Provisórias, só para teste. Substituídas pelas do ElevenLabs (linha abaixo); o script ainda as gera para falas novas sem gravação | — | `public/audio/vozes/` (lista em `docs/roteiro-vozes.csv`) |
-| Vozes do ElevenLabs (as 124 falas; as 26 da sala que mudou, do Davi enrolando o professor e dos hábitos dos seguranças, e as 4 das perseguições, geradas em 23/11; as 3 do Davi na 204 regravadas sussurradas em 24/11 com a marcação [sussurrando]) | https://elevenlabs.io, Text to Speech com o modelo Eleven v4, conta do João no plano **Starter** (renova em 19/12). Vozes da Voice Library: Professor Ulisses (professor), Gabriel - Casual (Davi), Leonardo - Deep & Resonant (seguranças), Leonardo Hamaral - Warm and Confident (portaria no rádio), Nandinha, Raquel, Serena, Melodie (alunas), Wellerson, Jorge - Engaging, Dagozin - Casual (alunos e Zacarias). No teste também foram geradas Alírio, Alberto Oliveira, Mark, Moutella, Adriano, Manoel Lopes e Mota, que não ficaram no jogo | Plano pago (Starter em diante) inclui licença comercial; o plano Free é só não comercial e exige atribuição. Conferir nos termos se o direito continua caso a assinatura seja cancelada | Não no Starter (o Free exigiria) | `public/audio/vozes/` (escolhidas) e `public/audio/teste-vozes/` (todas as versões, comparação em `teste-vozes.html`) |
-| Trilha sonora: 6 faixas (Fog Outside The Hall = pátio, Empty Hall After Midnight = corredor, Close Search = tensão, Basement Chase = perseguição, Empty Campus at Night = menu, Made It In Time = final) e 3 stingers (desconfia, pego, perseguição) | https://elevenlabs.io, Eleven Music v2.5 (instrumental) e Sound Effects v3, conta do João no plano **Starter**, gerado. Prompts sem nome de artista ou música. Amostras de escolha (30 s, três climas) em `assets-brutos/musica-amostras/` | Termos do Eleven Music (https://elevenlabs.io/music-terms, 09/10/2026): plano pago permite uso comercial exceto "Studio Games"; jogo indie pode; sem distribuição em streaming no Starter | Não nos planos pagos | `public/audio/musica/*.ogg` (originais em `assets-brutos/musica/originais/`, loops feitos por `ferramentas/musica_loops.py`) |
+| Vozes do ElevenLabs (as 124 falas, incluindo as 26 da sala que mudou, do Davi enrolando o professor e dos hábitos dos seguranças e as 4 das perseguições; as 3 do Davi na 204 foram regravadas sussurradas com a marcação [sussurrando]) | https://elevenlabs.io, Text to Speech com o modelo Eleven v4, conta do João no plano **Starter**. Vozes da Voice Library: Professor Ulisses (professor), Gabriel - Casual (Davi), Leonardo - Deep & Resonant (seguranças), Leonardo Hamaral - Warm and Confident (portaria no rádio), Nandinha, Raquel, Serena, Melodie (alunas), Wellerson, Jorge - Engaging, Dagozin - Casual (alunos e Zacarias). No teste também foram geradas Alírio, Alberto Oliveira, Mark, Moutella, Adriano, Manoel Lopes e Mota, que não ficaram no jogo | Plano pago (Starter em diante) inclui licença comercial; o plano Free é só não comercial e exige atribuição. Conferir nos termos se o direito continua caso a assinatura seja cancelada | Não no Starter (o Free exigiria) | `public/audio/vozes/` (escolhidas) e `public/audio/teste-vozes/` (todas as versões, comparação em `teste-vozes.html`) |
+| Trilha sonora: 6 faixas (Fog Outside The Hall = pátio, Empty Hall After Midnight = corredor, Close Search = tensão, Basement Chase = perseguição, Empty Campus at Night = menu, Made It In Time = final) e 3 stingers (desconfia, pego, perseguição) | https://elevenlabs.io, Eleven Music v2.5 (instrumental) e Sound Effects v3, conta do João no plano **Starter**, gerado. Prompts sem nome de artista ou música. Amostras de escolha (30 s, três climas) em `assets-brutos/musica-amostras/` | Termos do Eleven Music (https://elevenlabs.io/music-terms): plano pago permite uso comercial exceto "Studio Games"; jogo indie pode; sem distribuição em streaming no Starter | Não nos planos pagos | `public/audio/musica/*.ogg` (originais em `assets-brutos/musica/originais/`, loops feitos por `ferramentas/musica_loops.py`) |
 | Estantes com livros (3 variações) | Modeladas por script no Blender (`ferramentas/modelar_estante.py -- 1|2|3`) | Próprio do projeto | — | `public/models/estante-1.glb`, `estante-2.glb`, `estante-3.glb` |
 | Modelo `SchoolChair_01` (glTF 1K) | https://polyhaven.com/a/SchoolChair_01, baixado | CC0 | Não | `public/models/kit/SchoolChair_01.glb` (áreas 2, 3 e 5)); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
 | Modelo `SchoolDesk_01` (glTF 1K) | https://polyhaven.com/a/SchoolDesk_01, baixado | CC0 | Não | `public/models/kit/SchoolDesk_01.glb` (áreas 2 e 5)); convertido para GLB, malha simplificada quando pesada, texturas ORM descartadas e cor/normal em JPEG ≤ 1024 px |
@@ -294,23 +300,16 @@ Preencha ao baixar ou gerar qualquer item.
 | Modelo `portable_welding_cart` (glTF 1K) | https://polyhaven.com/a/portable_welding_cart, baixado | CC0 | Não | `public/models/kit/portable_welding_cart.glb` (área 4: carrinho de gás empurrável); convertido com `ferramentas/converter_kit.py` |
 | Modelo `cement_bag` (glTF 1K) | https://polyhaven.com/a/cement_bag, baixado | CC0 | Não | `public/models/kit/cement_bag.glb` (área 2: carga do carrinho do contrapeso); convertido com `ferramentas/converter_kit.py` |
 | Modelo `book_encyclopedia_set_01` (glTF 1K) | https://polyhaven.com/a/book_encyclopedia_set_01, baixado | CC0 | Não | `public/models/kit/book_encyclopedia_set_01.glb` (área 3: livros no carrinho da biblioteca); convertido com `ferramentas/converter_kit.py` |
+| Modelo `small_plastic_torch` (lanterna dos seguranças) | https://polyhaven.com/a/small_plastic_torch, baixado | CC0 | Não | `public/models/lanterna.glb` (presa na mão dos seguranças, `src/game/entities/Lanterna.ts`) |
 
-Voz e efeitos do ElevenLabs: registrar o plano usado e a data de geração.
 
 ## 10. Rodar localmente
 
 Desenvolvimento: `npm run dev`.
 
-Jogo final (computador da apresentação): `npm run build` uma vez e depois o `iniciar.bat`. O `index.html` **não abre com duplo clique**, porque o navegador bloqueia o carregamento de modelos e sons; é preciso um servidor local.
+Jogo final (MacBook da apresentação): abrir https://lealjoaovictor.github.io/chamada/ ou, sem internet, `npm run build` uma vez e depois `npx vite preview --port 4173` e abrir `http://localhost:4173`. O `index.html` **não abre com duplo clique**, porque o navegador bloqueia o carregamento de modelos e sons; é preciso um servidor local.
 
-```bat
-@echo off
-cd /d %~dp0
-start "" http://localhost:4173
-npx vite preview --port 4173
-```
-
-Em Mac ou Linux, o equivalente é um `iniciar.sh` com `npx vite preview --port 4173` e a abertura do navegador. Teste a build em outro computador antes da entrega, e mantenha uma cópia publicada no itch.io como reserva.
+Testes da lógica: `npm test` (Node 22.18 ou mais recente).
 
 ### 10.1 Jogar no celular
 
@@ -329,7 +328,7 @@ Cole o papel no início da sessão, junto com este arquivo e o GDD.
 
 **Programador de gameplay.** "Você implementa o jogo Chamada conforme o PROJETO.md e o GDD. Faça só a tarefa pedida, use apenas a API da versão fixada do Babylon.js e diga como testar o resultado."
 
-**Designer de fase e guardião do GDD.** "Você mantém o GDD e o roteiro das cinco áreas. Proponha ideias, mas rejeite o que extrapolar o escopo e aponte o que precisa ser cortado, seguindo a ordem de corte do GDD."
+**Designer de fase e guardião do GDD.** "Você mantém o GDD e o roteiro das seis áreas. Proponha ideias, mas rejeite o que extrapolar o escopo e aponte o que precisa ser cortado, seguindo a ordem de corte do GDD."
 
 **Revisor e QA.** "Você não escreveu este código. Revise a build contra o checklist de testes do GDD, aponte bugs com passos para reproduzir e diga o que falta para cada critério de pronto. Seja crítico."
 

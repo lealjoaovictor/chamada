@@ -42,7 +42,7 @@ A regra foi: **a equipe decide, a IA executa e testa, a equipe joga e aprova.**
 | Ferramenta | Para quê |
 | --- | --- |
 | **Claude Code** (agente de programação) | Escreveu e testou o código seguindo um arquivo de regras do projeto (`PROJETO.md`): uma tarefa por vez, versão do Babylon fixada, pontos de parada para decisão humana |
-| **ElevenLabs** | As **94 falas** do jogo, com mais de 10 vozes: professor, colega, alunos e seguranças |
+| **ElevenLabs** | As **124 falas** do jogo, com mais de 10 vozes (professor, colega, alunos e seguranças), e a trilha sonora com os efeitos de tensão |
 | **Mixamo** (Adobe) | Personagens com esqueleto automático e animações de captura de movimento |
 | **Blender via MCP** (a IA controlando o Blender) | Modelagem da lanterna e das estantes, testes de personagem e conversão das animações para o formato do jogo |
 | **IA no design** | Apoio no GDD, na história, no roteiro das falas e no ajuste de dificuldade |
@@ -77,11 +77,11 @@ A regra foi: **a equipe decide, a IA executa e testa, a equipe joga e aprova.**
 | --- | --- | --- |
 | **1** | **Base técnica** | Documentos, prova de pipeline (um cubo anda, pula e empurra com física a 60 fps), personagem do Mixamo animado, leitura de controle |
 | **2** | **Jogabilidade** | Deslizar, câmera, morte e checkpoints, as cinco áreas montadas em blocos simples, seguranças, relógio da chamada, menu, sons e o visual noturno. No fim da etapa, a história foi reescrita para ficar mais realista |
-| **3** | **Acabamento** | Cenário com modelos prontos, 94 vozes do ElevenLabs, a ligação do colega na tela, mãos que seguram os objetos de verdade e playtests de cada área |
+| **3** | **Acabamento** | Cenário com modelos prontos, 124 vozes e a trilha do ElevenLabs, a ligação do colega na tela, mãos que seguram os objetos de verdade e playtests de cada área |
 
 **Princípios que guiaram tudo:** jogabilidade antes da arte · uma coisa de cada vez · nada é "pronto" sem alguém jogar · escopo fechado, com uma lista do que cortar primeiro.
 
-**Em números:** ~8.700 linhas de TypeScript · 5 áreas · 94 falas.
+**Em números:** ~15 mil linhas de TypeScript · 6 áreas · 124 falas.
 
 ---
 

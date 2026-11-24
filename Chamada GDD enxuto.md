@@ -24,7 +24,9 @@ Pilares:
 
 **Introdução (uns 8 s, pulável).** Do menu a tela escurece e Zacarias entra pela calçada andando devagar, lendo o celular. Chegam três mensagens do Davi ("mano cadê vc??", "o prof vai fazer a chamada no fim da aula", "vc tá no limite de faltas"), ele para, aparece o título e o Davi liga. O relógio da chamada só começa na ligação (`src/game/Intro.ts`).
 
-**Abertura.** Zacarias chega ao portão principal, já trancado. O celular vibra: é um colega da turma, que liga e sussurra algo como "Começou a chamada! Sorte sua que você é o último, Zacarias. Nem dá pra responder por você, ele tá olhando um por um. Corre!". O colega deixa a ligação aberta. Essa fala ensina tudo: o que está acontecendo, o nome do jogador, que ele é o último e por que ninguém pode responder por ele.
+**Abertura.** Zacarias chega ao portão principal, já trancado. O celular vibra: é o Davi, colega da turma, que liga e sussurra algo como "Começou a chamada! Sorte sua que você é o último, Zacarias. Nem dá pra responder por você, ele tá olhando um por um. Corre!". O colega deixa a ligação aberta. Essa fala ensina tudo: o que está acontecendo, o nome do jogador, que ele é o último e por que ninguém pode responder por ele.
+
+**A sala mudou.** Quando Zacarias enfim chega à 204, a sala de sempre, ela está vazia: o projetor queimou e a aula foi para o Lab. 3, no bloco C, e o Davi esqueceu de avisar. O Davi pede desculpas, diz que deixou a porta do bloco C encostada e promete segurar o professor; quando a chamada chega no V, ele enrola o professor com perguntas sobre a prova. Zacarias sai pela porta do fundo da 204, atravessa a passarela até o bloco C, passa pela portaria e pela mudança do laboratório empilhada no corredor e chega ao Lab. 3.
 
 **O mundo.** O prédio está fechando: portões trancados, corredores sendo apagados, seguranças fazendo a ronda. O caminho normal está sempre fechado, e por isso Zacarias corta por onde não deveria (lateral do pátio, garagem, zeladoria, biblioteca, subsolo). Cada área começa com uma passagem "óbvia" trancada.
 
@@ -64,7 +66,7 @@ O relógio do jogo dura 7min50 e tem duas partes. O tempo de jogo é o cronômet
 - **Como se ouve:** pela ligação aberta do colega. A voz do professor chega ao fundo, abafada pelo celular, com os "presente" dos alunos (ou silêncio, quando alguém faltou: faltas comuns, espalhadas pela lista, sem a regra de "quase ninguém responde no fim").
 - **Falas do colega:** 13 falas sussurradas, em instantes fixos do relógio, que dizem em que ponto a aula e a chamada estão, comentam as interrupções e ficam mais nervosas ("Ele tá passando o trabalho, ainda dá", "Começou a chamada!", "Tá no M, mano", "Tá no S! Corre!", "Ele tá no V..."). Cada fala tem legenda curta na tela da ligação, para quem joga sem som.
 - **Legenda do nome lido (acessibilidade):** a tela da ligação mostra, em letra pequena, o nome que o professor está lendo (e "presente" ou "Falta."). Assim quem joga sem som também sabe em que letra está a chamada. Não é barra de tempo: só repete o que se ouve (equivalente visual para som importante, como pedem as diretrizes de acessibilidade).
-- **Sinal por área:** limpo nas áreas 1 a 3; no subsolo (área 4) a ligação picota e quase some, e o jogador perde o relógio na perseguição; na área 5 o sinal volta e entra a voz real do professor, sem filtro, vindo do fim do corredor, enquanto a do celular baixa.
+- **Sinal por área:** limpo nas áreas 1 a 3; no subsolo (área 4) a ligação picota e quase some, e o jogador perde o relógio na perseguição; nas áreas 5 e 6 o sinal volta e, perto da porta do Lab. 3, entra a voz real do professor, sem filtro, enquanto a do celular baixa.
 - **Morrer ou ser pego não reinicia o relógio.** O reinício é instantâneo no último checkpoint (início de cada área), e cada falha custa só alguns segundos.
 - **Calibragem:** a fase leva de 5 a 6 minutos numa primeira partida, e quem joga bem chega com cerca de 2 minutos de folga. Esta é a única ordem de corte do jogo. Se a primeira partida passar de 6 minutos nos dois primeiros playtests, corta-se nesta ordem: (1) a segunda perseguição da área 4 e o depósito entre as perseguições; (2) a sala escura da área 2; (3) a garagem da área 1.
 
@@ -72,7 +74,7 @@ Finais:
 
 | Condição | O que acontece |
 | --- | --- |
-| Chega à porta da sala antes do último nome | Final bom: a sala está vazia, menos o professor e o colega, que ficou esperando com o celular na mão. O professor ergue os olhos, vê alguém na porta e chama "Zacarias Vieira" fora da ordem (a lista não precisa chegar ao Z). O jogador aperta qualquer botão e Zacarias responde "presente". Corte para preto. Se ele não apertar em cerca de 4 s, corta em silêncio. Modelos: os mesmos bonecos do Mixamo já usados (Y Bot e X Bot), sem rosto e num tom diferente do Zacarias e dos seguranças; o professor fica em pé na mesa, numa animação parada segurando a lista, e o colega fica sentado numa carteira com o celular na mão. Nenhum processo novo de modelagem. |
+| Chega à porta do Lab. 3 antes do último nome | Final bom: a sala está vazia, menos o professor e o colega, que ficou esperando com o celular na mão. O professor ergue os olhos, vê alguém na porta e chama "Zacarias Vieira" fora da ordem (a lista não precisa chegar ao Z). O jogador aperta qualquer botão e Zacarias responde "presente". Corte para preto. Se ele não apertar em cerca de 4 s, corta em silêncio. Modelos: personagens do Mixamo (Joe como professor, David como o Davi), num tom diferente do Zacarias e dos seguranças; o professor fica em pé na mesa, numa animação parada segurando a lista, e o colega fica sentado numa carteira com o celular na mão. Nenhum processo novo de modelagem. |
 | O nome é chamado antes da chegada | Final ruim: pela ligação, o nome, um silêncio, o colega dizendo baixinho "...ele chamou" e o som da caneta marcando a falta. A tela escurece e o jogo oferece reiniciar. |
 
 ## Os seguranças
@@ -90,15 +92,16 @@ Cada tipo tem 3 variações sorteadas, sem repetir a anterior, e às vezes nenhu
 | Área | Comportamento | Regra |
 | --- | --- | --- |
 | 1 (guarita) | Segurança na guarita, primeiro encontro. | Ser visto é ser pego. Vans e a guarita servem de cobertura. |
-| 2 (corredor) | Segurança fazendo a ronda num recuo do corredor, que já apagou metade das luzes (para alongar a fase). | Ser visto é ser pego, e ele reage rápido: quem passa correndo na frente dele é pego. Dois pilares servem de cobertura. |
+| 2 (corredor) | Segurança fazendo a ronda num recuo do corredor, que já apagou metade das luzes (para alongar a fase). | Ser visto é ser pego, e ele reage rápido: quem passa correndo na frente dele é pego. Os armários, o pilar do meio e a estante servem de cobertura. |
 | 3 (biblioteca) | Ronda em linha reta entre dois pontos, com cone de luz da lanterna; na sala de leitura, um de guarda que vai ver de onde veio o barulho; no acervo, dois em rondas que se cruzam. | Ficar no cone é ser pego. O jogador passa quando o segurança está de costas ou atrás das estantes. |
 | 4 (subsolo) | Um segurança corre atrás do jogador por um corredor longo, em velocidade elástica: acelera quando o jogador abre distância e alivia quando ele erra. | Ser alcançado é ser pego. Duas perseguições com obstáculos em ritmo irregular, separadas por um depósito com sensor e valeta. |
+| 6 (portaria do bloco C) | Segurança sentado no balcão, dividido entre a entrada e o jogo de futebol na TV. | Ser visto é ser pego. O jogador passa quando ele se vira para a TV. |
 
 É um único modelo reaproveitado. O cone de luz é uma luz do tipo spot mais uma checagem geométrica simples.
 
-## As cinco áreas
+## As seis áreas
 
-A fase tem cinco áreas em sequência, cada uma com uma ideia principal; o checkpoint fica no início de cada uma. Os puzzles são Zacarias se virando num prédio fechado: "placa de pressão" aparece como sensor de portão automático (garagem e depósito) ou como algo físico (na zeladoria, a caixa trava uma porta que fecha sozinha).
+A fase tem seis áreas em sequência, cada uma com uma ideia principal; o checkpoint fica no início de cada uma. Os puzzles são Zacarias se virando num prédio fechado: "placa de pressão" aparece como sensor de portão automático (garagem e depósito) ou como algo físico (na zeladoria, a caixa trava uma porta que fecha sozinha).
 
 | # | Área | Ação principal | Puzzle ou perigo | História |
 | --- | --- | --- | --- | --- |
@@ -106,9 +109,10 @@ A fase tem cinco áreas em sequência, cada uma com uma ideia principal; o check
 | 2 | Corredor do bloco principal | Deslizar | Catraca baixa; segurança apagando o corredor (pilares como cobertura); zeladoria com palco alto e caixa que trava a porta; sala escura com vãos no piso | Luzes sendo desligadas; mais colegas saindo |
 | 3 | Biblioteca e escadas | Todas | Elevador com botão; seguranças com lanterna; agachado entre as estantes; na sala de leitura, derrubar um carrinho faz barulho e tira o segurança do lugar; no acervo (piso rebaixado), dois seguranças em rondas que se cruzam e um carrinho no patamar que serve de isca | Furtividade; colega cada vez mais nervoso |
 | 4 | Subsolo | Pular e deslizar | Duas perseguições elásticas com obstáculos em ritmo irregular; entre elas, um depósito em dois passos: um objeto vai para a valeta aberta no piso e vira ponte, e o outro passa por cima até o sensor do portão | Pico de tensão; a ligação picota |
-| 5 | Corredor final e sala de aula | Andar | Corredor longo, sem repetição, com as luzes apagando; porta da sala | A voz real do professor chegando; o final |
+| 5 | Corredor do segundo andar e sala 204 | Andar | Corredor longo, sem repetição, com as luzes apagando; a 204 vazia | A sala mudou: o Davi esqueceu de avisar |
+| 6 | Passarela e bloco C | Andar, pular, empurrar | Passarela meio fechada, portaria com segurança vendo o jogo na TV, escada e a mudança do laboratório no corredor (o carrinho do zelador vira degrau) | O Davi enrola o professor; a voz real do professor chegando; o final no Lab. 3 |
 
-A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e deslizar, a 3 junta puzzle e segurança, a 4 é puro movimento sob pressão e a 5 é só tensão.
+A dificuldade sobe em degraus: a área 1 só ensina, a 2 combina caixa e deslizar, a 3 junta puzzle e segurança, a 4 é puro movimento sob pressão, a 5 é a virada da história e a 6 é a corrida final.
 
 **Removido nesta versão:** vultos translúcidos que somem, corredor que se repete, alto-falante pelo prédio, Vigia que mata e a regra de "quase ninguém responde no fim".
 ## Direção de arte e câmera
@@ -141,7 +145,7 @@ Prazo curto e equipe pequena com IA: melhor uma fase curta e polida do que um jo
 
 **Mínimo da v3 (entra de qualquer jeito):** relógio novo pela ligação do colega, seguranças no lugar do Vigia e os dois finais. A conversa de fundo dos alunos e o sinal picotando no subsolo são os primeiros a sair se faltar tempo.
 
-**Dentro do escopo:** 5 áreas, 4 ações do jogador, 1 perigo humano (os seguranças), relógio sonoro pela ligação do colega, 2 finais, menu, tela de morte e tela final.
+**Dentro do escopo:** 6 áreas, 4 ações do jogador, 1 perigo humano (os seguranças), relógio sonoro pela ligação do colega, 2 finais, menu, tela de morte e tela final.
 
 **Fora do escopo:** mundo maior, mais inimigos, narrativa em texto além das falas curtas do colega, geração procedural, escalada e gancho.
 

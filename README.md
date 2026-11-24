@@ -39,11 +39,12 @@ Não há barra de tempo. **O relógio é a própria chamada:** um colega da turm
 
 | | Área | O que acontece |
 | :-: | --- | --- |
-| 1 | **Pátio** | O portão principal está fechado. Empurre uma caixa e ache outro caminho. |
-| 2 | **Corredor do bloco principal** | Luzes sendo apagadas, uma catraca baixa e uma porta que fecha sozinha. |
-| 3 | **Biblioteca** | Os seguranças fazem a ronda com a lanterna. Fique fora da luz. |
-| 4 | **Subsolo** | Um segurança corre atrás de você. Pule, deslize e não olhe para trás. |
-| 5 | **Corredor final** | A voz do professor de verdade, e o seu nome chegando. |
+| 1 | **Pátio, garagem e guarita** | O portão principal está fechado. Empurre a lixeira até o muro, faça o caixote cair no sensor do portão da garagem e passe pelo primeiro segurança. |
+| 2 | **Corredor do bloco B** | Luzes sendo apagadas, uma catraca baixa, o segurança no hall dos armários, a zeladoria e a sala escura. |
+| 3 | **Biblioteca** | Elevador, seguranças fazendo a ronda com a lanterna e um carrinho de livros que faz barulho. Fique fora da luz. |
+| 4 | **Subsolo** | Um segurança corre atrás de você, duas vezes. Pule, deslize e não olhe para trás. |
+| 5 | **Corredor do segundo andar** | As luzes apagam atrás de você. A sala 204 está vazia: hoje a aula mudou de sala. |
+| 6 | **Bloco C** | A passarela, a portaria e a mudança empilhada no corredor, até o Lab. 3, onde o professor ainda faz a chamada. |
 
 ## Controles
 
@@ -53,6 +54,7 @@ Não há barra de tempo. **O relógio é a própria chamada:** um colega da turm
 | Pular | `Espaço` | `A` (Xbox) / `X` (PlayStation) |
 | Deslizar | `S` ou `↓` enquanto corre | Analógico para baixo enquanto corre |
 | Empurrar caixa | Andar contra a caixa | Andar contra a caixa |
+| Pausar | `Esc` ou `P` | `Start` |
 
 ## Como rodar
 
@@ -65,7 +67,7 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:5173` no navegador (Chrome, Edge ou Firefox) e pressione qualquer botão. Para parar o servidor, use `Ctrl+C` no terminal. O servidor também escuta na rede local, então dá para abrir no celular pelo IP do computador (com um controle bluetooth).
+Abra `http://localhost:5173` no navegador (Chrome, Edge ou Firefox) e pressione qualquer botão. Para parar o servidor, use `Ctrl+C` no terminal. O jogo foi feito para computador, com teclado ou controle.
 
 **Versão publicada.** A cada atualização do `main`, o GitHub publica o jogo sozinho em https://lealjoaovictor.github.io/chamada/ (veja a aba Actions). Para testar, basta abrir o link no Chrome, Edge ou Firefox, sem instalar nada.
 
@@ -89,7 +91,7 @@ Rodar os testes automáticos da lógica (precisa do Node 22.18 ou mais recente):
 npm test
 ```
 
-Há uma fase de testes em `http://localhost:5173/?fase=teste`.
+Há uma fase de testes em `http://localhost:5173/?fase=teste`. Para testar um trecho, `?area=N` começa no início da área N (1 a 6) e `?telemetria=1` mostra tempo, nomes chamados e mortes por área.
 
 </details>
 
@@ -99,11 +101,14 @@ Há uma fase de testes em `http://localhost:5173/?fase=teste`.
 chamada/
 ├── src/
 │   ├── game/        núcleo: jogador, câmera, física, seguranças (`Vigia`), portas, caixas, pós-processamento
-│   ├── levels/      as cinco áreas descritas em dados, separadas do código
-│   └── ui/          menu, transições e tela final com créditos
-├── public/          modelos GLB e sons usados pelo jogo
-├── ferramentas/     script do Blender que converte os FBX do Mixamo para GLB
+│   ├── levels/      as seis áreas e o roteiro da chamada, descritos em dados, separados do código
+│   └── ui/          menu, ligação na tela, pausa, transições e tela final com créditos
+├── public/          modelos GLB, texturas, vozes, música e efeitos usados pelo jogo
+├── assets-brutos/   arquivos de origem: animações do Mixamo (FBX) e a trilha original
+├── ferramentas/     scripts: conversão do Mixamo e dos modelos (Blender), estantes, vozes e loops da música
+├── docs/            imagens do README e o roteiro das vozes (CSV)
 ├── tests/           testes com node --test
+├── APRESENTACAO.md  a apresentação do projeto em uma página
 ├── Chamada GDD enxuto.md   documento de design
 └── PROJETO.md       contexto técnico, estado atual e licenças dos assets
 ```
@@ -116,8 +121,10 @@ Feito por **João Leal**, **Murilo Schettino**, **Gustavo Lopes** e **Eduardo Mi
 
 - Motor: [Babylon.js](https://www.babylonjs.com) e física [Havok](https://www.havok.com)
 - Personagens e animações: [Mixamo](https://www.mixamo.com) (Adobe), usados conforme os termos do serviço
-- Cenário: modelos e texturas CC0 do [Poly Haven](https://polyhaven.com)
-- Vozes: geradas no [ElevenLabs](https://elevenlabs.io)
+- Cenário: modelos e texturas CC0 do [Poly Haven](https://polyhaven.com); estantes modeladas pelo projeto no Blender
+- Vozes, trilha sonora e efeitos de tensão: gerados no [ElevenLabs](https://elevenlabs.io) (plano pago, com uso comercial)
+- Efeitos sonoros: pacotes CC0 do [OpenGameArt](https://opengameart.org) (rubberduck e haeldb)
+- Fonte: [Caveat](https://fonts.google.com/specimen/Caveat), SIL Open Font License 1.1
 - Referências de clima e ritmo: *INSIDE* e *SpeedRunners*
 
 A lista completa de assets, com origem e licença de cada um, está na seção 9 do [`PROJETO.md`](PROJETO.md).

@@ -317,20 +317,20 @@ const area4Base: LevelData = {
   ],
 };
 
-// Perseguições mais longas (feedback do segundo jogador: cada uma durava uns 7 s). A área é desenhada como antes e
-// depois esticada: 10 m entram logo antes do portão de cada perseguição, e nesses trechos novos entram mais dois
-// obstáculos. Tudo o que vem depois de cada corte (depósito, segunda perseguição, fim da área) anda junto.
-const STRETCH = 10;
+// Perseguições mais longas (feedback do segundo jogador: cada uma durava uns 6 s; agora uns 10 s). A área é desenhada
+// como antes e depois esticada: 20 m entram logo antes do portão de cada perseguição, e nesses trechos novos entram mais dois
+// obstáculos (4 por trecho). Tudo o que vem depois de cada corte (depósito, segunda perseguição, fim da área) anda junto.
+const STRETCH = 20;
 const CUT1 = 145.5;
 const CUT2 = 190.5;
 /** Leva uma posição do desenho original da área 4 para a área esticada. */
 export const AREA4_STRETCH: MapX = (x) => x + (x > CUT1 ? STRETCH : 0) + (x > CUT2 ? STRETCH : 0);
 
 // Obstáculos novos, já nas coordenadas esticadas: um deslize e uma barreira em cada trecho novo.
-const NEW_SLIDES = [149.2, 207.5];
-const NEW_BARRIERS = [[154, 0.9], [203, 1]] as const;
+const NEW_SLIDES = [149.2, 164, 217.5, 227.5];
+const NEW_BARRIERS = [[154, 0.9], [158.5, 0.8], [213, 1], [223, 0.9]] as const;
 // Lâmpadas que cobrem os trechos novos (a do segundo trecho apaga junto no apagão, que vai até o portão).
-const NEW_LAMPS = [151.5, 205];
+const NEW_LAMPS = [151.5, 161, 215, 225];
 
 function withLongerChases(base: LevelData): LevelData {
   const level = mapLevelX(base, AREA4_STRETCH);

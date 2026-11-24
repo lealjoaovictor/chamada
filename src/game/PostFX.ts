@@ -14,6 +14,12 @@ export interface VisualPreset {
    */
   fogStart: number;
   fogEnd: number;
+  /**
+   * Névoa dentro da faculdade: começa bem atrás da parede do fundo (a 14 m da câmera), então só a vista pelas janelas
+   * ganha ar. A faixa de jogo e a dos seguranças ficam limpas.
+   */
+  interiorFogStart: number;
+  interiorFogEnd: number;
   /** Cor padrão da névoa (os trechos de `ambiente` podem trocar). Clara e fria: ar úmido iluminado, não fumaça. */
   fog: Color3;
   /** O céu (cor de fundo) é a névoa um pouco mais escura, para o horizonte não brilhar mais que o ar. */
@@ -38,6 +44,13 @@ export interface VisualPreset {
   /** Curva de cor: sombras puxadas para um tom (matiz em graus) e luzes para outro. Densidade de 0 a 100. */
   grade: { shadowsHue: number; shadowsDensity: number; shadowsSaturation: number; highlightsHue: number; highlightsDensity: number; highlightsSaturation: number };
   fxaa: boolean;
+  /**
+   * Dentro da faculdade as paredes são claras e as lâmpadas ficam perto: o mesmo brilho de fora estoura. Lá dentro o
+   * brilho é mais fraco, pega só o que é bem claro, e a exposição baixa um pouco.
+   */
+  interiorBloom: number;
+  interiorBloomThreshold: number;
+  interiorExposure: number;
   rim: number;
   dust: boolean;
 }
@@ -46,6 +59,8 @@ export const VISUAL: VisualPreset = {
   background: new Color3(0.071, 0.075, 0.09),
   fogStart: 11.5,
   fogEnd: 34,
+  interiorFogStart: 20,
+  interiorFogEnd: 55,
   fog: new Color3(0.3, 0.36, 0.42),
   skyFromFog: 0.8,
   ambientScale: 0.7,
@@ -65,12 +80,15 @@ export const VISUAL: VisualPreset = {
   grade: { shadowsHue: 205, shadowsDensity: 45, shadowsSaturation: 20, highlightsHue: 32, highlightsDensity: 30, highlightsSaturation: 10 },
   // Na tela retina o serrilhado quase não aparece, e o FXAA custava cerca de 3 ms por quadro no MacBook.
   fxaa: false,
+  interiorBloom: 0.25,
+  interiorBloomThreshold: 0.75,
+  interiorExposure: 2.4,
   rim: 0.55,
   dust: true,
 };
 
 export class PostFX {
-  static apply(scene: Scene, camera: Camera, ambient: HemisphericLight, preset: VisualPreset): void {
+  static apply(scene: Scene, camera: Camera, ambient: HemisphericLight, preset: VisualPreset): DefaultRenderingPipeline {
     // O céu e a névoa mudam de cor por trecho (o loop do jogo puxa os dois): cópias, para não alterar o visual.
     scene.clearColor = Color4.FromColor3(preset.fog.scale(preset.skyFromFog), 1);
     scene.fogMode = Scene.FOGMODE_LINEAR;
@@ -112,5 +130,6 @@ export class PostFX {
     curves.highlightsDensity = preset.grade.highlightsDensity;
     curves.highlightsSaturation = preset.grade.highlightsSaturation;
     processing.colorCurves = curves;
+    return pipeline;
   }
 }

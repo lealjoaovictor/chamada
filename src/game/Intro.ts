@@ -8,8 +8,11 @@ import { IntroScreen } from "../ui/IntroScreen";
 const FADE_OUT = 0.7;
 const FADE_IN_START = 1.4;
 const FADE_IN = 1.3;
-/** Começa fora do quadro, à esquerda (a câmera para no limite da fase) e para perto do checkpoint. */
-export const INTRO_START_X = -4.5;
+/**
+ * Começa à esquerda, ainda no escuro do fade, e para perto do checkpoint. Andando a 0,9 m/s (o passo do clipe do
+ * celular), ele para uns 5,6 s depois do início, antes do título.
+ */
+export const INTRO_START_X = -2.8;
 const STOP_X = 1.6;
 const MESSAGES: [number, string][] = [
   [2.6, "mano cadê vc??"],

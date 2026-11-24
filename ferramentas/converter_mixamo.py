@@ -20,15 +20,14 @@ PERFIS = {
             ("empurrar", "Pushing.fbx", True),
             ("deslizar", "Running Slide.fbx", True),
             ("agachado", "Crouch Idle.fbx", False),
-            ("agachado_andar", "Crouched Walking.fbx", True),
+            # "Sneaking Forward" (passada mais longa que "Crouched Walking"): os pés acompanham o corpo agachado.
+            ("agachado_andar", "Sneaking Forward.fbx", True),
             # Introdução: ele chega pela calçada lendo as mensagens do Davi.
             ("celular_andar", "Walking While Texting.fbx", True),
             ("celular_parado", "Texting While Standing.fbx", False),
-            # Pesquisa de animações: queda, agachado mais rápido, freada, susto, parado com vida, perseguição,
+            # Pesquisa de animações: queda, freada, susto, parado com vida, perseguição,
             # botão do elevador, porta e o alívio na chegada.
             ("cair", "Falling Idle.fbx", False),
-            ("agachado_rapido", "Sneaking Forward.fbx", True),
-            ("agachado_ninja", "Sneak Walk.fbx", True),
             ("frear", "Run To Stop.fbx", False),
             ("susto", "Terrified.fbx", False),
             ("olhar_ombro", "Look Over Shoulder.fbx", False),

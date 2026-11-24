@@ -77,6 +77,10 @@ const JUMP_LIFTOFF = 0.15;
 // depois do ápice e longe do chão, passa para a pose de queda.
 const JUMP_TUCK = 1.08;
 const REACH_TIME = 0.18;
+/** Vindo da pose de queda, o esticar das pernas começa já perto do contato (sem encolher de novo). */
+const FALL_REACH_START = 1.2;
+/** Quanto o clipe do pulo pode andar por segundo enquanto segue a física (evita saltos de pose). */
+const SCRUB_MAX_RATE = 3;
 // Descendo, se ainda falta mais que isso para o chão (mais que a descida de um pulo em chão plano), cai.
 const FALL_POSE_TTC = 0.45;
 const GROUND_PROBE = 4;
@@ -212,6 +216,8 @@ export class Player {
   private jumpTime = Infinity;
   private landTimer = 0;
   private jumpScrub = false;
+  private scrubT = 0;
+  private airDt = 0;
   private fallPose = false;
   private hips: TransformNode | null = null;
   private hipsLift = 0;
@@ -702,6 +708,7 @@ export class Player {
     // Encostado na parede, o corpo para (sem correr no lugar).
     const speedX = this.brace ? 0 : Math.abs(this.velocity.x);
     const crouched = this.crouch > CROUCH_ANIM_THRESHOLD;
+    this.airDt = dt;
     this.updateAir(dt, jumped, speedX);
     let next: AnimName;
     if (this.sliding || this.ramp !== "nao") next = "deslizar";
@@ -817,13 +824,14 @@ export class Player {
     const vy = this.velocity.y;
     // Tempo até o chão em queda livre a partir da velocidade de agora.
     const g = -GRAVITY.y;
-    const down = Math.max(-vy, 0);
-    const ttc = vy <= 0 ? (-down + Math.sqrt(down * down + 2 * g * this.groundBelow())) / g : Infinity;
+    // Vale subindo também: pousar numa borda perto do alto do pulo já estica as pernas.
+    const ttc = (vy + Math.sqrt(vy * vy + 2 * g * this.groundBelow())) / g;
     if (this.airKind === "queda" || (vy <= 0 && ttc > FALL_POSE_TTC)) this.fallPose = true;
     let t: number;
     // Saindo de uma borda, nos primeiros instantes o raio ainda acha a beirada logo abaixo dos pés.
     const reach = ttc < REACH_TIME && (this.airKind === "pulo" || this.airTime > 0.2);
-    if (reach) t = JUMP_TUCK + (1 - ttc / REACH_TIME) * (JUMP_AIR_END - JUMP_TUCK);
+    const reachFrom = this.fallPose ? FALL_REACH_START : JUMP_TUCK;
+    if (reach) t = reachFrom + (1 - ttc / REACH_TIME) * (JUMP_AIR_END - reachFrom);
     else if (this.fallPose) return "cair";
     else if (vy > 0) t = JUMP_AIR_START + (1 - vy / JUMP_SPEED) * (JUMP_TUCK - JUMP_AIR_START);
     else t = JUMP_TUCK;
@@ -835,20 +843,24 @@ export class Player {
   private scrubJump(t: number): void {
     const group = this.anims.get("pular");
     if (!group) return;
+    t = Math.min(Math.max(t, JUMP_AIR_START), JUMP_AIR_END);
     if (!this.jumpScrub) {
       group.stop();
       group.start(true, 1e-6, group.from, group.to);
       this.clipEnds.delete("pular");
       this.jumpScrub = true;
-    }
-    group.goToFrame(this.jumpFrame(group, Math.min(Math.max(t, JUMP_AIR_START), JUMP_AIR_END)));
+    } else if (this.airDt > 0) t = approach(this.scrubT, t, SCRUB_MAX_RATE * this.airDt);
+    this.scrubT = t;
+    group.goToFrame(this.jumpFrame(group, t));
   }
 
   private playLanding(): void {
     const group = this.anims.get("pular");
     if (!group) return;
+    // Pousou antes de o clipe chegar ao contato (pulo curto numa borda): segue de onde a pose está, sem salto.
+    const from = this.jumpScrub && this.scrubT < LAND_CLIP_START ? this.scrubT : LAND_CLIP_START;
     const ratio = (LAND_CLIP_END - LAND_CLIP_START) / LAND_TIME;
-    this.playOnce("pular", group, ratio, this.jumpFrame(group, LAND_CLIP_START), this.jumpFrame(group, LAND_CLIP_END));
+    this.playOnce("pular", group, ratio, this.jumpFrame(group, from), this.jumpFrame(group, LAND_CLIP_END));
     this.landTimer = LAND_TIME;
   }
 
@@ -876,7 +888,8 @@ export class Player {
     // Altura dos quadris no último quadro desenhado, medida a partir do pé do boneco.
     const hipsHeight = this.hips ? this.hips.getAbsolutePosition().y - this.visual.position.y : STAND_HIPS;
     const lift = this.airKind !== "nao" ? Math.max(0, hipsHeight - STAND_HIPS) : 0;
-    this.hipsLift = lift >= this.hipsLift || dt <= 0 ? lift : approach(this.hipsLift, lift, HIPS_SETTLE_SPEED * dt);
+    // No ar segue o clipe exatamente; só depois do pouso os quadris assentam devagar.
+    this.hipsLift = lift >= this.hipsLift || dt <= 0 || this.airKind !== "nao" ? lift : approach(this.hipsLift, lift, HIPS_SETTLE_SPEED * dt);
     y -= this.hipsLift;
     this.visual.position.set(this.position.x - this.facing * this.pushBack, y, 0);
   }

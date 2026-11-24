@@ -1,5 +1,6 @@
 import type { StickerData, BlockData, DecorData, LampData, LevelData, PropData } from "./types";
 import { DRUMS_GRIP, DRUMS_VISUAL, GAS_CART_GRIP, GAS_CART_VISUAL, fluorescent } from "./kits.ts";
+import { mapLevelX, type MapX } from "./shift.ts";
 
 const START = 117;
 const RAMP_END = 123;
@@ -149,7 +150,7 @@ function groundWithRecess(): BlockData[] {
   ];
 }
 
-export const area4Level: LevelData = {
+const area4Base: LevelData = {
   checkpoints: [
     { x: 124, y: 1.2 },
     { x: 153.4, y: 1.2 },
@@ -180,7 +181,7 @@ export const area4Level: LevelData = {
     { x0: START, x1: RAMP_END, y0: GALLERY_Y, y1: 0, material: "concreto" },
     { x0: RAMP_END, x1: END, y0: 0, material: "asfalto" },
   ],
-  ambiente: [{ minX: START, maxX: END, intensidade: 0.36, cor: [0.56, 0.62, 0.44] }],
+  ambiente: [{ minX: START, maxX: END, intensidade: 0.6, cor: [0.56, 0.62, 0.44], nevoa: [0.26, 0.33, 0.3] }],
   vultos: [],
   depth: 4,
   ground: groundWithRecess(),
@@ -315,3 +316,45 @@ export const area4Level: LevelData = {
     { model: "old_tyre", x: 197.4, y: 0, z: 2.3, rotY: 8 },
   ],
 };
+
+// Perseguições mais longas (feedback do segundo jogador: cada uma durava uns 6 s; agora uns 10 s). A área é desenhada
+// como antes e depois esticada: 20 m entram logo antes do portão de cada perseguição, e nesses trechos novos entram mais dois
+// obstáculos (4 por trecho). Tudo o que vem depois de cada corte (depósito, segunda perseguição, fim da área) anda junto.
+const STRETCH = 20;
+const CUT1 = 145.5;
+const CUT2 = 190.5;
+/** Leva uma posição do desenho original da área 4 para a área esticada. */
+export const AREA4_STRETCH: MapX = (x) => x + (x > CUT1 ? STRETCH : 0) + (x > CUT2 ? STRETCH : 0);
+
+// Obstáculos novos, já nas coordenadas esticadas: um deslize e uma barreira em cada trecho novo.
+const NEW_SLIDES = [149.2, 164, 217.5, 227.5];
+const NEW_BARRIERS = [[154, 0.9], [158.5, 0.8], [213, 1], [223, 0.9]] as const;
+// Lâmpadas que cobrem os trechos novos (a do segundo trecho apaga junto no apagão, que vai até o portão).
+const NEW_LAMPS = [151.5, 161, 215, 225];
+
+function withLongerChases(base: LevelData): LevelData {
+  const level = mapLevelX(base, AREA4_STRETCH);
+  return {
+    ...level,
+    obstacles: [
+      ...level.obstacles,
+      ...NEW_SLIDES.map((x) => laneBlock(x, (GAP + CEILING) / 2, 0.25, CEILING - GAP, "listrado")),
+      ...NEW_BARRIERS.map(([x, h]) => barrier(x, h)),
+    ],
+    lamps: [...level.lamps, ...NEW_LAMPS.map((x): LampData => ({ x, y: 2.75, tom: "subsolo" }))],
+    decor: [
+      ...level.decor,
+      ...NEW_SLIDES.flatMap((x) => [
+        ...stripes(x, (GAP + CEILING) / 2, CEILING - GAP, 0.25),
+        { x, y: CEILING - 0.02, z: LANE_Z, width: 0.08, height: 0.04, depth: LANE_DEPTH, material: "metal" } as DecorData,
+      ]),
+    ],
+    props: [
+      ...(level.props ?? []),
+      ...NEW_BARRIERS.flatMap(([x, h]) => barrierVisual(x, h)),
+      ...NEW_LAMPS.map((x) => fluorescent(x, CEILING - 0.01)),
+    ],
+  };
+}
+
+export const area4Level: LevelData = withLongerChases(area4Base);

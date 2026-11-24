@@ -21,6 +21,8 @@ import { Physics } from "./Physics";
 import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX, VISUAL } from "./PostFX";
+import { createMist } from "./Neblina";
+import { mistBands, mistStrengthAt } from "../levels/neblina";
 import { Box } from "./entities/Box";
 import { Door } from "./entities/Door";
 import { Lamp } from "./entities/Lamp";
@@ -86,7 +88,7 @@ const DOOR_CLEARANCE = 0.05;
 const LIGHT_CULL_DISTANCE = 17;
 // Brilho alaranjado de cidade grande no horizonte (iluminação pública de vapor de sódio).
 const CITY_GLOW = new Color3(0.2, 0.15, 0.14);
-const DEFAULT_FOG: [number, number, number] = [VISUAL.background.r, VISUAL.background.g, VISUAL.background.b];
+const DEFAULT_FOG: [number, number, number] = [VISUAL.fog.r, VISUAL.fog.g, VISUAL.fog.b];
 const MAX_LIGHTS_PER_MATERIAL = 8;
 const GUARD_RIM_BOOST = 1.7;
 // Blocos de uniforms que o material usa além das luzes (cena, malha, material e um de folga).
@@ -417,7 +419,7 @@ export class Game {
       if (prop.shadow) this.propShadowCasters.push(...root.getChildMeshes());
     });
     level.doors.forEach((door, i) =>
-      this.doors.push(new Door(scene, door, level.depth, this.materials.get("metal"), `door-${i}`)),
+      this.doors.push(new Door(scene, door, door.depth ?? level.depth, this.materials.get("metal"), `door-${i}`)),
     );
     level.plates.forEach((plate, i) =>
       this.plates.push(new PressurePlate(scene, plate, level.depth, this.materials, `plate-${i}`)),
@@ -481,6 +483,11 @@ export class Game {
       this.lamps.find((lamp) => Math.abs(lamp.positionX - glow.x) < 0.5)?.addGlow(glow.material);
     }
     createForeground(scene, this.materials, level.primeiroPlano ?? [], level.walls, level.depth);
+    // Neblina baixa atrás da faixa de jogo, da cor da névoa de cada trecho.
+    createMist(scene, mistBands(level), (x) => ({
+      color: Color3.FromArray((level.ambiente ?? []).find((z) => x >= z.minX && x < z.maxX)?.nevoa ?? DEFAULT_FOG),
+      strength: mistStrengthAt(level, x, VISUAL.mist),
+    }));
     this.life = new Life(scene, level.vida ?? []);
     this.applySurfaceUVs();
     this.vultos = await Vultos.create(scene, level.vultos ?? []);
@@ -657,7 +664,7 @@ export class Game {
       // No apagão do subsolo, o trecho fica só com a luz de emergência.
       const blackout = this.chaseDirector?.ambientAt(px);
       const zone = area && blackout ? { ...area, ...blackout } : area;
-      const target = (zone?.intensidade ?? 1) * (dark ? DARK_AMBIENT : 1);
+      const target = (zone?.intensidade ?? 1) * VISUAL.ambientScale * (dark ? DARK_AMBIENT : 1);
       const k = Math.min(1, dt * 1.5);
       this.ambient.intensity += (target - this.ambient.intensity) * k;
       if (zone) {
@@ -676,6 +683,11 @@ export class Game {
       f.r += (fog[0] - f.r) * k;
       f.g += (fog[1] - f.g) * k;
       f.b += (fog[2] - f.b) * k;
+      // O céu acompanha a névoa (um pouco mais escuro), senão o horizonte vira uma faixa de outra cor.
+      const sky = this.scene.clearColor;
+      sky.r = f.r * VISUAL.skyFromFog;
+      sky.g = f.g * VISUAL.skyFromFog;
+      sky.b = f.b * VISUAL.skyFromFog;
     }
     this.player.setCrouch((this.level.furtivo ?? []).some((f) => px >= f.minX && px <= f.maxX));
     this.player.setGrip(this.pushTimer > 0 ? this.gripPoint() : null);
@@ -1211,7 +1223,7 @@ export class Game {
       const impact = box.takeImpact();
       if (impact <= 0) continue;
       const p = box.mesh.position;
-      this.sfx.play("aterrissar", { volume: Math.min(1, 0.4 + impact * 0.08), pitch: 0.55 });
+      this.sfx.play("aterrissar", { volume: Math.min(0.5, 0.2 + impact * 0.04), pitch: 0.55 });
       let heard = false;
       for (const vigia of this.vigias) {
         if (vigia.hear(p.x, p.y) && !heard) {

@@ -142,6 +142,8 @@ export interface AmbientZone {
    * Tira do preto puro as faces viradas para a câmera, que os postes não alcançam. Não é uma luz de verdade.
    */
   preenchimento?: number;
+  /** Força da neblina baixa atrás da faixa de jogo neste trecho (0 a 1). Sem valor, vale a do visual. */
+  neblina?: number;
 }
 
 export interface PlateData {
@@ -164,6 +166,8 @@ export interface DoorData {
   height: number;
   openHeight: number;
   closeAfterX?: number;
+  /** Profundidade em z (padrão: a da fase). Mais rasa, a porta não tampa a câmera de quem está logo ao lado dela. */
+  depth?: number;
 }
 
 /**
@@ -286,6 +290,20 @@ export interface LevelData {
    * para a parte de baixo da tela não mostrar a lateral da laje, os rebaixos e o vazio. Só visual, sem colisão.
    */
   primeiroPlano?: ApronData[];
+  /**
+   * Faixas de neblina baixa além das que saem sozinhas do piso de primeiro plano (área externa, que não tem piso
+   * de primeiro plano). Só visual: um plano translúcido atrás da faixa de jogo que separa o fundo do jogo.
+   */
+  neblina?: MistData[];
+}
+
+/** Faixa de neblina de x0 a x1, com a base em `y`, na profundidade `z`, com `altura` metros. */
+export interface MistData {
+  x0: number;
+  x1: number;
+  y: number;
+  z: number;
+  altura: number;
 }
 
 /** Trecho do piso de primeiro plano, de x0 a x1, com o topo em `y0` (ou subindo de `y0` a `y1`, numa rampa ou escada). */

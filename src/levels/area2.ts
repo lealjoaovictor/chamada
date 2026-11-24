@@ -184,8 +184,8 @@ export const area2Level: LevelData = {
     { kind: "umidade", x: 124, y: 0.55, z: BACK_Z - 0.06, width: 4, height: 1.1 },
   ],
   ambiente: [
-    { minX: START, maxX: ROOM1_END, intensidade: 0.52, cor: [0.64, 0.7, 0.7] },
-    { minX: ROOM1_END, maxX: END2, intensidade: 0.44, cor: [0.6, 0.66, 0.66] },
+    { minX: START, maxX: ROOM1_END, intensidade: 0.66, cor: [0.64, 0.7, 0.7] },
+    { minX: ROOM1_END, maxX: END2, intensidade: 0.56, cor: [0.6, 0.66, 0.66] },
   ],
   vultos: [{ x: 114.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 126.5 }],
@@ -239,7 +239,8 @@ export const area2Level: LevelData = {
   ],
   doors: [
     { x: DOOR_X, y: CEILING / 2, width: 0.25, height: CEILING, openHeight: ARM_HEIGHT },
-    { x: GATE2_X, y: ROOM2_CEILING / 2, width: 0.25, height: ROOM2_CEILING, openHeight: GATE2_OPEN },
+    // Rasa: com a profundidade da sala inteira, a frente da porta ficava entre a câmera e o vão do degrau.
+    { x: GATE2_X, y: ROOM2_CEILING / 2, width: 0.25, height: ROOM2_CEILING, openHeight: GATE2_OPEN, depth: 1.4 },
   ],
   vigias: [
     {
@@ -373,7 +374,9 @@ export const area2Level: LevelData = {
     { x: (STAGE_X0 + STAGE_X1) / 2, y: STAGE_TOP + 0.01, z: -1.82, width: STAGE_X1 - STAGE_X0, height: 0.02, depth: 0.3, material: "listrado" },
     ...[94, 99.5].flatMap(archWindow).map((d) => ({ ...d, y: d.y + 1 })),
     { x: GATE2_X, y: ROOM2_CEILING / 2, z: BACK_Z - 0.05, width: 0.6, height: ROOM2_CEILING, depth: 0.2, material: "concreto" },
-    { x: GATE2_X - 0.25, y: ROOM2_CEILING / 2, z: -1.95, width: 0.25, height: ROOM2_CEILING, depth: 0.15, material: "concreto" },
+    // Batente da frente do lado de fora (à direita): do lado de dentro ele ficava entre a câmera e o vão do degrau
+    // e escondia o Zacarias justo onde ele precisa ver os pés para subir de volta.
+    { x: GATE2_X + 0.25, y: ROOM2_CEILING / 2, z: -1.95, width: 0.25, height: ROOM2_CEILING, depth: 0.15, material: "concreto" },
 
     // Sala 3: sala escura.
     { x: (ROOM2_END + END2) / 2, y: CEILING + 2.1, z: 0, width: END2 - ROOM2_END, height: 3.4, depth: 4.6, material: "pedra" },

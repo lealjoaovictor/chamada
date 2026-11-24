@@ -147,6 +147,7 @@ export const CHAMADA: CallData = {
   atrasoComentario: 3,
 
   // A 204 vazia: o projetor queimou e a aula mudou para o Lab. 3, e o Davi esqueceu de avisar.
+  // Os dois falam sussurrando (estão dentro da faculdade), como as outras falas do Davi.
   salaVazia: [
     zacarias("zac_sala_1", "Ué... cadê todo mundo?"),
     zacarias("zac_sala_2", "Lab. 3? Bloco C?!"),

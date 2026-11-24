@@ -1,6 +1,7 @@
 import { Scene } from "@babylonjs/core/scene";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import type { DefaultRenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { SpotLight } from "@babylonjs/core/Lights/spotLight";
@@ -22,7 +23,7 @@ import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX, VISUAL } from "./PostFX";
 import { createMist } from "./Neblina";
-import { mistBands, mistStrengthAt } from "../levels/neblina";
+import { isOutdoors, mistBands, mistStrengthAt } from "../levels/neblina";
 import { Box } from "./entities/Box";
 import { Door } from "./entities/Door";
 import { Lamp } from "./entities/Lamp";
@@ -154,6 +155,7 @@ const SHADOW_ONLY_LAYER = 0x10000000;
 export class Game {
   private readonly boxes: Box[] = [];
   private ambient: HemisphericLight | null = null;
+  private postfx: DefaultRenderingPipeline | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
   private vultos: Vultos | null = null;
   private life: Life | null = null;
@@ -458,7 +460,7 @@ export class Game {
     }
     this.chaseDirector = new ChaseDirector(this.vigias, this.lamps);
     this.cameraRig = new CameraRig(scene, { x: spawn.x, feetY: this.player.feetY }, level.bounds);
-    PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
+    this.postfx = PostFX.apply(scene, this.cameraRig.camera, light, VISUAL);
     createBackdrop(scene, (level.bounds.minX + level.bounds.maxX) / 2, VISUAL.background.scale(1.6), VISUAL.background.scale(0.3));
     for (const trecho of level.cidade ?? []) {
       const fog = (level.ambiente ?? []).find((z) => trecho.minX < z.maxX && trecho.maxX > z.minX)?.nevoa ?? DEFAULT_FOG;
@@ -664,6 +666,20 @@ export class Game {
       f.r += (fog[0] - f.r) * k;
       f.g += (fog[1] - f.g) * k;
       f.b += (fog[2] - f.b) * k;
+      // Lá fora a névoa começa logo atrás da faixa de jogo; dentro da faculdade, só depois da parede do fundo.
+      const outdoors = isOutdoors(this.level, px);
+      const fogStart = outdoors ? VISUAL.fogStart : VISUAL.interiorFogStart;
+      const fogEnd = outdoors ? VISUAL.fogEnd : VISUAL.interiorFogEnd;
+      this.scene.fogStart += (fogStart - this.scene.fogStart) * k;
+      this.scene.fogEnd += (fogEnd - this.scene.fogEnd) * k;
+      // Dentro, brilho e exposição mais contidos: as paredes claras sob as lâmpadas não estouram.
+      if (this.postfx) {
+        const p = this.postfx;
+        p.bloomWeight += ((outdoors ? VISUAL.bloom : VISUAL.interiorBloom) - p.bloomWeight) * k;
+        p.bloomThreshold += ((outdoors ? VISUAL.bloomThreshold : VISUAL.interiorBloomThreshold) - p.bloomThreshold) * k;
+        const ip = p.imageProcessing;
+        ip.exposure += ((outdoors ? VISUAL.exposure : VISUAL.interiorExposure) - ip.exposure) * k;
+      }
       // O céu acompanha a névoa (um pouco mais escuro), senão o horizonte vira uma faixa de outra cor.
       const sky = this.scene.clearColor;
       sky.r = f.r * VISUAL.skyFromFog;

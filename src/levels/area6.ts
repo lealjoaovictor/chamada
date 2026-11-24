@@ -195,9 +195,9 @@ export const area6Level: LevelData = {
   ],
   depth: 4,
   ambiente: [
-    { minX: START, maxX: ENTRY_X, intensidade: 0.34, cor: [0.55, 0.5, 0.45] },
-    { minX: ENTRY_X, maxX: LAB_DOOR_X - 1.5, intensidade: 0.26, cor: [0.5, 0.55, 0.62] },
-    { minX: LAB_DOOR_X - 1.5, maxX: END + 1, intensidade: 0.9, cor: [0.95, 0.76, 0.52] },
+    { minX: START, maxX: ENTRY_X, intensidade: 0.42, cor: [0.55, 0.5, 0.45] },
+    { minX: ENTRY_X, maxX: LAB_DOOR_X - 1.5, intensidade: 0.33, cor: [0.5, 0.55, 0.62] },
+    { minX: LAB_DOOR_X - 1.5, maxX: END + 1, intensidade: 0.9, cor: [0.95, 0.76, 0.52], nevoa: [0.36, 0.31, 0.25] },
   ],
   // O professor em pé na mesa, com a lista, e o Davi sentado numa carteira com o celular na mão.
   figurantes: [

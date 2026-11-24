@@ -184,8 +184,8 @@ export const area2Level: LevelData = {
     { kind: "umidade", x: 124, y: 0.55, z: BACK_Z - 0.06, width: 4, height: 1.1 },
   ],
   ambiente: [
-    { minX: START, maxX: ROOM1_END, intensidade: 0.52, cor: [0.64, 0.7, 0.7] },
-    { minX: ROOM1_END, maxX: END2, intensidade: 0.44, cor: [0.6, 0.66, 0.66] },
+    { minX: START, maxX: ROOM1_END, intensidade: 0.66, cor: [0.64, 0.7, 0.7] },
+    { minX: ROOM1_END, maxX: END2, intensidade: 0.56, cor: [0.6, 0.66, 0.66] },
   ],
   vultos: [{ x: 114.8, y: 0, z: 0.8, facing: 1 }],
   escuro: [{ minX: ROOM2_END + 1, maxX: 126.5 }],

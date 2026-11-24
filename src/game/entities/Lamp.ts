@@ -26,7 +26,7 @@ const MOON_RANGE = 14;
 const MOON_Z = -2.5;
 const OFF_LEVEL = 0.06;
 /** Cone de luz visível (poeira iluminada) abaixo de cada lâmpada. */
-const CONE_ALPHA = 0.11;
+const CONE_ALPHA = 0.2;
 const CONE_TOP = 0.22;
 const CONE_SPREAD = 0.55;
 const ON_TIME = [0.3, 2.6];

@@ -79,6 +79,7 @@ export function mapLevelX(level: LevelData, f: MapX): LevelData {
     vultos: level.vultos?.map((v) => ({ ...v, x: f(v.x) })),
     figurantes: level.figurantes?.map((v) => ({ ...v, x: f(v.x) })),
     primeiroPlano: level.primeiroPlano?.map((a) => ({ ...a, x0: f(a.x0), x1: f(a.x1) })),
+    neblina: level.neblina?.map((m) => ({ ...m, x0: f(m.x0), x1: f(m.x1) })),
   };
 }
 

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { WORLD } from "../src/levels/world.ts";
 import { mapLevelX } from "../src/levels/shift.ts";
-import { MIST_SINK, mistBands, mistStrengthAt } from "../src/levels/neblina.ts";
+import { isOutdoors, mistBands, mistStrengthAt } from "../src/levels/neblina.ts";
 
 const { level } = WORLD;
 
@@ -18,16 +18,12 @@ test("toda faixa de neblina fica atrás da faixa de jogo e dentro do mundo", () 
   }
 });
 
-test("cada trecho de piso de primeiro plano ganha uma faixa, com a base abaixo do piso", () => {
-  const aprons = level.primeiroPlano ?? [];
-  const bands = mistBands(level);
-  for (const apron of aprons) {
-    const band = bands.find((b) => b.x0 === apron.x0 && b.x1 === apron.x1);
-    assert.ok(band, `faixa do piso ${apron.x0}..${apron.x1}`);
-    assert.ok(band.y <= Math.min(apron.y0, apron.y1 ?? apron.y0) - MIST_SINK + 1e-9);
-    // Nos interiores, a faixa fica à frente da parede do fundo.
-    assert.ok(band.z < level.depth / 2);
+test("não há neblina baixa dentro da faculdade: toda faixa fica num trecho ao ar livre", () => {
+  for (const band of mistBands(level)) {
+    assert.ok(isOutdoors(level, band.x0 + 0.01) || isOutdoors(level, band.x1 - 0.01), `faixa ${band.x0}..${band.x1}`);
   }
+  // A biblioteca (área 4) é interior.
+  assert.equal(isOutdoors(level, 290), false);
 });
 
 test("a área externa declara a própria neblina e o deslocamento leva junto", () => {

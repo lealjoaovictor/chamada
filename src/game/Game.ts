@@ -696,8 +696,12 @@ export class Game {
         const p = this.postfx;
         p.bloomWeight += ((outdoors ? VISUAL.bloom : VISUAL.interiorBloom) - p.bloomWeight) * k;
         p.bloomThreshold += ((outdoors ? VISUAL.bloomThreshold : VISUAL.interiorBloomThreshold) - p.bloomThreshold) * k;
+        // Cada troca de exposição marca todos os materiais como sujos (o Babylon reavalia os shaders): só muda em
+        // degraus de 0,02 e para exatamente no alvo, senão a interpolação mexe nela a cada quadro e o jogo trava.
         const ip = p.imageProcessing;
-        ip.exposure += ((outdoors ? VISUAL.exposure : VISUAL.interiorExposure) - ip.exposure) * k;
+        const exposure = outdoors ? VISUAL.exposure : VISUAL.interiorExposure;
+        const diff = exposure - ip.exposure;
+        if (Math.abs(diff) > 1e-6) ip.exposure = Math.abs(diff) <= 0.02 ? exposure : ip.exposure + Math.sign(diff) * Math.max(0.02, Math.abs(diff) * k);
       }
       // O céu acompanha a névoa (um pouco mais escuro), senão o horizonte vira uma faixa de outra cor.
       const sky = this.scene.clearColor;

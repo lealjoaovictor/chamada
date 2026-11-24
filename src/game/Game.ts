@@ -23,6 +23,7 @@ import { CAPSULE_HEIGHT, CAPSULE_RADIUS, Player } from "./Player";
 import { CameraRig } from "./CameraRig";
 import { PostFX, VISUAL } from "./PostFX";
 import { createMist } from "./Neblina";
+import { DistanceCull } from "./DistanceCull";
 import { isOutdoors, mistBands, mistStrengthAt } from "../levels/neblina";
 import { Box } from "./entities/Box";
 import { Door } from "./entities/Door";
@@ -163,6 +164,7 @@ export class Game {
   private readonly boxes: Box[] = [];
   private ambient: HemisphericLight | null = null;
   private postfx: DefaultRenderingPipeline | null = null;
+  private cull: DistanceCull | null = null;
   private darkZones: { minX: number; maxX: number }[] = [];
   private vultos: Vultos | null = null;
   private life: Life | null = null;
@@ -540,6 +542,7 @@ export class Game {
     scene.materials.forEach(capLights);
     scene.onNewMaterialAddedObservable.add(capLights);
 
+    this.cull = new DistanceCull(scene);
     scene.onBeforeRenderObservable.add(() => this.update());
     scene.onAfterPhysicsObservable.add(() => {
       for (const box of this.boxes) box.lockToPlane();
@@ -574,6 +577,13 @@ export class Game {
   }
 
   private update(): void {
+    this.step();
+    if (this.warming || !this.cull) return;
+    const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
+    this.cull.update(dt, this.cameraRig.camera.position.x);
+  }
+
+  private step(): void {
     if (this.warming) return;
     const realDt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, MAX_CLOCK_STEP);
     const dt = Math.min(realDt, MAX_DT);

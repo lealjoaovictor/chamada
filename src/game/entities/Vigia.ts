@@ -33,6 +33,8 @@ const WALK_CLIP_SPEED = 1.68;
 const RUN_CLIP_SPEED = 5.33;
 const CATCH_DISTANCE = 0.55;
 const BLEND_TIME = 0.25;
+/** Quão rápido ele vira para o jogador que pegou (facing por segundo). */
+const POINT_TURN = 5;
 // Lanterna LED dos seguranças: branca e fria (#E6EEF5), para nunca se confundir com a luz quente da sala.
 const LIGHT_COLOR = new Color3(0.9, 0.94, 1);
 const ALERT_COLOR = new Color3(1, 0.1, 0.03);
@@ -150,6 +152,8 @@ export class Vigia {
   private readonly anims: Map<string, AnimationGroup>;
   /** Clipe que está entrando (os outros saem aos poucos). */
   private clip = "parado";
+  /** Pegou o jogador: para, vira para ele e aponta (até a tela escurecer). */
+  private pointing = false;
   private readonly phone: AbstractMesh | null;
   /** Lanterna acesa (na mão, apontando) ou apagada (guardada: o braço fica livre para a animação). */
   private lit = true;
@@ -444,6 +448,7 @@ export class Vigia {
   }
 
   reset(): void {
+    this.pointing = false;
     this.alert = 0;
     this.investigate = null;
     this.updateAlert(0, false);
@@ -480,6 +485,8 @@ export class Vigia {
 
   update(dt: number, playerX: number): void {
     this.updateBadge(dt);
+    // Pegou o jogador: quem move é o pointAt (para e aponta até a tela escurecer).
+    if (this.pointing) return;
     if (this.chases) {
       this.updateChase(dt, playerX);
       return;
@@ -854,6 +861,18 @@ export class Vigia {
   private clipLength(name: string): number {
     const group = this.anims.get(name);
     return group ? (group.to - group.from) / CLIP_FPS : 1;
+  }
+
+  /** Pegou o jogador: vira para ele e aponta. Chamado a cada quadro enquanto a tela escurece. */
+  pointAt(dt: number, playerX: number): void {
+    if (!this.pointing) {
+      this.pointing = true;
+      this.restart("apontar");
+    }
+    const side = Math.sign(playerX - this.x);
+    if (side !== 0) this.facing = approach(this.facing, side, dt * POINT_TURN);
+    this.blend("apontar", dt);
+    this.syncVisual();
   }
 
   /** Recomeça um clipe de uma vez só (levantar, susto, gol) do primeiro quadro. */

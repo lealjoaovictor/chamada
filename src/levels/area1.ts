@@ -97,7 +97,12 @@ export const area1Level: LevelData = {
   bounds: { minX: -5, maxX: END },
   furtivo: [{ minX: FURTIVO_MIN_X, maxX: FURTIVO_MAX_X }],
   // Lá fora a névoa puxa para o brilho alaranjado da cidade, e o horizonte ganha silhuetas de prédios.
-  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.14, 0.12, 0.125], preenchimento: 0.3 }],
+  ambiente: [{ minX: -5, maxX: END, intensidade: 0.8, cor: [0.48, 0.54, 0.7], nevoa: [0.3, 0.36, 0.43], preenchimento: 0.3 }],
+  // Duas camadas de neblina: uma rente à calçada do fundo e outra, mais alta, na frente das fachadas.
+  neblina: [
+    { x0: -10, x1: END, y: -0.35, z: 1.7, altura: 3.2 },
+    { x0: -10, x1: END, y: -0.3, z: 3.4, altura: 6 },
+  ],
   cidade: [{ minX: -10, maxX: END }],
   fios: [
     // Entre os postes da frente: três fios com barriga.

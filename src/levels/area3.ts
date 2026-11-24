@@ -106,8 +106,8 @@ export const area3Level: LevelData = {
     { x0: ARCHIVE_RAMP_X1, x1: ARCHIVE_END, y0: GALLERY_Y },
   ],
   ambiente: [
-    { minX: START, maxX: READING_END, intensidade: 0.36, cor: [0.5, 0.56, 0.66] },
-    { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.17, cor: [0.4, 0.48, 0.66] },
+    { minX: START, maxX: READING_END, intensidade: 0.45, cor: [0.5, 0.56, 0.66] },
+    { minX: READING_END, maxX: ARCHIVE_END, intensidade: 0.21, cor: [0.4, 0.48, 0.66] },
   ],
   vultos: [],
   depth: 4,

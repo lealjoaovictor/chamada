@@ -181,7 +181,7 @@ const area4Base: LevelData = {
     { x0: START, x1: RAMP_END, y0: GALLERY_Y, y1: 0, material: "concreto" },
     { x0: RAMP_END, x1: END, y0: 0, material: "asfalto" },
   ],
-  ambiente: [{ minX: START, maxX: END, intensidade: 0.36, cor: [0.56, 0.62, 0.44] }],
+  ambiente: [{ minX: START, maxX: END, intensidade: 0.6, cor: [0.56, 0.62, 0.44], nevoa: [0.26, 0.33, 0.3] }],
   vultos: [],
   depth: 4,
   ground: groundWithRecess(),

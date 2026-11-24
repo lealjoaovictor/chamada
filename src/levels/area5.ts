@@ -106,8 +106,8 @@ export const area5Level: LevelData = {
     { x0: STAIRS_END, x1: END, y0: FLOOR },
   ],
   ambiente: [
-    { minX: START, maxX: DOOR_X - 1.5, intensidade: 0.28, cor: [0.5, 0.55, 0.6] },
-    { minX: DOOR_X - 1.5, maxX: END + 1, intensidade: 0.2, cor: [0.42, 0.5, 0.66] },
+    { minX: START, maxX: DOOR_X - 1.5, intensidade: 0.35, cor: [0.5, 0.55, 0.6] },
+    { minX: DOOR_X - 1.5, maxX: END + 1, intensidade: 0.25, cor: [0.42, 0.5, 0.66] },
   ],
   depth: 4,
   ground: [{ x: (STAIRS_END + END + 1) / 2, y: (FLOOR - 1) / 2, width: END + 1 - STAIRS_END, height: FLOOR + 1, material: "piso" }],
